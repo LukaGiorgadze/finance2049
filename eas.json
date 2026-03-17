@@ -1,0 +1,34 @@
+{
+  "cli": {
+    "version": ">= 16.9.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "branding": {
+      "env": {
+        "EXPO_PUBLIC_BRAND_TINT_COLOR": "#34C759",
+        "EXPO_PUBLIC_BRAND_BACKGROUND_LIGHT": "#FFFFFF",
+        "EXPO_PUBLIC_BRAND_BACKGROUND_DARK": "#151718"
+      }
+    },
+    "development": {
+      "extends": "branding",
+      "developmentClient": true,
+      "distribution": "internal",
+      "environment": "development"
+    },
+    "preview": {
+      "extends": "branding",
+      "distribution": "internal",
+      "environment": "preview"
+    },
+    "production": {
+      "extends": "branding",
+      "autoIncrement": true,
+      "environment": "production"
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
