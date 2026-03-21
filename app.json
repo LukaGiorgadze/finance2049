@@ -2,7 +2,7 @@
   "expo": {
     "name": "Finance 2049",
     "slug": "finance2049",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "finance2049",
@@ -10,14 +10,16 @@
     "newArchEnabled": true,
     "ios": {
       "buildNumber": "1",
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.lomsa.finance2049",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "permissions": ["android.permission.CAMERA"],
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
@@ -52,7 +54,8 @@
             "backgroundColor": "#151718"
           }
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,
