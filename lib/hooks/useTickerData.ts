@@ -181,7 +181,11 @@ export function useTickerData(symbol: string, timeline: TimelineType, refreshKey
           barsResult = await marketDataService.getHistoricalBars({ symbol, timelineType: timeline });
           if (!Array.isArray(barsResult)) barsResult = [];
         } catch (err) {
-          reportWarning(`[useTickerData] getHistoricalBars failed for ${symbol}, using mock`, err);
+          reportWarning(`[useTickerData] getHistoricalBars failed for ${symbol}, using mock`, err, {
+            symbol,
+            timeline,
+            stage: 'timeline_only_bars',
+          });
           barsResult = generateMockBars(timeline, cachedQuote.current?.price ?? 150);
         }
         if (!cancelled) {
@@ -196,7 +200,11 @@ export function useTickerData(symbol: string, timeline: TimelineType, refreshKey
       try {
         detailsResult = await marketDataService.getTickerDetails(symbol);
       } catch (err) {
-        reportWarning(`[useTickerData] getTickerDetails failed for ${symbol}`, err);
+        reportWarning(`[useTickerData] getTickerDetails failed for ${symbol}`, err, {
+          symbol,
+          timeline,
+          stage: 'details',
+        });
         if (err instanceof MassiveApiError && err.status === 404) {
           if (!cancelled) {
             setError(`Ticker "${symbol}" was not found. Only US-listed securities are supported.`);
@@ -220,14 +228,22 @@ export function useTickerData(symbol: string, timeline: TimelineType, refreshKey
 
       // --- Fetch quote and bars in parallel ---
       const quotePromise = marketDataService.getQuote(symbol).catch((err) => {
-        reportWarning(`[useTickerData] getQuote failed for ${symbol}`, err);
+        reportWarning(`[useTickerData] getQuote failed for ${symbol}`, err, {
+          symbol,
+          timeline,
+          stage: 'quote',
+        });
         return null;
       });
 
       const barsPromise = marketDataService.getHistoricalBars({ symbol, timelineType: timeline })
         .then((result) => (Array.isArray(result) ? result : []))
         .catch((err) => {
-          reportWarning(`[useTickerData] getHistoricalBars failed for ${symbol}, using mock`, err);
+          reportWarning(`[useTickerData] getHistoricalBars failed for ${symbol}, using mock`, err, {
+            symbol,
+            timeline,
+            stage: 'full_fetch_bars',
+          });
           return null as OHLCBar[] | null;
         });
 

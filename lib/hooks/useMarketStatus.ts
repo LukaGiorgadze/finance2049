@@ -30,7 +30,9 @@ export function useMarketStatus() {
         }
       } catch (err) {
         if (!cancelled) {
-          reportWarning('[useMarketStatus] Failed to fetch market status', err);
+          reportWarning('[useMarketStatus] Failed to fetch market status', err, {
+            stage: 'market_status',
+          });
           setError((err as Error).message);
         }
       } finally {

@@ -39,7 +39,10 @@ export function TopMovers({ refreshKey = 0 }: { refreshKey?: number }) {
 
         setAllMovers(combined);
       } catch (error) {
-        reportError('Failed to fetch top movers', error);
+        reportError('Failed to fetch top movers', error, {
+          surface: 'home_widget',
+          refreshKey,
+        });
         setAllMovers([]);
       } finally {
         setIsLoading(false);

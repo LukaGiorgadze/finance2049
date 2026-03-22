@@ -162,7 +162,11 @@ async function checkAndApplySplits(): Promise<void> {
         applySplit(holding.symbol, split.splitFrom, split.splitTo, split.executionDate, split.id);
       }
     } catch (err) {
-      reportWarning(`[splits] Failed to check splits for ${holding.symbol}`, err);
+      reportWarning(`[splits] Failed to check splits for ${holding.symbol}`, err, {
+        symbol: holding.symbol,
+        lotCount: holding.lots.length,
+        holdingShares: holding.totalShares,
+      });
     }
   }
 }
@@ -207,7 +211,10 @@ export function useRefreshPortfolioPrices() {
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to fetch prices';
         setError(message);
-        reportWarning('[useRefreshPortfolioPrices] Failed to fetch prices', err);
+        reportWarning('[useRefreshPortfolioPrices] Failed to fetch prices', err, {
+          symbolCount: symbols.length,
+          hasToken: Boolean(token),
+        });
       } finally {
         setIsLoading(false);
       }

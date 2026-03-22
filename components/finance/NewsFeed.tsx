@@ -52,7 +52,11 @@ export function NewsFeed({ refreshKey = 0 }: { refreshKey?: number }) {
         const { articles: data } = await marketDataService.getNews({ limit: 5 });
         setArticles(data);
       } catch (error) {
-        reportError('Failed to fetch news', error);
+        reportError('Failed to fetch news', error, {
+          surface: 'home_widget',
+          limit: 5,
+          refreshKey,
+        });
         setArticles([]);
       } finally {
         setIsLoading(false);

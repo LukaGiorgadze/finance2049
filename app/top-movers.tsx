@@ -36,9 +36,12 @@ export default function TopMoversScreen() {
       setGainers(gainersData);
       setLosers(losersData);
     } catch (error) {
-      reportError('Failed to fetch top movers', error);
+      reportError('Failed to fetch top movers', error, {
+        surface: 'top_movers_screen',
+        selectedFilter,
+      });
     }
-  }, []);
+  }, [selectedFilter]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

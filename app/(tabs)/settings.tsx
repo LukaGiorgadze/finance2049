@@ -46,7 +46,10 @@ export default function SettingsScreen() {
 
       await Linking.openURL(url);
     } catch (error) {
-      reportError('[Linking] Failed to open URL', error);
+      reportError('[Linking] Failed to open URL', error, {
+        url,
+        surface: 'settings',
+      });
       if (url.startsWith('mailto:')) {
         Alert.alert('Email Support', SUPPORT_EMAIL);
         return;
@@ -101,7 +104,11 @@ export default function SettingsScreen() {
       // Clean up cache file after sharing
       try { if (file.exists) file.delete(); } catch { };
     } catch (error) {
-      reportError('[Export] Failed to export data', error);
+      reportError('[Export] Failed to export data', error, {
+        holdingsCount: Object.keys(store$.portfolio.holdings.get() || {}).length,
+        transactionCount: store$.portfolio.transactions.get().length,
+        surface: 'settings',
+      });
       Alert.alert('Export Failed', 'Something went wrong while exporting your data.');
     } finally {
       setIsExporting(false);
@@ -169,7 +176,9 @@ export default function SettingsScreen() {
         ]
       );
     } catch (error) {
-      reportError('[Restore] Failed to restore data', error);
+      reportError('[Restore] Failed to restore data', error, {
+        surface: 'settings',
+      });
       Alert.alert('Restore Failed', 'The file could not be read or contains invalid data.');
     } finally {
       setIsRestoring(false);

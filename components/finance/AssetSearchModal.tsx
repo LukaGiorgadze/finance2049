@@ -70,7 +70,9 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset }: AssetSearc
         setResults(response.results);
         nextUrlRef.current = response.nextUrl;
       } catch (err) {
-        reportWarning('[AssetSearchModal] Search failed', err);
+        reportWarning('[AssetSearchModal] Search failed', err, {
+          query,
+        });
         setResults([]);
         nextUrlRef.current = undefined;
       } finally {
@@ -92,7 +94,9 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset }: AssetSearc
       setResults(prev => [...prev, ...response.results]);
       nextUrlRef.current = response.nextUrl;
     } catch (err) {
-      reportWarning('[AssetSearchModal] Load more failed', err);
+      reportWarning('[AssetSearchModal] Load more failed', err, {
+        nextUrl,
+      });
     } finally {
       setLoadingMore(false);
     }

@@ -163,7 +163,11 @@ export default function StockDetailScreen() {
         commission,
       }, resolvedAssetType, data.name || details?.name);
     } catch (e) {
-      reportError(`[StockDetail] Failed to record transaction for ${symbolUpper}`, e);
+      reportError(`[StockDetail] Failed to record transaction for ${symbolUpper}`, e, {
+        symbol: symbolUpper,
+        type: data.type,
+        screen: 'stock_detail',
+      });
       Alert.alert('Transaction Failed', e instanceof Error ? e.message : 'Failed to record transaction.');
     }
   }, [details?.type, details?.name]);

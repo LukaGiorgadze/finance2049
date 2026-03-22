@@ -184,7 +184,12 @@ export default function ImportTransactionsScreen() {
         }));
         return { status: 'ok', groups, fileInfo: { name: file.name, mimeType: file.mimeType, sizeBytes } as ImportFileInfo };
       } catch (err) {
-        reportWarning(`[Import] Failed to process file ${file.name}`, err);
+        reportWarning(`[Import] Failed to process file ${file.name}`, err, {
+          fileName: file.name,
+          mimeType: file.mimeType,
+          fileIndex: fi,
+          source: 'import_transactions',
+        });
         return { status: 'failed', name: file.name, mimeType: file.mimeType, error: err instanceof Error ? err.message : 'Unknown error' };
       } finally {
         tick();
@@ -235,13 +240,20 @@ export default function ImportTransactionsScreen() {
       });
       router.push('/import-confirm');
     } catch (err) {
-      reportError('[Import] Extraction failed', err);
+      reportError('[Import] Extraction failed', err, {
+        fileCount: files.length,
+        uploadedPathCount: uploadedPaths.length,
+        source: 'import_transactions',
+      });
       const msg = err instanceof Error ? err.message : 'Something went wrong';
       Alert.alert('Extraction failed', msg);
     } finally {
       if (uploadedPaths.length > 0) {
         supabase.storage.from(STORAGE_BUCKET).remove(uploadedPaths).catch((err) => {
-          reportWarning('[Import] Failed to clean up uploaded files', err);
+          reportWarning('[Import] Failed to clean up uploaded files', err, {
+            uploadedPathCount: uploadedPaths.length,
+            storageBucket: STORAGE_BUCKET,
+          });
         });
       }
       setIsProcessing(false);
@@ -274,7 +286,9 @@ export default function ImportTransactionsScreen() {
           setIsPreparingFiles(false);
         }
       } catch (err) {
-        reportWarning('[Import] Camera launch failed', err);
+        reportWarning('[Import] Camera launch failed', err, {
+          source: 'camera',
+        });
         setIsPreparingFiles(false);
         Alert.alert('Camera unavailable', 'Camera is not available on this device or simulator.');
       }
@@ -307,7 +321,10 @@ export default function ImportTransactionsScreen() {
           setIsPreparingFiles(false);
         }
       } catch (e) {
-        reportWarning('[Import] Photo library selection failed', e);
+        reportWarning('[Import] Photo library selection failed', e, {
+          source: 'photos',
+          existingFileCount: files.length,
+        });
         setIsPreparingFiles(false);
         const msg = e instanceof Error ? e.message : '';
         if (msg.includes('public.png') || msg.includes('representation')) {
@@ -342,7 +359,10 @@ export default function ImportTransactionsScreen() {
           .map(a => ({ uri: a.uri, mimeType: a.mimeType ?? 'application/octet-stream', name: a.name }));
         addFiles(picked);
       } catch (err) {
-        reportWarning('[Import] File picker failed', err);
+        reportWarning('[Import] File picker failed', err, {
+          source: 'files',
+          existingFileCount: files.length,
+        });
         Alert.alert('Error', 'Could not open the file picker.');
       }
     }

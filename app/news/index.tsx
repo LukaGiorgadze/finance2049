@@ -78,10 +78,15 @@ export default function NewsScreen() {
         setArticles(prev => [...prev, ...response.articles]);
       }
     } catch (error) {
-      reportError('Failed to fetch news', error);
+      reportError('Failed to fetch news', error, {
+        surface: 'news_screen',
+        reset,
+        selectedTicker: selectedTicker?.symbol,
+        sentimentFilter,
+      });
       if (reset) setArticles([]);
     }
-  }, [selectedTicker]);
+  }, [selectedTicker, sentimentFilter]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

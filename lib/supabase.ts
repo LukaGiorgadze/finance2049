@@ -10,7 +10,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
-import { reportError } from './crashlytics';
+import { reportError, setCrashAttributes, setCrashUser } from './crashlytics';
 import { store$ } from './store';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
@@ -21,6 +21,12 @@ if (!hasValidConfig && typeof __DEV__ !== 'undefined' && !__DEV__) {
   reportError(
     '[Supabase] Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY. ' +
       'Set them in EAS project environment variables for the production build profile.',
+    undefined,
+    {
+      hasSupabaseUrl: Boolean(supabaseUrl),
+      hasPublishableKey: Boolean(supabasePublishableKey),
+      runtime: 'app',
+    },
   );
 }
 
@@ -76,16 +82,33 @@ export async function ensureSession(): Promise<void> {
       userId: session.user.id,
       isAnonymous: session.user.is_anonymous ?? false,
     });
+    await Promise.all([
+      setCrashUser(session.user.id),
+      setCrashAttributes({
+        isAnonymous: session.user.is_anonymous ?? false,
+        authProvider: session.user.app_metadata?.provider ?? 'unknown',
+      }),
+    ]);
     return;
   }
 
   const { error, data } = await supabase.auth.signInAnonymously();
   if (error) {
-    reportError('[Auth] Anonymous sign-in failed', error);
+    reportError('[Auth] Anonymous sign-in failed', error, {
+      authAction: 'signInAnonymously',
+      hasValidConfig,
+    });
   } else if (data.user) {
     store$.auth.set({
       userId: data.user.id,
       isAnonymous: data.user.is_anonymous ?? true,
     });
+    await Promise.all([
+      setCrashUser(data.user.id),
+      setCrashAttributes({
+        isAnonymous: data.user.is_anonymous ?? true,
+        authProvider: data.user.app_metadata?.provider ?? 'anonymous',
+      }),
+    ]);
   }
 }
