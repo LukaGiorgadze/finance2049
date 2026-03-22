@@ -1,6 +1,12 @@
-import crashlytics from '@react-native-firebase/crashlytics';
+import {
+  getCrashlytics,
+  log as logToCrashlytics,
+  recordError as recordCrashlyticsError,
+  setCrashlyticsCollectionEnabled,
+} from '@react-native-firebase/crashlytics';
 
 let hasInstalledGlobalHandler = false;
+const crashlytics = getCrashlytics();
 
 type ErrorHandler = (error: Error, isFatal?: boolean) => void;
 
@@ -10,7 +16,7 @@ type ErrorUtilsShape = {
 };
 
 export function initializeCrashlytics() {
-  crashlytics().setCrashlyticsCollectionEnabled(!__DEV__);
+  void setCrashlyticsCollectionEnabled(crashlytics, !__DEV__);
 
   if (hasInstalledGlobalHandler) {
     return;
@@ -26,7 +32,7 @@ export function initializeCrashlytics() {
   const defaultHandler = errorUtils.getGlobalHandler?.();
 
   errorUtils.setGlobalHandler((error, isFatal) => {
-    crashlytics().recordError(error);
+    recordCrashlyticsError(crashlytics, error);
 
     if (defaultHandler) {
       defaultHandler(error, isFatal);
@@ -40,12 +46,12 @@ export function recordError(error: unknown, context?: string) {
   const normalizedError = error instanceof Error ? error : new Error(String(error));
 
   if (context) {
-    crashlytics().log(context);
+    logToCrashlytics(crashlytics, context);
   }
 
-  crashlytics().recordError(normalizedError);
+  recordCrashlyticsError(crashlytics, normalizedError);
 }
 
 export function logCrashlyticsMessage(message: string) {
-  crashlytics().log(message);
+  logToCrashlytics(crashlytics, message);
 }
