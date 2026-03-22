@@ -4,6 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { Tabs, usePathname } from 'expo-router';
 import React from 'react';
 import { Animated, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -16,6 +17,7 @@ export default function TabLayout() {
   const isDark = colorScheme === 'dark';
   const colors = isDark ? Colors.dark : Colors.light;
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
   const isTransactionsActive = pathname === '/transactions';
   const { transactionType } = useTransactionType();
 
@@ -106,7 +108,7 @@ export default function TabLayout() {
           left: 16,
           right: 16,
           marginHorizontal: 32,
-          marginBottom: Platform.OS === 'ios' ? 20 : 12,
+          marginBottom: insets.bottom,
           borderRadius: 24,
           shadowColor: Colors.shadow,
           shadowOffset: { width: 0, height: 8 },
