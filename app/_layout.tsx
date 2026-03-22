@@ -4,9 +4,11 @@ import { ThemeProvider } from '@/contexts/theme-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { StoreProvider } from '@/lib';
 import { TransactionTypeProvider } from '@/lib/contexts/TransactionTypeContext';
+import { initializeCrashlytics } from '@/lib/crashlytics';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -55,6 +57,10 @@ function RootLayoutContent() {
 }
 
 export default function RootLayout() {
+  useEffect(() => {
+    initializeCrashlytics();
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>

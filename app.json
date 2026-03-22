@@ -7,9 +7,9 @@
     "icon": "./assets/images/icon.png",
     "scheme": "finance2049",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "buildNumber": "1",
+      "googleServicesFile": "./ios/GoogleService-Info.plist",
       "supportsTablet": false,
       "bundleIdentifier": "com.lomsa.finance2049",
       "infoPlist": {
@@ -17,14 +17,12 @@
       }
     },
     "android": {
-      "permissions": [
-        "android.permission.CAMERA"
-      ],
+      "googleServicesFile": "./android/app/google-services.json",
+      "permissions": ["android.permission.CAMERA"],
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.lomsa.finance2049"
     },
@@ -55,7 +53,19 @@
           }
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static",
+            "buildReactNativeFromSource": true
+          },
+          "android": {}
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
