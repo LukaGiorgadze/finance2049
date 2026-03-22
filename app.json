@@ -60,10 +60,8 @@
         "expo-build-properties",
         {
           "ios": {
-            "useFrameworks": "static",
-            "buildReactNativeFromSource": true
-          },
-          "android": {}
+            "useFrameworks": "static"
+          }
         }
       ]
     ],
