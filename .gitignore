@@ -44,3 +44,5 @@ app-example
 /android
 .claude/
 .vscode/
+
+.local/
