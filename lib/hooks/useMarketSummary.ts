@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getAccessToken } from "../supabase";
+import { httpClient } from "../services/http/client";
 
 const MARKET_SUMMARY_URL =
   "https://query1.finance.yahoo.com/v6/finance/quote/marketSummary?lang=en-US&region=US&corsDomain=finance.yahoo.com";
@@ -41,17 +42,11 @@ export function useMarketSummary(refreshKey = 0) {
     let cancelled = false;
 
     async function fetchMarketSummary(): Promise<MarketSummaryItem[]> {
-      const response = await fetch(MARKET_SUMMARY_URL, {
+      const response = await httpClient.get(MARKET_SUMMARY_URL, {
+        logLabel: "SCRAP",
         headers: { "User-Agent": "Mozilla/5.0" },
       });
-
-      console.debug("[SCRAP] GET", MARKET_SUMMARY_URL);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const data: YahooResponse = await response.json();
+      const data = response.data as YahooResponse;
       const results = data?.marketSummaryResponse?.result ?? [];
 
       return results

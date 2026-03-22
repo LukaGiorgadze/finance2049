@@ -1,13 +1,17 @@
 /**
  * Massive API HTTP Client
  *
- * Thin wrapper around fetch that routes requests through the
+ * Thin wrapper around Axios that routes requests through the
  * Supabase Edge Function proxy. The proxy injects the API key
  * server-side so it never leaves the backend.
  */
 
 import { API_CONFIG } from "../../config";
-import { getAccessToken } from "../../../supabase";
+import {
+  getResponseStatus,
+  getResponseText,
+  httpClient,
+} from "../../http/client";
 
 export class MassiveApiError extends Error {
   constructor(
@@ -91,43 +95,45 @@ function redactUrl(url: URL): string {
 }
 
 async function fetchAndParse<T>(url: URL): Promise<MassiveResponse<T>> {
-  const token = await getAccessToken();
-  if (!token) {
-    // No active session (e.g. during onboarding) — skip the request entirely
-    throw new MassiveApiError("No active session", 401);
+  try {
+    const response = await httpClient.get(redactUrl(url), {
+      requiresAuth: true,
+      logLabel: "API",
+    });
+
+    const data = response.data as MassiveResponse<T>;
+
+    if (data.status === "ERROR" || data.status === "NOT_FOUND") {
+      throw new MassiveApiError(
+        `Massive API returned ${data.status}`,
+        response.status,
+        data.request_id,
+      );
+    }
+
+    return data;
+  } catch (err) {
+    const status = getResponseStatus(err);
+
+    if (status === 401) {
+      // No active session (e.g. during onboarding) — skip the request entirely
+      throw new MassiveApiError("No active session", 401);
+    }
+
+    if (status === 429) {
+      throw new MassiveRateLimitError();
+    }
+
+    if (status) {
+      const body = getResponseText(err);
+      throw new MassiveApiError(
+        `Massive API error: ${status} - ${body}`,
+        status,
+      );
+    }
+
+    throw err;
   }
-
-  console.debug(`[API] GET ${redactUrl(url)}`);
-
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${token}`,
-  };
-
-  const response = await fetch(url.toString(), { headers });
-
-  if (response.status === 429) {
-    throw new MassiveRateLimitError();
-  }
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new MassiveApiError(
-      `Massive API error: ${response.status} ${response.statusText} - ${body}`,
-      response.status,
-    );
-  }
-
-  const data: MassiveResponse<T> = await response.json();
-
-  if (data.status === "ERROR" || data.status === "NOT_FOUND") {
-    throw new MassiveApiError(
-      `Massive API returned ${data.status}`,
-      response.status,
-      data.request_id,
-    );
-  }
-
-  return data;
 }
 
 function unwrapPayload<T>(data: MassiveResponse<T>): T {
