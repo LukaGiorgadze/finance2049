@@ -6,6 +6,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { APP_CACHE_KEY } from '../hooks/useRefreshPortfolioPrices';
+import { reportError } from '../crashlytics';
 import { store$ } from '../store';
 
 /**
@@ -50,6 +51,6 @@ export async function clearDatabase() {
     await AsyncStorage.multiRemove(['finance-app-store', APP_CACHE_KEY]);
     console.debug('[Store] Database cleared (including AsyncStorage)');
   } catch (error) {
-    console.error('[Store] Failed to clear AsyncStorage:', error);
+    reportError('[Store] Failed to clear AsyncStorage', error);
   }
 }

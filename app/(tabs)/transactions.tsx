@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { addTransaction } from '@/lib';
+import { reportError } from '@/lib/crashlytics';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -45,6 +46,7 @@ export default function TransactionsScreen() {
         data.name,
       );
     } catch (e) {
+      reportError(`[Transactions] Failed to record transaction for ${symbol}`, e);
       Alert.alert('Transaction Failed', e instanceof Error ? e.message : 'Failed to record transaction.');
     }
   }, []);

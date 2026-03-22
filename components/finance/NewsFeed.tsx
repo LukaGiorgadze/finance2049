@@ -3,6 +3,7 @@ import { SectionTitle } from '@/components/ui/section-title';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { reportError } from '@/lib/crashlytics';
 import { marketDataService } from '@/lib/services/marketDataService';
 import { getAccessToken } from '@/lib/supabase';
 import type { NewsArticle } from '@/lib/services/types';
@@ -51,7 +52,7 @@ export function NewsFeed({ refreshKey = 0 }: { refreshKey?: number }) {
         const { articles: data } = await marketDataService.getNews({ limit: 5 });
         setArticles(data);
       } catch (error) {
-        console.error('Failed to fetch news:', error);
+        reportError('Failed to fetch news', error);
         setArticles([]);
       } finally {
         setIsLoading(false);

@@ -4,6 +4,7 @@ import { Colors } from '@/constants/theme';
 import { useTheme } from '@/contexts/theme-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { store$ } from '@/lib';
+import { reportError } from '@/lib/crashlytics';
 import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,7 +17,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SettingsScreen() {
   const SUPPORT_EMAIL = 'hi@finance2049.com';
-  const BUG_REPORT_URL = 'https://github.com/LukaGiorgadze/finance2049/issues';
   const DISCORD_URL = 'https://discord.gg/XdXRAHUKMh';
   const DISCORD_BRAND_COLOR = '#5661EB';
   const GITHUB_URL = 'https://github.com/LukaGiorgadze/finance2049';
@@ -46,7 +46,7 @@ export default function SettingsScreen() {
 
       await Linking.openURL(url);
     } catch (error) {
-      console.error('[Linking]', error);
+      reportError('[Linking] Failed to open URL', error);
       if (url.startsWith('mailto:')) {
         Alert.alert('Email Support', SUPPORT_EMAIL);
         return;
@@ -101,7 +101,7 @@ export default function SettingsScreen() {
       // Clean up cache file after sharing
       try { if (file.exists) file.delete(); } catch { };
     } catch (error) {
-      console.error('[Export]', error);
+      reportError('[Export] Failed to export data', error);
       Alert.alert('Export Failed', 'Something went wrong while exporting your data.');
     } finally {
       setIsExporting(false);
@@ -169,7 +169,7 @@ export default function SettingsScreen() {
         ]
       );
     } catch (error) {
-      console.error('[Restore]', error);
+      reportError('[Restore] Failed to restore data', error);
       Alert.alert('Restore Failed', 'The file could not be read or contains invalid data.');
     } finally {
       setIsRestoring(false);

@@ -52,6 +52,27 @@ export function recordError(error: unknown, context?: string) {
   recordCrashlyticsError(crashlytics, normalizedError);
 }
 
+function debugLocally(level: 'warn' | 'error', context: string, error?: unknown) {
+  if (!__DEV__) return;
+
+  if (typeof error === 'undefined') {
+    console.debug(`[${level}] ${context}`);
+    return;
+  }
+
+  console.debug(`[${level}] ${context}`, error);
+}
+
+export function reportWarning(context: string, error?: unknown) {
+  debugLocally('warn', context, error);
+  recordError(error ?? new Error(context), context);
+}
+
+export function reportError(context: string, error?: unknown) {
+  debugLocally('error', context, error);
+  recordError(error ?? new Error(context), context);
+}
+
 export function logCrashlyticsMessage(message: string) {
   logToCrashlytics(crashlytics, message);
 }

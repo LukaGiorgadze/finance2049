@@ -3,6 +3,7 @@ import { UploadStep, type QueuedFile } from '@/components/import/UploadStep';
 import { PageHeader } from '@/components/ui/page-header';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { reportError, reportWarning } from '@/lib/crashlytics';
 import { importSession, type FailedFileInfo, type ImportFileInfo } from '@/lib/import-session';
 import { extractTransactions } from '@/lib/services/providers/supabase/client';
 import { supabase } from '@/lib/supabase';
@@ -183,6 +184,7 @@ export default function ImportTransactionsScreen() {
         }));
         return { status: 'ok', groups, fileInfo: { name: file.name, mimeType: file.mimeType, sizeBytes } as ImportFileInfo };
       } catch (err) {
+        reportWarning(`[Import] Failed to process file ${file.name}`, err);
         return { status: 'failed', name: file.name, mimeType: file.mimeType, error: err instanceof Error ? err.message : 'Unknown error' };
       } finally {
         tick();
@@ -233,11 +235,14 @@ export default function ImportTransactionsScreen() {
       });
       router.push('/import-confirm');
     } catch (err) {
+      reportError('[Import] Extraction failed', err);
       const msg = err instanceof Error ? err.message : 'Something went wrong';
       Alert.alert('Extraction failed', msg);
     } finally {
       if (uploadedPaths.length > 0) {
-        supabase.storage.from(STORAGE_BUCKET).remove(uploadedPaths).catch(() => {});
+        supabase.storage.from(STORAGE_BUCKET).remove(uploadedPaths).catch((err) => {
+          reportWarning('[Import] Failed to clean up uploaded files', err);
+        });
       }
       setIsProcessing(false);
       setProcessingCompleted(0);
@@ -268,7 +273,8 @@ export default function ImportTransactionsScreen() {
         } finally {
           setIsPreparingFiles(false);
         }
-      } catch {
+      } catch (err) {
+        reportWarning('[Import] Camera launch failed', err);
         setIsPreparingFiles(false);
         Alert.alert('Camera unavailable', 'Camera is not available on this device or simulator.');
       }
@@ -301,6 +307,7 @@ export default function ImportTransactionsScreen() {
           setIsPreparingFiles(false);
         }
       } catch (e) {
+        reportWarning('[Import] Photo library selection failed', e);
         setIsPreparingFiles(false);
         const msg = e instanceof Error ? e.message : '';
         if (msg.includes('public.png') || msg.includes('representation')) {
@@ -334,7 +341,8 @@ export default function ImportTransactionsScreen() {
           .filter(a => a.uri && a.name)
           .map(a => ({ uri: a.uri, mimeType: a.mimeType ?? 'application/octet-stream', name: a.name }));
         addFiles(picked);
-      } catch {
+      } catch (err) {
+        reportWarning('[Import] File picker failed', err);
         Alert.alert('Error', 'Could not open the file picker.');
       }
     }

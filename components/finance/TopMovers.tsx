@@ -4,6 +4,7 @@ import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { formatCurrency, formatPercent, getValueColor } from '@/lib';
+import { reportError } from '@/lib/crashlytics';
 import { marketDataService } from '@/lib/services/marketDataService';
 import type { StockQuote } from '@/lib/services/types';
 import { getAccessToken } from '@/lib/supabase';
@@ -38,7 +39,7 @@ export function TopMovers({ refreshKey = 0 }: { refreshKey?: number }) {
 
         setAllMovers(combined);
       } catch (error) {
-        console.error('Failed to fetch top movers:', error);
+        reportError('Failed to fetch top movers', error);
         setAllMovers([]);
       } finally {
         setIsLoading(false);

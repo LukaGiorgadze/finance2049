@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useState } from 'react';
+import { reportWarning } from '../crashlytics';
 import { marketDataService } from '../services/marketDataService';
 import type { StockQuote, StockSplit } from '../services/types';
 import { applySplit, selectAllHoldings, store$, updateMarketPrices } from '../store';
@@ -161,7 +162,7 @@ async function checkAndApplySplits(): Promise<void> {
         applySplit(holding.symbol, split.splitFrom, split.splitTo, split.executionDate, split.id);
       }
     } catch (err) {
-      console.warn(`[splits] Failed to check splits for ${holding.symbol}:`, err);
+      reportWarning(`[splits] Failed to check splits for ${holding.symbol}`, err);
     }
   }
 }
@@ -206,7 +207,7 @@ export function useRefreshPortfolioPrices() {
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to fetch prices';
         setError(message);
-        console.warn('[useRefreshPortfolioPrices]', message);
+        reportWarning('[useRefreshPortfolioPrices] Failed to fetch prices', err);
       } finally {
         setIsLoading(false);
       }

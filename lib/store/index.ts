@@ -9,6 +9,7 @@ import { observable } from '@legendapp/state';
 import { configureObservablePersistence, persistObservable } from '@legendapp/state/persist';
 import { ObservablePersistAsyncStorage } from '@legendapp/state/persist-plugins/async-storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { reportWarning } from '../crashlytics';
 import { SHARES_EPSILON } from '../utils/calculations';
 import { getInitialState, migrateState } from './migrations';
 import type {
@@ -275,12 +276,12 @@ const removeFromHolding = (transaction: Transaction): RealizedGainInfo | null =>
   const holding = store$.portfolio.holdings[transaction.symbol].get();
 
   if (!holding) {
-    console.warn(`Cannot sell: no holding found for ${transaction.symbol}`);
+    reportWarning(`Cannot sell: no holding found for ${transaction.symbol}`);
     return null;
   }
 
   if (transaction.shares > holding.totalShares + SHARES_EPSILON) {
-    console.warn(
+    reportWarning(
       `Cannot sell ${transaction.shares} shares of ${transaction.symbol}: only ${holding.totalShares} held. Clamping to available.`,
     );
   }
@@ -469,7 +470,7 @@ export const deleteTransaction = (transactionId: string) => {
   const transaction = transactions.find((t) => t.id === transactionId);
 
   if (!transaction) {
-    console.warn(`Transaction ${transactionId} not found`);
+    reportWarning(`Transaction ${transactionId} not found`);
     return;
   }
 
@@ -585,11 +586,11 @@ export const applySplit = (
 
   const holding = store$.portfolio.holdings[symbol].get();
   if (!holding) {
-    console.warn(`Cannot apply split: no holding found for ${symbol}`);
+    reportWarning(`Cannot apply split: no holding found for ${symbol}`);
     return;
   }
   if (splitFrom <= 0 || splitTo <= 0) {
-    console.warn(`Cannot apply split: invalid ratio ${splitFrom}:${splitTo} for ${symbol}`);
+    reportWarning(`Cannot apply split: invalid ratio ${splitFrom}:${splitTo} for ${symbol}`);
     return;
   }
 
@@ -649,7 +650,7 @@ export const reloadStoreFromStorage = async (): Promise<void> => {
     store$.portfolio.set(migrated.portfolio);
     store$.preferences.set(migrated.preferences);
   } catch (e) {
-    console.warn('[reloadStoreFromStorage] Failed to reload from storage:', e);
+    reportWarning('[reloadStoreFromStorage] Failed to reload from storage', e);
   }
 };
 

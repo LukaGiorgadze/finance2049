@@ -10,6 +10,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import { reportError } from './crashlytics';
 import { store$ } from './store';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
@@ -17,7 +18,7 @@ const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY 
 
 const hasValidConfig = Boolean(supabaseUrl && supabasePublishableKey);
 if (!hasValidConfig && typeof __DEV__ !== 'undefined' && !__DEV__) {
-  console.error(
+  reportError(
     '[Supabase] Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY. ' +
       'Set them in EAS project environment variables for the production build profile.',
   );
@@ -80,7 +81,7 @@ export async function ensureSession(): Promise<void> {
 
   const { error, data } = await supabase.auth.signInAnonymously();
   if (error) {
-    console.error('[Auth] Anonymous sign-in failed:', error.message);
+    reportError('[Auth] Anonymous sign-in failed', error);
   } else if (data.user) {
     store$.auth.set({
       userId: data.user.id,

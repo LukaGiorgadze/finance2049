@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { reportWarning } from '../crashlytics';
 import { MassiveApiError } from '../services/providers/massive/client';
 import { marketDataService } from '../services/marketDataService';
 import type { OHLCBar, StockQuote, TickerDetails } from '../services/types';
@@ -180,7 +181,7 @@ export function useTickerData(symbol: string, timeline: TimelineType, refreshKey
           barsResult = await marketDataService.getHistoricalBars({ symbol, timelineType: timeline });
           if (!Array.isArray(barsResult)) barsResult = [];
         } catch (err) {
-          console.warn(`[useTickerData] getHistoricalBars failed for ${symbol}, using mock:`, (err as Error).message);
+          reportWarning(`[useTickerData] getHistoricalBars failed for ${symbol}, using mock`, err);
           barsResult = generateMockBars(timeline, cachedQuote.current?.price ?? 150);
         }
         if (!cancelled) {
@@ -195,7 +196,7 @@ export function useTickerData(symbol: string, timeline: TimelineType, refreshKey
       try {
         detailsResult = await marketDataService.getTickerDetails(symbol);
       } catch (err) {
-        console.warn(`[useTickerData] getTickerDetails failed for ${symbol}:`, (err as Error).message);
+        reportWarning(`[useTickerData] getTickerDetails failed for ${symbol}`, err);
         if (err instanceof MassiveApiError && err.status === 404) {
           if (!cancelled) {
             setError(`Ticker "${symbol}" was not found. Only US-listed securities are supported.`);
@@ -219,14 +220,14 @@ export function useTickerData(symbol: string, timeline: TimelineType, refreshKey
 
       // --- Fetch quote and bars in parallel ---
       const quotePromise = marketDataService.getQuote(symbol).catch((err) => {
-        console.warn(`[useTickerData] getQuote failed for ${symbol}:`, (err as Error).message);
+        reportWarning(`[useTickerData] getQuote failed for ${symbol}`, err);
         return null;
       });
 
       const barsPromise = marketDataService.getHistoricalBars({ symbol, timelineType: timeline })
         .then((result) => (Array.isArray(result) ? result : []))
         .catch((err) => {
-          console.warn(`[useTickerData] getHistoricalBars failed for ${symbol}, using mock:`, (err as Error).message);
+          reportWarning(`[useTickerData] getHistoricalBars failed for ${symbol}, using mock`, err);
           return null as OHLCBar[] | null;
         });
 

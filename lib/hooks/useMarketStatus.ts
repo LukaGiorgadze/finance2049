@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { reportWarning } from '../crashlytics';
 import { marketDataService } from '../services/marketDataService';
 import { getAccessToken } from '../supabase';
 import type { MarketHoliday, MarketStatus } from '../services/types';
@@ -29,7 +30,7 @@ export function useMarketStatus() {
         }
       } catch (err) {
         if (!cancelled) {
-          console.warn('[useMarketStatus] Failed to fetch market status:', (err as Error).message);
+          reportWarning('[useMarketStatus] Failed to fetch market status', err);
           setError((err as Error).message);
         }
       } finally {

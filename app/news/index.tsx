@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { reportError } from '@/lib/crashlytics';
 import { marketDataService } from '@/lib/services/marketDataService';
 import type { NewsArticle } from '@/lib/services/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -77,7 +78,7 @@ export default function NewsScreen() {
         setArticles(prev => [...prev, ...response.articles]);
       }
     } catch (error) {
-      console.error('Failed to fetch news:', error);
+      reportError('Failed to fetch news', error);
       if (reset) setArticles([]);
     }
   }, [selectedTicker]);

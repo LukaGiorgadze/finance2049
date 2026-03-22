@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { reportWarning } from '@/lib/crashlytics';
 import { marketDataService } from '@/lib/services/marketDataService';
 import type { TickerSearchResult } from '@/lib/services/types';
 import { getTickerTypeInfo } from '@/lib/utils/assetLookup';
@@ -69,7 +70,7 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset }: AssetSearc
         setResults(response.results);
         nextUrlRef.current = response.nextUrl;
       } catch (err) {
-        console.warn('[AssetSearchModal] Search failed:', (err as Error).message);
+        reportWarning('[AssetSearchModal] Search failed', err);
         setResults([]);
         nextUrlRef.current = undefined;
       } finally {
@@ -91,7 +92,7 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset }: AssetSearc
       setResults(prev => [...prev, ...response.results]);
       nextUrlRef.current = response.nextUrl;
     } catch (err) {
-      console.warn('[AssetSearchModal] Load more failed:', (err as Error).message);
+      reportWarning('[AssetSearchModal] Load more failed', err);
     } finally {
       setLoadingMore(false);
     }
