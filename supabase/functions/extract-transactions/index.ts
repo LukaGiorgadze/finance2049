@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
 
     stepStart = Date.now();
     if (isImage) {
-      console.log(`[extract] Image "${fileName}" — passing signed URL to vision`);
+      console.debug(`[extract] Image "${fileName}" — passing signed URL to vision`);
       input = [
         {
           type: "message",
@@ -238,7 +238,7 @@ Deno.serve(async (req) => {
     const result = JSON.parse(raw) as ExtractResponse;
     console.debug(`[extract] step parseResponse took ${Date.now() - stepStart} ms`);
     const totalMs = Date.now() - extractStartMs;
-    console.log(`[extract] "${fileName}" → ${result.transactions.length} transactions (total ${totalMs} ms)`);
+    console.debug(`[extract] "${fileName}" → ${result.transactions.length} transactions (total ${totalMs} ms)`);
     return json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
