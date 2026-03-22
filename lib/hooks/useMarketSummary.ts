@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { getAccessToken } from "../supabase";
 import { httpClient } from "../services/http/client";
+import { getAccessToken } from "../supabase";
 
 const MARKET_SUMMARY_URL =
   "https://query1.finance.yahoo.com/v6/finance/quote/marketSummary?lang=en-US&region=US&corsDomain=finance.yahoo.com";
@@ -65,7 +65,10 @@ export function useMarketSummary(refreshKey = 0) {
 
     async function load() {
       const token = await getAccessToken();
-      if (!token) { setLoading(false); return; }
+      if (!token) {
+        setLoading(false);
+        return;
+      }
 
       try {
         if (items.length === 0) setLoading(true);
@@ -94,7 +97,7 @@ export function useMarketSummary(refreshKey = 0) {
     return () => {
       cancelled = true;
     };
-  }, [refreshKey]);
+  }, [refreshKey, items.length]);
 
   return { items, loading, error };
 }
