@@ -11,6 +11,9 @@
     "lint": "expo lint",
     "deploy": "supabase functions deploy massive-proxy && supabase functions deploy extract-transactions"
   },
+  "resolutions": {
+    "hermes-compiler": "250829098.0.4"
+  },
   "dependencies": {
     "@expo/metro-runtime": "~55.0.6",
     "@expo/ui": "~55.0.5",

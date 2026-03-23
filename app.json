@@ -3,6 +3,7 @@
     "name": "Finance 2049",
     "slug": "finance2049",
     "version": "0.1.4",
+    "jsEngine": "hermes",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "finance2049",
@@ -10,6 +11,7 @@
     "ios": {
       "buildNumber": "1",
       "googleServicesFile": "./ios/GoogleService-Info.plist",
+      "jsEngine": "jsc",
       "supportsTablet": false,
       "bundleIdentifier": "com.lomsa.finance2049",
       "infoPlist": {
@@ -60,6 +62,8 @@
         "expo-build-properties",
         {
           "ios": {
+            "reactNativeReleaseLevel": "canary",
+            "useHermesV1": true,
             "buildReactNativeFromSource": true,
             "deploymentTarget": "16.0",
             "useFrameworks": "static",
