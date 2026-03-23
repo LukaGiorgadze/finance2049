@@ -71,5 +71,5 @@
     "eslint-config-expo": "~55.0.0",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": false
 }

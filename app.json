@@ -60,6 +60,8 @@
         "expo-build-properties",
         {
           "ios": {
+            "buildReactNativeFromSource": true,
+            "deploymentTarget": "16.0",
             "useFrameworks": "static",
             "forceStaticLinking": ["RNFBApp", "RNFBAuth", "RNFBFirestore"]
           }
