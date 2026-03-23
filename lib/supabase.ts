@@ -9,20 +9,31 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { reportError, setCrashAttributes, setCrashUser } from './crashlytics';
 import { store$ } from './store';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '';
 
-const hasValidConfig = Boolean(supabaseUrl && supabasePublishableKey);
-if (!hasValidConfig && typeof __DEV__ !== 'undefined' && !__DEV__) {
+export const hasSupabaseConfig = Boolean(supabaseUrl && supabasePublishableKey);
+
+let hasReportedMissingConfig = false;
+let supabaseClient: SupabaseClient | null = null;
+
+function reportMissingSupabaseConfig(context: string) {
+  if (hasReportedMissingConfig || typeof __DEV__ === 'undefined' || __DEV__) {
+    return;
+  }
+
+  hasReportedMissingConfig = true;
+
   reportError(
     '[Supabase] Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY. ' +
       'Set them in EAS project environment variables for the production build profile.',
     undefined,
     {
+      context,
       hasSupabaseUrl: Boolean(supabaseUrl),
       hasPublishableKey: Boolean(supabasePublishableKey),
       runtime: 'app',
@@ -30,14 +41,25 @@ if (!hasValidConfig && typeof __DEV__ !== 'undefined' && !__DEV__) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
-  auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
-});
+export function getSupabase(): SupabaseClient | null {
+  if (!hasSupabaseConfig) {
+    reportMissingSupabaseConfig('getSupabase');
+    return null;
+  }
+
+  if (!supabaseClient) {
+    supabaseClient = createClient(supabaseUrl, supabasePublishableKey, {
+      auth: {
+        storage: AsyncStorage,
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false,
+      },
+    });
+  }
+
+  return supabaseClient;
+}
 
 /** One-time promise: resolves when the auth client has had a chance to rehydrate session from storage (e.g. after cold start). */
 let initialAuthReady: Promise<void> | null = null;
@@ -45,6 +67,8 @@ let initialAuthReady: Promise<void> | null = null;
 function getInitialAuthReady(): Promise<void> {
   if (initialAuthReady) return initialAuthReady;
   initialAuthReady = (async () => {
+    const supabase = getSupabase();
+    if (!supabase) return;
     await supabase.auth.getSession();
     await new Promise((r) => setTimeout(r, 80));
     await supabase.auth.getSession();
@@ -57,7 +81,7 @@ function getInitialAuthReady(): Promise<void> {
  * Prevents "Missing Authorization header" on first API calls in production (e.g. TestFlight).
  */
 export async function waitForInitialAuth(): Promise<void> {
-  if (!hasValidConfig) return;
+  if (!hasSupabaseConfig) return;
   await getInitialAuthReady();
 }
 
@@ -65,7 +89,8 @@ export async function waitForInitialAuth(): Promise<void> {
  * Returns the current access token, or null if no session exists.
  */
 export async function getAccessToken(): Promise<string | null> {
-  if (!hasValidConfig) return null;
+  const supabase = getSupabase();
+  if (!supabase) return null;
   const { data: { session } } = await supabase.auth.getSession();
   return session?.access_token ?? null;
 }
@@ -75,7 +100,8 @@ export async function getAccessToken(): Promise<string | null> {
  * Signs in anonymously if the user has no session yet.
  */
 export async function ensureSession(): Promise<void> {
-  if (!hasValidConfig) return;
+  const supabase = getSupabase();
+  if (!supabase) return;
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
     store$.auth.set({
@@ -96,7 +122,7 @@ export async function ensureSession(): Promise<void> {
   if (error) {
     reportError('[Auth] Anonymous sign-in failed', error, {
       authAction: 'signInAnonymously',
-      hasValidConfig,
+      hasSupabaseConfig,
     });
   } else if (data.user) {
     store$.auth.set({

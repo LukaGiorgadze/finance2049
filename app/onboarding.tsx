@@ -6,7 +6,6 @@ import {
 import { ONBOARDING_KEY } from '@/constants/storage-keys';
 import { Colors } from '@/constants/theme';
 import { useTheme } from '@/contexts/theme-context';
-import { ensureSession } from '@/lib';
 import {
   trackOnboardingCompleted,
   trackOnboardingDiscoverySelected,
@@ -19,6 +18,7 @@ import {
   trackOnboardingStepViewed,
   trackOnboardingThemeSelected,
 } from '@/lib/analytics';
+import { ensureSession } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';

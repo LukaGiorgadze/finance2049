@@ -56,7 +56,7 @@ export {
 } from './utils';
 
 // Auth
-export { supabase, ensureSession, getAccessToken, waitForInitialAuth } from './supabase';
+export { ensureSession, getAccessToken, getSupabase, hasSupabaseConfig, waitForInitialAuth } from './supabase';
 
 // Services
 export { marketDataService } from './services/marketDataService';
@@ -70,8 +70,6 @@ export type {
 
 // Firebase analytics
 export {
-  ONBOARDING_STEPS,
-  ONBOARDING_SOURCES,
   trackHomeAction,
   trackHomeScreen,
   trackImportAction,
@@ -105,6 +103,11 @@ export {
   trackOnboardingStepViewed,
   trackOnboardingThemeSelected,
 } from './analytics';
+
+export {
+  ONBOARDING_SOURCES,
+  ONBOARDING_STEPS,
+} from '@/constants/onboarding';
 
 export type {
   OnboardingDiscoverySource,

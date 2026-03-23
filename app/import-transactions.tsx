@@ -7,7 +7,7 @@ import { trackImportAction, trackImportScreen } from '@/lib';
 import { reportError, reportWarning } from '@/lib/crashlytics';
 import { importSession, type FailedFileInfo, type ImportFileInfo } from '@/lib/import-session';
 import { extractTransactions } from '@/lib/services/providers/supabase/client';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { decode } from 'base64-arraybuffer';
 import * as DocumentPicker from 'expo-document-picker';
@@ -105,6 +105,15 @@ export default function ImportTransactionsScreen() {
 
   const processAllFiles = async () => {
     if (files.length === 0) return;
+    const supabase = getSupabase();
+    if (!supabase) {
+      Alert.alert(
+        'App configuration error',
+        'This build is missing its Supabase configuration. Rebuild it with the production EAS environment variables.',
+      );
+      return;
+    }
+
     void trackImportAction({ action: 'upload_start', count: files.length, step: 'upload' });
     setIsProcessing(true);
     setProcessingCompleted(0);

@@ -3,9 +3,10 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { PageHeader } from '@/components/ui/page-header';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { clearDatabase, store$, supabase, trackStorageAction, trackStorageScreen } from '@/lib';
+import { clearDatabase, store$, trackStorageAction, trackStorageScreen } from '@/lib';
 import { ONBOARDING_KEY } from '@/constants/storage-keys';
 import { APP_CACHE_KEY } from '@/lib/hooks/useRefreshPortfolioPrices';
+import { getSupabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -183,7 +184,8 @@ export default function StorageScreen() {
                   style: 'destructive',
                   onPress: async () => {
                     await clearDatabase();
-                    await supabase.auth.signOut();
+                    const supabase = getSupabase();
+                    await supabase?.auth.signOut();
                     await AsyncStorage.removeItem(ONBOARDING_KEY);
                     Alert.alert('All Clear', 'Your data has been wiped clean.', [
                       { text: 'OK', onPress: () => router.replace('/onboarding') },

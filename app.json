@@ -3,7 +3,7 @@
     "name": "Finance 2049",
     "slug": "finance2049",
     "version": "0.1.5",
-    "jsEngine": "hermes",
+    "jsEngine": "jsc",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "finance2049",
@@ -63,7 +63,6 @@
         {
           "ios": {
             "reactNativeReleaseLevel": "canary",
-            "useHermesV1": true,
             "buildReactNativeFromSource": true,
             "deploymentTarget": "16.0",
             "useFrameworks": "static",
