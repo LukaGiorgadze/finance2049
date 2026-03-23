@@ -39,7 +39,7 @@ declare module "axios" {
 }
 
 export const httpClient = axios.create({
-  timeout: 30_000,
+  timeout: 400_000,
 });
 
 function normalizeHttpMethod(method?: string): HttpMethod | null {
