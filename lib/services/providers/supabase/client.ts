@@ -21,7 +21,16 @@ export class SupabaseEdgeFunctionError extends Error {
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 1500;
 
-async function supabasePost<T>(url: string, body: unknown): Promise<T> {
+interface SupabasePostOptions {
+  retryOnNetworkError?: boolean;
+}
+
+async function supabasePost<T>(
+  url: string,
+  body: unknown,
+  options: SupabasePostOptions = {},
+): Promise<T> {
+  const retryOnNetworkError = options.retryOnNetworkError ?? true;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       const response = await httpClient.post<T>(url, body, {
@@ -33,7 +42,7 @@ async function supabasePost<T>(url: string, body: unknown): Promise<T> {
       });
       return response.data as T;
     } catch (err) {
-      if (isNetworkError(err) && attempt < MAX_RETRIES) {
+      if (retryOnNetworkError && isNetworkError(err) && attempt < MAX_RETRIES) {
         console.debug(`[API] Network error, retrying (${attempt + 1}/${MAX_RETRIES})…`);
         await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
         continue;
@@ -86,5 +95,8 @@ export async function extractTransactions(
   return supabasePost<ExtractTransactionsResult>(
     API_CONFIG.supabase.extractTransactionsUrl,
     payload,
+    {
+      retryOnNetworkError: false,
+    },
   );
 }
