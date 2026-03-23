@@ -2,7 +2,7 @@
   "expo": {
     "name": "Finance 2049",
     "slug": "finance2049",
-    "version": "0.1.5",
+    "version": "0.1.6",
     "jsEngine": "jsc",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
