@@ -68,3 +68,24 @@ export type {
   TickerDetails, TickerSearchResponse, TickerSearchResult
 } from './services/types';
 
+// Firebase analytics
+export {
+  ONBOARDING_STEPS,
+  ONBOARDING_SOURCES,
+  trackOnboardingCompleted,
+  trackOnboardingDiscoverySelected,
+  trackOnboardingExited,
+  trackOnboardingImportDecision,
+  trackOnboardingNavigation,
+  trackOnboardingReviewPrompt,
+  trackOnboardingScreen,
+  trackOnboardingStarted,
+  trackOnboardingStepViewed,
+  trackOnboardingThemeSelected,
+} from './analytics';
+
+export type {
+  OnboardingDiscoverySource,
+  OnboardingStep,
+  OnboardingThemeMode,
+} from '@/constants/onboarding';

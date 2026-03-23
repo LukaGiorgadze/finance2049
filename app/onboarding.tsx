@@ -1,7 +1,24 @@
+import {
+  ONBOARDING_STEPS,
+  ONBOARDING_SOURCES,
+  type OnboardingDiscoverySource,
+} from '@/constants/onboarding';
 import { ONBOARDING_KEY } from '@/constants/storage-keys';
 import { Colors } from '@/constants/theme';
 import { useTheme } from '@/contexts/theme-context';
 import { ensureSession } from '@/lib';
+import {
+  trackOnboardingCompleted,
+  trackOnboardingDiscoverySelected,
+  trackOnboardingExited,
+  trackOnboardingImportDecision,
+  trackOnboardingNavigation,
+  trackOnboardingReviewPrompt,
+  trackOnboardingScreen,
+  trackOnboardingStarted,
+  trackOnboardingStepViewed,
+  trackOnboardingThemeSelected,
+} from '@/lib/analytics';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
@@ -157,38 +174,17 @@ function WelcomeSlide({
   );
 }
 
-const SOURCES = [
-  { id: 'appstore', label: 'App Store', icon: 'logo-apple' },
-  { id: 'google', label: 'Google', icon: 'search-outline' },
-  { id: 'twitter', label: 'Twitter / X', icon: 'logo-twitter' },
-  { id: 'instagram', label: 'Instagram', icon: 'logo-instagram' },
-  { id: 'tiktok', label: 'TikTok', icon: 'logo-tiktok' },
-  { id: 'facebook', label: 'Facebook', icon: 'logo-facebook' },
-  { id: 'youtube', label: 'YouTube', icon: 'logo-youtube' },
-  { id: 'reddit', label: 'Reddit', icon: 'logo-reddit' },
-  { id: 'ai', label: 'AI / ChatGPT', icon: 'sparkles-outline' },
-  { id: 'friends', label: 'Friends', icon: 'people-outline' },
-  { id: 'github', label: 'GitHub', icon: 'logo-github' },
-  { id: 'linkedin', label: 'LinkedIn', icon: 'logo-linkedin' },
-] as const;
-
 function DiscoverySlide({
   colors,
-  isDark,
   themeColors,
-  onCanContinueChange,
+  selected,
+  onSelect,
 }: {
   colors: OnboardingColors;
-  isDark: boolean;
   themeColors: typeof Colors.dark;
-  onCanContinueChange: (v: boolean) => void;
+  selected: OnboardingDiscoverySource | null;
+  onSelect: (value: OnboardingDiscoverySource) => void;
 }) {
-  const [selected, setSelected] = useState<string | null>(null);
-
-  useEffect(() => {
-    onCanContinueChange(selected !== null);
-  }, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
-
   return (
     <Slide colors={colors}
       illustration={
@@ -214,13 +210,13 @@ function DiscoverySlide({
         Helps us understand where people discover the app.
       </Text>
       <View style={s.chipsWrap}>
-        {SOURCES.map((src) => {
+        {ONBOARDING_SOURCES.map((src) => {
           const active = selected === src.id;
           return (
             <TouchableOpacity
               key={src.id}
               onPress={() => {
-                setSelected(src.id);
+                onSelect(src.id);
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
               style={[
@@ -433,15 +429,15 @@ function ImportSlide({ colors, isDark, themeColors }: { colors: OnboardingColors
 function RateSlide({
   isActive,
   colors,
-  isDark,
   themeColors,
   onCanCompleteChange,
+  onReviewPromptStatus,
 }: {
   isActive: boolean;
   colors: OnboardingColors;
-  isDark: boolean;
   themeColors: typeof Colors.dark;
   onCanCompleteChange: (v: boolean) => void;
+  onReviewPromptStatus: (status: 'requested' | 'unavailable' | 'failed') => void;
 }) {
   // 5 individual shared values (hooks cannot be called in a loop)
   const s0 = useSharedValue(0);
@@ -469,11 +465,20 @@ function RateSlide({
     const timer = setTimeout(async () => {
       try {
         const available = await StoreReview.isAvailableAsync();
-        if (available) await StoreReview.requestReview();
+        if (!available) {
+          onReviewPromptStatus('unavailable');
+          onCanCompleteChange(true);
+          return;
+        }
+
+        onReviewPromptStatus('requested');
+        await StoreReview.requestReview();
       } catch {
         // Unavailable on simulator / quota exceeded
+        onReviewPromptStatus('failed');
+      } finally {
+        onCanCompleteChange(true);
       }
-      onCanCompleteChange(true);
     }, 800);
 
     return () => clearTimeout(timer);
@@ -504,10 +509,11 @@ const SPRING = { damping: 22, stiffness: 200, mass: 0.8 };
 
 export default function OnboardingScreen() {
   const [step, setStep] = useState(0);
-  const [discoveryCanContinue, setDiscoveryCanContinue] = useState(false);
+  const [discoverySource, setDiscoverySource] = useState<OnboardingDiscoverySource | null>(null);
   const [canComplete, setCanComplete] = useState(false);
   const [pendingImport, setPendingImport] = useState(false);
   const pendingImportRef = useRef(false);
+  const completedRef = useRef(false);
   const { colorScheme, themeMode, setThemeMode } = useTheme();
   const isDark = colorScheme === 'dark';
   const insets = useSafeAreaInsets();
@@ -532,14 +538,52 @@ export default function OnboardingScreen() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const complete = useCallback(async () => {
+    completedRef.current = true;
+    await trackOnboardingNavigation({
+      action: 'complete',
+      step: ONBOARDING_STEPS[step],
+      stepIndex: step,
+      cta: pendingImportRef.current ? 'continue_to_import' : 'finish',
+    });
+    await trackOnboardingCompleted({
+      discoverySource,
+      theme: themeMode,
+      importPlanned: pendingImportRef.current,
+    });
     await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
     await ensureSession();
     router.replace('/(tabs)');
     if (pendingImportRef.current) router.push('/import-transactions');
+  }, [discoverySource, step, themeMode]);
+
+  useEffect(() => {
+    trackOnboardingScreen();
+    trackOnboardingStarted();
   }, []);
 
+  useEffect(() => {
+    trackOnboardingStepViewed(ONBOARDING_STEPS[step], step);
+  }, [step]);
+
+  useEffect(() => () => {
+    if (completedRef.current) return;
+
+    void trackOnboardingExited({
+      step: ONBOARDING_STEPS[step],
+      stepIndex: step,
+      discoverySource,
+      importPlanned: pendingImportRef.current,
+    });
+  }, [discoverySource, step]);
+
   const goNext = useCallback(
-    (fromStep: number) => {
+    async (fromStep: number, cta: string, action: 'next' | 'skip' = 'next') => {
+      await trackOnboardingNavigation({
+        action,
+        step: ONBOARDING_STEPS[fromStep],
+        stepIndex: fromStep,
+        cta,
+      });
       const next = fromStep + 1;
       if (next >= STEP_COUNT) { complete(); return; }
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -548,19 +592,44 @@ export default function OnboardingScreen() {
     [complete, animToStep],
   );
 
-  const goBack = useCallback(() => {
+  const goBack = useCallback(async () => {
     if (step > 0) {
+      await trackOnboardingNavigation({
+        action: 'back',
+        step: ONBOARDING_STEPS[step],
+        stepIndex: step,
+        cta: 'back_button',
+      });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       animToStep(step - 1);
     }
   }, [step, animToStep]);
 
-  const goToRateForImport = useCallback(() => {
+  const goToRateForImport = useCallback(async () => {
+    await Promise.all([
+      trackOnboardingNavigation({
+        action: 'jump_to_rate',
+        step: ONBOARDING_STEPS[3],
+        stepIndex: 3,
+        cta: 'import_portfolio',
+      }),
+      trackOnboardingImportDecision('import_now'),
+    ]);
     pendingImportRef.current = true;
     setPendingImport(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     animToStep(STEP_COUNT - 1);
   }, [animToStep]);
+
+  const handleDiscoverySelect = useCallback((source: OnboardingDiscoverySource) => {
+    setDiscoverySource(source);
+    trackOnboardingDiscoverySelected(source);
+  }, []);
+
+  const handleThemeModeChange = useCallback((mode: ThemeMode) => {
+    setThemeMode(mode);
+    trackOnboardingThemeSelected(mode);
+  }, [setThemeMode]);
 
   const panGesture = Gesture.Pan()
     .activeOffsetX([-12, 12])
@@ -573,6 +642,12 @@ export default function OnboardingScreen() {
     .onEnd((e) => {
       if (e.translationX > SCREEN_W * 0.3 && stepSV.value > 0) {
         const prev = stepSV.value - 1;
+        runOnJS(trackOnboardingNavigation)({
+          action: 'back',
+          step: ONBOARDING_STEPS[stepSV.value],
+          stepIndex: stepSV.value,
+          cta: 'swipe_back',
+        });
         stepSV.value = prev;
         translateX.value = withSpring(-prev * SCREEN_W, SPRING);
         runOnJS(setStep)(prev);
@@ -594,22 +669,28 @@ export default function OnboardingScreen() {
   const footerConfig = (): FooterConfig => {
     switch (step) {
       case 0:
-        return { primary: { label: 'Get Started', onPress: () => goNext(0) }, secondary: null };
+        return { primary: { label: 'Get Started', onPress: () => { void goNext(0, 'get_started'); } }, secondary: null };
       case 1:
         return {
-          primary: { label: 'Continue', onPress: () => goNext(1), disabled: !discoveryCanContinue },
-          secondary: { label: 'Skip', onPress: () => goNext(1) },
+          primary: { label: 'Continue', onPress: () => { void goNext(1, 'continue'); }, disabled: !discoverySource },
+          secondary: { label: 'Skip', onPress: () => { void goNext(1, 'skip', 'skip'); } },
         };
       case 2:
-        return { primary: { label: 'Continue', onPress: () => goNext(2) }, secondary: null };
+        return { primary: { label: 'Continue', onPress: () => { void goNext(2, 'continue'); } }, secondary: null };
       case 3:
         return {
-          primary: { label: 'Import Portfolio', onPress: goToRateForImport },
-          secondary: { label: 'Set up later', onPress: () => goNext(3) },
+          primary: { label: 'Import Portfolio', onPress: () => { void goToRateForImport(); } },
+          secondary: {
+            label: 'Set up later',
+            onPress: () => {
+              void trackOnboardingImportDecision('later');
+              void goNext(3, 'set_up_later', 'skip');
+            },
+          },
         };
       case 4:
         return {
-          primary: { label: pendingImport ? 'Continue to Import' : 'Finish', onPress: complete, disabled: !canComplete },
+          primary: { label: pendingImport ? 'Continue to Import' : 'Finish', onPress: () => { void complete(); }, disabled: !canComplete },
           secondary: null,
         };
       default:
@@ -649,16 +730,24 @@ export default function OnboardingScreen() {
               <WelcomeSlide colors={colors} isDark={isDark} themeColors={themeColors} />
             </View>
             <View style={{ width: SCREEN_W, flex: 1 }}>
-              <DiscoverySlide colors={colors} isDark={isDark} themeColors={themeColors} onCanContinueChange={setDiscoveryCanContinue} />
+              <DiscoverySlide colors={colors} themeColors={themeColors} selected={discoverySource} onSelect={handleDiscoverySelect} />
             </View>
             <View style={{ width: SCREEN_W, flex: 1 }}>
-              <ThemeSlide colors={colors} isDark={isDark} themeColors={themeColors} themeMode={themeMode} setThemeMode={setThemeMode} />
+              <ThemeSlide colors={colors} isDark={isDark} themeColors={themeColors} themeMode={themeMode} setThemeMode={handleThemeModeChange} />
             </View>
             <View style={{ width: SCREEN_W, flex: 1 }}>
               <ImportSlide colors={colors} isDark={isDark} themeColors={themeColors} />
             </View>
             <View style={{ width: SCREEN_W, flex: 1 }}>
-              <RateSlide isActive={step === 4} colors={colors} isDark={isDark} themeColors={themeColors} onCanCompleteChange={setCanComplete} />
+              <RateSlide
+                isActive={step === 4}
+                colors={colors}
+                themeColors={themeColors}
+                onCanCompleteChange={setCanComplete}
+                onReviewPromptStatus={(status) => {
+                  void trackOnboardingReviewPrompt(status);
+                }}
+              />
             </View>
           </Animated.View>
         </GestureDetector>
