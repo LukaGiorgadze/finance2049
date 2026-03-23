@@ -1,7 +1,7 @@
 import { AssetSearchModal } from '@/components/finance/AssetSearchModal';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
-import { formatCurrency } from '@/lib';
+import { formatCurrency, trackImportAction } from '@/lib';
 import type { FailedFileInfo, ImportFileInfo } from '@/lib/import-session';
 import type { TickerSearchResult } from '@/lib/services/types';
 import type { Holding, MarketPrice } from '@/lib/store/types';
@@ -116,7 +116,10 @@ function ImportSummaryCard({
         <>
           <TouchableOpacity
             style={[cs.fileRow, { borderBottomColor: colors.cardBorder }]}
-            onPress={() => setFilesExpanded(v => !v)}
+            onPress={() => {
+              void trackImportAction({ action: 'review_expand_files', step: 'confirm', target: filesExpanded ? 'collapse' : 'expand' });
+              setFilesExpanded(v => !v);
+            }}
             activeOpacity={0.7}
           >
             <Ionicons name="documents-outline" size={12} color={colors.icon} />
@@ -203,7 +206,10 @@ function FailedFilesBanner({
     <View style={[fb.container, { backgroundColor: colors.errorBg, borderColor: colors.error + '30' }]}>
       <TouchableOpacity
         style={fb.header}
-        onPress={() => setExpanded(v => !v)}
+        onPress={() => {
+          void trackImportAction({ action: 'review_toggle_failed_files', step: 'confirm', target: expanded ? 'collapse' : 'expand' });
+          setExpanded(v => !v);
+        }}
         activeOpacity={0.7}
       >
         <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
@@ -211,7 +217,10 @@ function FailedFilesBanner({
           {failedFiles.length} file{failedFiles.length !== 1 ? 's' : ''} couldn&apos;t be read
         </Text>
         <TouchableOpacity
-          onPress={() => setDismissed(true)}
+          onPress={() => {
+            void trackImportAction({ action: 'review_dismiss_failed_files', step: 'confirm', count: failedFiles.length });
+            setDismissed(true);
+          }}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="close" size={14} color={colors.error} style={{ opacity: 0.6 }} />
@@ -364,7 +373,10 @@ function TxSubRow({
             <TouchableOpacity
               key={tp}
               style={[s.typeBtn, tx.type === tp && { backgroundColor: tp === 'buy' ? colors.green : colors.error }]}
-              onPress={() => onChange({ ...tx, type: tp })}
+              onPress={() => {
+                void trackImportAction({ action: 'review_change_tx_type', step: 'confirm', target: tp });
+                onChange({ ...tx, type: tp });
+              }}
               activeOpacity={0.8}
             >
               <Text style={[s.typeBtnText, { color: tx.type === tp ? colors.textOnColor : colors.icon }]}>
@@ -374,7 +386,10 @@ function TxSubRow({
           ))}
         </View>
         {onDelete && (
-          <TouchableOpacity onPress={onDelete} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity onPress={() => {
+            void trackImportAction({ action: 'review_remove_tx', step: 'confirm', target: tx.id });
+            onDelete();
+          }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="trash-outline" size={14} color={colors.error} />
           </TouchableOpacity>
         )}
@@ -505,7 +520,11 @@ function GroupRow({
     }]}>
       <View style={[s.errorBar, { backgroundColor: anyErr ? colors.error : hasDuplicates || anyWarn ? colors.warning : 'transparent' }]} />
 
-      <TouchableOpacity style={s.rowHead} onPress={() => setOpen(o => !o)} activeOpacity={0.7}>
+      <TouchableOpacity style={s.rowHead} onPress={() => {
+        void trackImportAction({ action: 'review_toggle_group', step: 'confirm', target: open ? `collapse:${group.symbol}` : `expand:${group.symbol}` });
+        setOpen(o => !o);
+      }} activeOpacity={0.7}>
+      
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <View style={[s.symbolBadge, { backgroundColor: brandColor }]}>
@@ -544,7 +563,10 @@ function GroupRow({
           <Field label="Symbol *" flex={1} error={!!gErr} colors={colors}>
             <TouchableOpacity
               style={[s.input, { backgroundColor: inputBg, flexDirection: 'row', alignItems: 'center' }]}
-              onPress={() => setShowSearch(true)}
+              onPress={() => {
+                void trackImportAction({ action: 'review_open_symbol_search', step: 'confirm', target: group.symbol });
+                setShowSearch(true);
+              }}
               activeOpacity={0.7}
             >
               <Text style={{ color: group.symbol ? colors.text : colors.icon, fontSize: 14, flex: 1 }} numberOfLines={1}>
@@ -567,7 +589,10 @@ function GroupRow({
             </React.Fragment>
           ))}
 
-          <TouchableOpacity style={s.removeBtn} onPress={onDelete}>
+          <TouchableOpacity style={s.removeBtn} onPress={() => {
+            void trackImportAction({ action: 'review_remove_group', step: 'confirm', target: group.symbol });
+            onDelete();
+          }}>
             <Ionicons name="trash-outline" size={13} color={colors.error} />
             <Text style={[s.removeBtnText, { color: colors.error }]}>Remove</Text>
           </TouchableOpacity>
@@ -578,9 +603,11 @@ function GroupRow({
         visible={showSearch}
         onClose={() => setShowSearch(false)}
         onSelectAsset={(asset: TickerSearchResult) => {
+          void trackImportAction({ action: 'review_select_symbol', step: 'confirm', target: asset.symbol });
           onChange({ ...group, symbol: asset.symbol, name: asset.name, symbolNotFound: false });
           setShowSearch(false);
         }}
+        analyticsContext="import_confirm_group"
       />
     </View>
   );
@@ -687,6 +714,7 @@ export function ConfirmStep({
               return;
             }
             if (toImportCount === 0) return;
+            void trackImportAction({ action: 'review_import', step: 'confirm', count: toImportCount });
             onImport();
           }}
           disabled={groups.length === 0 || toImportCount === 0}

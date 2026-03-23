@@ -3,6 +3,7 @@ import { ThemedView } from '@/components/themed-view';
 import { SectionTitle } from '@/components/ui/section-title';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { trackHomeAction } from '@/lib';
 import { useMarketStatus } from '@/lib/hooks/useMarketStatus';
 import type { MarketHoliday } from '@/lib/services/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -65,7 +66,10 @@ export function MarketStatus() {
         darkColor="transparent"
         style={styles.container}
       >
-        <TouchableOpacity onPress={() => setVisible(true)} activeOpacity={0.7}>
+        <TouchableOpacity onPress={() => {
+          void trackHomeAction({ action: 'market_status_open' });
+          setVisible(true);
+        }} activeOpacity={0.7}>
           <ThemedView
             lightColor={Colors.light.warningBannerLight}
             darkColor={Colors.dark.warningBannerDark}

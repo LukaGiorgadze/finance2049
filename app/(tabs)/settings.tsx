@@ -3,7 +3,7 @@ import { Colors } from '@/constants/theme';
 // import { AVAILABLE_CURRENCIES, Currency, useCurrency } from '@/contexts/currency-context';
 import { useTheme } from '@/contexts/theme-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { store$ } from '@/lib';
+import { store$, trackSettingsAction, trackSettingsScreen } from '@/lib';
 import { reportError } from '@/lib/crashlytics';
 import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
@@ -11,7 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import type { SymbolViewProps } from 'expo-symbols';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -32,7 +32,12 @@ export default function SettingsScreen() {
   const [isRestoring, setIsRestoring] = useState(false);
   const [activeModal, setActiveModal] = useState<'support' | 'about' | null>(null);
 
+  useEffect(() => {
+    void trackSettingsScreen();
+  }, []);
+
   const handleOpenUrl = async (url: string) => {
+    void trackSettingsAction({ action: 'open_external_link', target: url });
     try {
       const supported = await Linking.canOpenURL(url);
       if (!supported) {
@@ -60,6 +65,7 @@ export default function SettingsScreen() {
 
   const handleExportData = async () => {
     if (isExporting) return;
+    void trackSettingsAction({ action: 'backup_export' });
     setIsExporting(true);
     try {
       const holdings = store$.portfolio.holdings.get();
@@ -117,6 +123,7 @@ export default function SettingsScreen() {
 
   const handleRestoreData = async () => {
     if (isRestoring) return;
+    void trackSettingsAction({ action: 'backup_restore' });
     setIsRestoring(true);
     try {
       // Clean up any leftover backup files in cache to avoid iOS conflicts
@@ -350,7 +357,10 @@ export default function SettingsScreen() {
               rightElement={
                 <Switch
                   value={isDarkMode}
-                  onValueChange={(value) => setThemeMode(value ? 'dark' : 'light')}
+                  onValueChange={(value) => {
+                    void trackSettingsAction({ action: 'theme_change', target: value ? 'dark' : 'light' });
+                    setThemeMode(value ? 'dark' : 'light');
+                  }}
                   trackColor={{ false: colors.cardBorder, true: colors.tint }}
                   thumbColor={colors.textOnColor}
                   ios_backgroundColor={colors.surfaceElevated}
@@ -389,7 +399,10 @@ export default function SettingsScreen() {
               icon="externaldrive.fill"
               title="Storage"
               subtitle="Manage local storage"
-              onPress={() => router.push('/storage')}
+              onPress={() => {
+                void trackSettingsAction({ action: 'open_storage' });
+                router.push('/storage');
+              }}
             />
           </View>
 
@@ -401,7 +414,10 @@ export default function SettingsScreen() {
               icon="questionmark.circle.fill"
               title="Help & Support"
               subtitle="Contact us, report bugs, and share feedback"
-              onPress={() => setActiveModal('support')}
+              onPress={() => {
+                void trackSettingsAction({ action: 'open_support' });
+                setActiveModal('support');
+              }}
               rightElement={<View />}
             />
 
@@ -409,7 +425,10 @@ export default function SettingsScreen() {
               icon="info.circle.fill"
               title="About"
               subtitle="Version 1.0.0"
-              onPress={() => setActiveModal('about')}
+              onPress={() => {
+                void trackSettingsAction({ action: 'open_about' });
+                setActiveModal('about');
+              }}
               rightElement={<View />}
             />
           </View>

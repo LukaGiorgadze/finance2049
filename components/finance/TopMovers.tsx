@@ -3,7 +3,7 @@ import { SectionTitle } from '@/components/ui/section-title';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { formatCurrency, formatPercent, getValueColor } from '@/lib';
+import { formatCurrency, formatPercent, getValueColor, trackHomeAction } from '@/lib';
 import { reportError } from '@/lib/crashlytics';
 import { marketDataService } from '@/lib/services/marketDataService';
 import type { StockQuote } from '@/lib/services/types';
@@ -63,7 +63,10 @@ export function TopMovers({ refreshKey = 0 }: { refreshKey?: number }) {
         </View>
         <TouchableOpacity
           style={styles.moreButton}
-          onPress={() => router.push('/top-movers')}
+          onPress={() => {
+            void trackHomeAction({ action: 'top_movers_more' });
+            router.push('/top-movers');
+          }}
         >
           <ThemedText style={styles.moreText}>More</ThemedText>
           <Ionicons
@@ -90,10 +93,10 @@ export function TopMovers({ refreshKey = 0 }: { refreshKey?: number }) {
           </View>
         ) : (
           allMovers.map((stock, index) => (
-            <StockRow
-              key={stock.symbol}
-              stock={stock}
-              colors={colors}
+              <StockRow
+                key={stock.symbol}
+                stock={stock}
+                colors={colors}
               showDivider={index < allMovers.length - 1}
             />
           ))
@@ -124,7 +127,10 @@ function StockRow({ stock, colors, showDivider }: StockRowProps) {
         }
       ]}
       activeOpacity={0.7}
-      onPress={() => router.push(`/stock/${stock.symbol}`)}
+      onPress={() => {
+        void trackHomeAction({ action: 'top_movers_open_stock', target: stock.symbol });
+        router.push(`/stock/${stock.symbol}`);
+      }}
     >
       <View style={styles.leftSection}>
         {/* Ticker Symbol Badge with Brand Color */}

@@ -5,10 +5,11 @@ import { PageHeader } from '@/components/ui/page-header';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { trackNewsAction, trackNewsScreen } from '@/lib';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Linking, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 function formatPublishedDate(dateStr: string): string {
@@ -51,7 +52,19 @@ export default function NewsDetailScreen() {
   const textColor = colors.text;
   const [searchVisible, setSearchVisible] = useState(false);
 
+  useEffect(() => {
+    void trackNewsScreen({
+      articleId: params.id,
+      source: params.source,
+    });
+  }, [params.id, params.source]);
+
   const handleSelectAsset = (asset: { symbol: string }) => {
+    void trackNewsAction({
+      action: 'search_select_asset',
+      target: asset.symbol,
+      source: params.source,
+    });
     setSearchVisible(false);
     router.push(`/stock/${asset.symbol}`);
   };
@@ -79,7 +92,10 @@ export default function NewsDetailScreen() {
           }
           rightElement={
             <TouchableOpacity
-              onPress={() => setSearchVisible(true)}
+              onPress={() => {
+                void trackNewsAction({ action: 'search_open', source: params.source });
+                setSearchVisible(true);
+              }}
               style={[styles.externalButton ]}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
@@ -179,7 +195,14 @@ export default function NewsDetailScreen() {
                           styles.tickerBadge,
                           { backgroundColor: brandColor },
                         ]}
-                        onPress={() => router.push(`/stock/${ticker}`)}
+                        onPress={() => {
+                          void trackNewsAction({
+                            action: 'open_related_ticker',
+                            target: ticker,
+                            source: params.source,
+                          });
+                          router.push(`/stock/${ticker}`);
+                        }}
                       >
                         <ThemedText style={[styles.tickerText, { color: badgeTextColor }]}>{ticker}</ThemedText>
                         <Ionicons
@@ -199,7 +222,14 @@ export default function NewsDetailScreen() {
           {/* Read Original Article Button */}
           <TouchableOpacity
             style={[styles.readArticleButton, { backgroundColor: colors.blue }]}
-            onPress={() => Linking.openURL(params.ampUrl || params.url)}
+            onPress={() => {
+              void trackNewsAction({
+                action: 'open_full_article',
+                target: params.id,
+                source: params.source,
+              });
+              Linking.openURL(params.ampUrl || params.url);
+            }}
             activeOpacity={0.8}
           >
             <Ionicons name="globe-outline" size={20} color={colors.textOnColor} />
@@ -216,6 +246,7 @@ export default function NewsDetailScreen() {
         visible={searchVisible}
         onClose={() => setSearchVisible(false)}
         onSelectAsset={handleSelectAsset}
+        analyticsContext="news_detail"
       />
     </ThemedView>
   );

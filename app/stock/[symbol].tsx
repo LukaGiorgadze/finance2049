@@ -19,6 +19,8 @@ import {
   formatPercent,
   getValueColor,
   mapApiTypeToAssetType,
+  trackStockAction,
+  trackStockScreen,
   useTickerData,
   useTransactionsBySymbol,
   useUIHolding
@@ -88,17 +90,24 @@ export default function StockDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  const tickerSymbol = symbol as string;
+
+  useEffect(() => {
+    void trackStockScreen(tickerSymbol);
+  }, [tickerSymbol]);
+
   const handleSelectAsset = (asset: { symbol: string }) => {
+    void trackStockAction({ action: 'search_select_asset', symbol: tickerSymbol, target: asset.symbol });
     setSearchVisible(false);
     router.replace(`/stock/${asset.symbol}`);
   };
 
   const onRefresh = useCallback(() => {
+    void trackStockAction({ action: 'refresh', symbol: tickerSymbol });
     setRefreshing(true);
     setRefreshKey((k) => k + 1);
-  }, []);
+  }, [tickerSymbol]);
 
-  const tickerSymbol = symbol as string;
 
   // Fetch real data from market data service
   const { details, quote, bars, loading, error } = useTickerData(tickerSymbol, selectedTimeline, refreshKey);
@@ -194,6 +203,11 @@ export default function StockDetailScreen() {
     }));
   }, [bars, committedTimeline]);
 
+  const handleTimelineChange = useCallback((timeline: TimelineType) => {
+    void trackStockAction({ action: 'chart_timeline_change', symbol: tickerSymbol, target: timeline });
+    setSelectedTimeline(timeline);
+  }, [tickerSymbol]);
+
   if (error) {
     const isNotFound = error.includes('not found');
     return (
@@ -250,14 +264,20 @@ export default function StockDetailScreen() {
           rightElement={
             <View style={styles.headerActions}>
               <TouchableOpacity
-                onPress={() => setSearchVisible(true)}
+                onPress={() => {
+                  void trackStockAction({ action: 'search_open', symbol: tickerSymbol });
+                  setSearchVisible(true);
+                }}
                 style={[styles.headerActionButton]}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Ionicons name="search" size={20} color={colors.icon} />
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => setShowMenu(true)}
+                onPress={() => {
+                  void trackStockAction({ action: 'open_menu', symbol: tickerSymbol });
+                  setShowMenu(true);
+                }}
                 style={[styles.headerActionButton, { backgroundColor: colors.cardBackground }]}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
@@ -331,7 +351,7 @@ export default function StockDetailScreen() {
           <StockChart
             chartData={chartData}
             selectedTimeline={selectedTimeline}
-            onTimelineChange={setSelectedTimeline}
+            onTimelineChange={handleTimelineChange}
             isPositive={isPositive}
             isDark={isDark}
             isLoading={isChartLoading}
@@ -551,7 +571,10 @@ export default function StockDetailScreen() {
                 <>
                   <View style={styles.companyInfoRow}>
                     <ThemedText style={styles.companyInfoLabel}>Website</ThemedText>
-                    <TouchableOpacity onPress={() => Linking.openURL(details.homepage!)}>
+                    <TouchableOpacity onPress={() => {
+                      void trackStockAction({ action: 'open_website', symbol: tickerSymbol, target: details.homepage });
+                      Linking.openURL(details.homepage!);
+                    }}>
                       <ThemedText style={[styles.companyInfoValue, styles.linkText, { color: colors.blue }]}>
                         {details.homepage.replace(/^https?:\/\/(www\.)?/, '')}
                       </ThemedText>
@@ -565,7 +588,10 @@ export default function StockDetailScreen() {
                 <>
                   <View style={styles.companyInfoRow}>
                     <ThemedText style={styles.companyInfoLabel}>Phone</ThemedText>
-                    <TouchableOpacity onPress={() => Linking.openURL(`tel:${details.phoneNumber}`)}>
+                    <TouchableOpacity onPress={() => {
+                      void trackStockAction({ action: 'call_phone', symbol: tickerSymbol, target: details.phoneNumber });
+                      Linking.openURL(`tel:${details.phoneNumber}`);
+                    }}>
                       <ThemedText style={[styles.companyInfoValue, styles.linkText, { color: colors.blue }]}>
                         {details.phoneNumber}
                       </ThemedText>
@@ -617,6 +643,7 @@ export default function StockDetailScreen() {
               activeOpacity={0.7}
               onPress={() => {
                 setShowMenu(false);
+                void trackStockAction({ action: 'record_transaction', symbol: tickerSymbol });
                 setShowTransactionModal(true);
               }}
             >
@@ -630,6 +657,7 @@ export default function StockDetailScreen() {
               disabled={!holding && !hasHistory}
               onPress={() => {
                 setShowMenu(false);
+                void trackStockAction({ action: 'remove_position', symbol: tickerSymbol });
                 handleDeleteHolding();
               }}
             >
@@ -650,6 +678,7 @@ export default function StockDetailScreen() {
         visible={searchVisible}
         onClose={() => setSearchVisible(false)}
         onSelectAsset={handleSelectAsset}
+        analyticsContext="stock_detail"
       />
 
       {/* Transaction Modal */}
@@ -660,6 +689,7 @@ export default function StockDetailScreen() {
         initialName={details?.name}
         initialAssetType={mapApiTypeToAssetType(details?.type)}
         onSubmit={handleTransactionSubmit}
+        analyticsContext="stock_detail"
       />
     </ThemedView>
   );

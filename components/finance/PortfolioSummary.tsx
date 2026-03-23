@@ -3,7 +3,7 @@ import { ImportButton } from '@/components/ui/import-button';
 import { SectionTitle } from '@/components/ui/section-title';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { addTransaction, formatCurrency, formatPercent, getValueColor, MASKED, toggleShowPortfolioValue, useHoldingsCount, usePortfolioSummary, useShowPortfolioValue } from '@/lib';
+import { addTransaction, formatCurrency, formatPercent, getValueColor, MASKED, toggleShowPortfolioValue, trackHomeAction, useHoldingsCount, usePortfolioSummary, useShowPortfolioValue } from '@/lib';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -71,7 +71,13 @@ export function PortfolioSummary() {
         <SectionTitle>Portfolio</SectionTitle>
         <View style={styles.headerButtons}>
           <TouchableOpacity
-            onPress={toggleShowPortfolioValue}
+            onPress={() => {
+              void trackHomeAction({
+                action: 'portfolio_toggle_visibility',
+                target: isVisible ? 'hide' : 'show',
+              });
+              toggleShowPortfolioValue();
+            }}
             style={styles.eyeButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
@@ -136,7 +142,10 @@ export function PortfolioSummary() {
       {hasHoldings ? (
         <TouchableOpacity
           style={[styles.viewButton, { backgroundColor: colors.surfaceElevated }]}
-          onPress={() => router.push('/(tabs)/portfolio')}
+          onPress={() => {
+            void trackHomeAction({ action: 'portfolio_view_details' });
+            router.push('/(tabs)/portfolio');
+          }}
         >
           <Ionicons name="chevron-forward" size={16} color={colors.text} style={{ opacity: 0.6 }} />
           <ThemedText style={styles.viewButtonText}>View Details</ThemedText>
@@ -145,13 +154,22 @@ export function PortfolioSummary() {
         <View style={styles.emptyActions}>
           <TouchableOpacity
             style={[styles.addBtn, { backgroundColor: colors.surfaceElevated }]}
-            onPress={() => setShowTransactionModal(true)}
+            onPress={() => {
+              void trackHomeAction({ action: 'portfolio_add_transaction' });
+              setShowTransactionModal(true);
+            }}
             activeOpacity={0.8}
           >
             <Ionicons name="add" size={16} color={colors.text} style={{ opacity: 0.7 }} />
             <ThemedText style={styles.addBtnText}>Add</ThemedText>
           </TouchableOpacity>
-          <ImportButton style={{ flex: 1 }} />
+          <ImportButton
+            style={{ flex: 1 }}
+            onPress={() => {
+              void trackHomeAction({ action: 'portfolio_import' });
+              router.push('/import-transactions');
+            }}
+          />
         </View>
       )}
 
@@ -262,4 +280,3 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 });
-

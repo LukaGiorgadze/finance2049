@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { trackNewsAction, trackNewsScreen } from '@/lib';
 import { reportError } from '@/lib/crashlytics';
 import { marketDataService } from '@/lib/services/marketDataService';
 import type { NewsArticle } from '@/lib/services/types';
@@ -51,6 +52,10 @@ export default function NewsScreen() {
   const nextUrlRef = useRef<string | undefined>(undefined);
   const scrollViewRef = useRef<ScrollView>(null);
 
+  useEffect(() => {
+    void trackNewsScreen({});
+  }, []);
+
   const fetchNews = useCallback(async (reset = true) => {
     try {
       if (reset) {
@@ -89,6 +94,7 @@ export default function NewsScreen() {
   }, [selectedTicker, sentimentFilter]);
 
   const onRefresh = useCallback(async () => {
+    void trackNewsAction({ action: 'open_news_list', source: 'refresh' });
     setRefreshing(true);
     await fetchNews(true);
     requestAnimationFrame(() => setRefreshing(false));
@@ -115,6 +121,7 @@ export default function NewsScreen() {
   }, [loadMore]);
 
   const handleSelectAsset = useCallback((asset: { symbol: string; name: string }) => {
+    void trackNewsAction({ action: 'search_select_asset', target: asset.symbol, source: 'news_list' });
     setSearchVisible(false);
     setSelectedTicker({ symbol: asset.symbol, name: asset.name });
   }, []);
@@ -143,7 +150,10 @@ export default function NewsScreen() {
             { backgroundColor: colors.cardBackground },
           ]}
           activeOpacity={0.7}
-          onPress={() => setSearchVisible(true)}
+          onPress={() => {
+            void trackNewsAction({ action: 'search_open', source: 'news_list' });
+            setSearchVisible(true);
+          }}
         >
           <Ionicons name="search" size={16} color={colors.icon} style={{ marginRight: 8 }} />
           {selectedTicker ? (
@@ -159,6 +169,7 @@ export default function NewsScreen() {
             <TouchableOpacity
               onPress={(e) => {
                 e.stopPropagation();
+                void trackNewsAction({ action: 'search_select_asset', target: 'clear_filter', source: 'news_list' });
                 setSelectedTicker(null);
               }}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -173,6 +184,7 @@ export default function NewsScreen() {
         visible={searchVisible}
         onClose={() => setSearchVisible(false)}
         onSelectAsset={handleSelectAsset}
+        analyticsContext="news_list"
       />
 
       {/* Sentiment Filter Tabs */}
@@ -188,7 +200,10 @@ export default function NewsScreen() {
                 backgroundColor: colors.surfaceElevated,
               },
             ]}
-            onPress={() => setSentimentFilter('all')}
+            onPress={() => {
+              void trackNewsAction({ action: 'open_news_list', target: 'filter:all', source: 'news_list' });
+              setSentimentFilter('all');
+            }}
           >
             <ThemedText style={[
               styles.segmentText,
@@ -205,7 +220,10 @@ export default function NewsScreen() {
                 backgroundColor: colors.surfaceElevated,
               },
             ]}
-            onPress={() => setSentimentFilter('positive')}
+            onPress={() => {
+              void trackNewsAction({ action: 'open_news_list', target: 'filter:positive', source: 'news_list' });
+              setSentimentFilter('positive');
+            }}
           >
             <View style={styles.segmentContent}>
               <View style={[styles.sentimentDot, { backgroundColor: colors.green }]} />
@@ -225,7 +243,10 @@ export default function NewsScreen() {
                 backgroundColor: colors.surfaceElevated,
               },
             ]}
-            onPress={() => setSentimentFilter('negative')}
+            onPress={() => {
+              void trackNewsAction({ action: 'open_news_list', target: 'filter:negative', source: 'news_list' });
+              setSentimentFilter('negative');
+            }}
           >
             <View style={styles.segmentContent}>
               <View style={[styles.sentimentDot, { backgroundColor: colors.red }]} />
@@ -308,22 +329,25 @@ function NewsCard({ article, colors }: NewsCardProps) {
         },
       ]}
       activeOpacity={0.7}
-      onPress={() => router.push({
-        pathname: '/news/[id]',
-        params: {
-          id: article.id,
-          title: article.title,
-          url: article.url,
-          source: article.source,
-          publishedAt: article.publishedAt,
-          ...(article.ampUrl && { ampUrl: article.ampUrl }),
-          ...(article.author && { author: article.author }),
-          ...(article.description && { description: article.description }),
-          ...(article.imageUrl && { imageUrl: article.imageUrl }),
-          ...(article.tickers && article.tickers.length > 0 && { tickers: article.tickers.join(',') }),
-          ...(article.sentiment && { sentiment: article.sentiment }),
-        },
-      })}
+      onPress={() => {
+        void trackNewsAction({ action: 'open_article', target: article.id, source: article.source });
+        router.push({
+          pathname: '/news/[id]',
+          params: {
+            id: article.id,
+            title: article.title,
+            url: article.url,
+            source: article.source,
+            publishedAt: article.publishedAt,
+            ...(article.ampUrl && { ampUrl: article.ampUrl }),
+            ...(article.author && { author: article.author }),
+            ...(article.description && { description: article.description }),
+            ...(article.imageUrl && { imageUrl: article.imageUrl }),
+            ...(article.tickers && article.tickers.length > 0 && { tickers: article.tickers.join(',') }),
+            ...(article.sentiment && { sentiment: article.sentiment }),
+          },
+        });
+      }}
     >
       <View style={styles.newsContent}>
         <View style={styles.newsHeader}>

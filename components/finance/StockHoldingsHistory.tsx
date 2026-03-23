@@ -2,7 +2,7 @@ import { LotsAndHistoryModal } from '@/components/finance/LotsAndHistoryModal';
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { formatCurrency, formatDate, formatPercent, formatShares, getValueColor, MASKED, useShowPortfolioValue, useUITransactionsBySymbol, type UIHolding } from '@/lib';
+import { formatCurrency, formatDate, formatPercent, formatShares, getValueColor, MASKED, trackPositionDetailAction, useShowPortfolioValue, useUITransactionsBySymbol, type UIHolding } from '@/lib';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -52,7 +52,10 @@ export function StockHoldingsHistory({ holding, symbol, totalGain, totalGainPerc
               styles.segment,
               viewMode === 'holdings' && { backgroundColor: isDark ? colors.surfaceElevated : colors.cardBackground }
             ]}
-            onPress={() => setViewMode('holdings')}
+            onPress={() => {
+              void trackPositionDetailAction({ context: 'stock_detail', action: 'toggle_view', symbol, target: 'holdings' });
+              setViewMode('holdings');
+            }}
           >
             <ThemedText style={[
               styles.segmentText,
@@ -67,7 +70,10 @@ export function StockHoldingsHistory({ holding, symbol, totalGain, totalGainPerc
                 styles.segment,
                 viewMode === 'history' && { backgroundColor: isDark ? colors.surfaceElevated : colors.cardBackground }
               ]}
-              onPress={() => setViewMode('history')}
+              onPress={() => {
+                void trackPositionDetailAction({ context: 'stock_detail', action: 'toggle_view', symbol, target: 'history' });
+                setViewMode('history');
+              }}
             >
               <ThemedText style={[
                 styles.segmentText,
@@ -164,7 +170,10 @@ export function StockHoldingsHistory({ holding, symbol, totalGain, totalGainPerc
           {holding.lots.length > 0 && (
             <TouchableOpacity
               style={styles.showAllButton}
-              onPress={() => setShowFullLotsModal(true)}
+              onPress={() => {
+                void trackPositionDetailAction({ context: 'stock_detail', action: 'open_lots', symbol });
+                setShowFullLotsModal(true);
+              }}
             >
               <ThemedText style={styles.showAllText}>
                 View Lots
@@ -262,7 +271,10 @@ export function StockHoldingsHistory({ holding, symbol, totalGain, totalGainPerc
           {transactions.length > 0 && (
             <TouchableOpacity
               style={styles.showAllButton}
-              onPress={() => setShowFullHistoryModal(true)}
+              onPress={() => {
+                void trackPositionDetailAction({ context: 'stock_detail', action: 'open_history', symbol });
+                setShowFullHistoryModal(true);
+              }}
             >
               <ThemedText style={styles.showAllText}>
                 All Transactions
@@ -304,6 +316,7 @@ export function StockHoldingsHistory({ holding, symbol, totalGain, totalGainPerc
             dayChangePercent,
             lots: holding.lots,
           }}
+          analyticsContext="stock_detail"
         />
       )}
 
@@ -313,6 +326,7 @@ export function StockHoldingsHistory({ holding, symbol, totalGain, totalGainPerc
         onClose={() => setShowFullHistoryModal(false)}
         type="history"
         symbol={symbol}
+        analyticsContext="stock_detail"
       />
     </View>
   );

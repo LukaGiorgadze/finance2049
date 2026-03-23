@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { trackHomeAction } from '@/lib';
 import type { TickerSearchResult } from '@/lib/services/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -13,6 +14,7 @@ export function SearchBar() {
   const colors = Colors[colorScheme ?? 'light'];
 
   const handleSelectAsset = (asset: TickerSearchResult) => {
+    void trackHomeAction({ action: 'search_select_asset', target: asset.symbol });
     setShowModal(false);
     router.push(`/stock/${asset.symbol}`);
   };
@@ -20,7 +22,10 @@ export function SearchBar() {
   return (
     <>
       <View style={styles.container}>
-        <TouchableOpacity onPress={() => setShowModal(true)} activeOpacity={0.7}>
+        <TouchableOpacity onPress={() => {
+          void trackHomeAction({ action: 'search_open' });
+          setShowModal(true);
+        }} activeOpacity={0.7}>
           <View style={[
             styles.searchButton,
             {
@@ -40,6 +45,7 @@ export function SearchBar() {
         visible={showModal}
         onClose={() => setShowModal(false)}
         onSelectAsset={handleSelectAsset}
+        analyticsContext="home_search_bar"
       />
     </>
   );

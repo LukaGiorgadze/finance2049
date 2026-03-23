@@ -4,12 +4,12 @@ import { ThemedView } from '@/components/themed-view';
 import { PageHeader } from '@/components/ui/page-header';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { addTransaction } from '@/lib';
+import { addTransaction, trackTransactionsAction, trackTransactionsScreen } from '@/lib';
 import { reportError } from '@/lib/crashlytics';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function TransactionsScreen() {
@@ -19,7 +19,12 @@ export default function TransactionsScreen() {
 
   const [searchVisible, setSearchVisible] = useState(false);
 
+  useEffect(() => {
+    void trackTransactionsScreen();
+  }, []);
+
   const handleSelectAsset = (asset: { symbol: string }) => {
+    void trackTransactionsAction({ action: 'search_select_asset', target: asset.symbol, context: 'transactions_screen' });
     setSearchVisible(false);
     router.push(`/stock/${asset.symbol}`);
   };
@@ -63,7 +68,10 @@ export default function TransactionsScreen() {
           title="Record Transaction"
           rightElement={
             <TouchableOpacity
-              onPress={() => setSearchVisible(true)}
+              onPress={() => {
+                void trackTransactionsAction({ action: 'search_open', context: 'transactions_screen' });
+                setSearchVisible(true);
+              }}
               style={[styles.searchButton]}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
@@ -72,12 +80,13 @@ export default function TransactionsScreen() {
           }
         />
 
-        <TransactionForm onSubmit={handleSubmit} />
+        <TransactionForm onSubmit={handleSubmit} analyticsContext="transactions_screen" />
       </View>
       <AssetSearchModal
         visible={searchVisible}
         onClose={() => setSearchVisible(false)}
         onSelectAsset={handleSelectAsset}
+        analyticsContext="transactions_screen"
       />
     </ThemedView>
   );

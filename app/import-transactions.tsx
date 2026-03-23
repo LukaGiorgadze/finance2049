@@ -3,6 +3,7 @@ import { UploadStep, type QueuedFile } from '@/components/import/UploadStep';
 import { PageHeader } from '@/components/ui/page-header';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { trackImportAction, trackImportScreen } from '@/lib';
 import { reportError, reportWarning } from '@/lib/crashlytics';
 import { importSession, type FailedFileInfo, type ImportFileInfo } from '@/lib/import-session';
 import { extractTransactions } from '@/lib/services/providers/supabase/client';
@@ -14,7 +15,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -51,6 +52,10 @@ export default function ImportTransactionsScreen() {
 
   const bg = colors.surface;
 
+  useEffect(() => {
+    void trackImportScreen('upload');
+  }, []);
+
   const MAX_IMAGE_WIDTH = 1024;
 
   const compressImage = async (uri: string): Promise<{ uri: string; mimeType: string }> => {
@@ -73,6 +78,9 @@ export default function ImportTransactionsScreen() {
   };
 
   const addFiles = useCallback((newFiles: QueuedFile[]) => {
+    if (newFiles.length > 0) {
+      void trackImportAction({ action: 'files_added', count: newFiles.length, step: 'upload' });
+    }
     setFiles(prev => {
       const remaining = MAX_FILES - prev.length;
       if (remaining <= 0) {
@@ -88,6 +96,7 @@ export default function ImportTransactionsScreen() {
   }, []);
 
   const removeFile = useCallback((index: number) => {
+    void trackImportAction({ action: 'file_removed', count: 1, step: 'upload' });
     setFiles(prev => prev.filter((_, i) => i !== index));
   }, []);
 
@@ -96,6 +105,7 @@ export default function ImportTransactionsScreen() {
 
   const processAllFiles = async () => {
     if (files.length === 0) return;
+    void trackImportAction({ action: 'upload_start', count: files.length, step: 'upload' });
     setIsProcessing(true);
     setProcessingCompleted(0);
 
@@ -225,6 +235,7 @@ export default function ImportTransactionsScreen() {
       const allGroups = mergedOrder.map(key => mergedMap.get(key)!);
 
       if (allGroups.length === 0) {
+        void trackImportAction({ action: 'upload_failure', count: failedFiles.length, step: 'upload' });
         const detail = failedFiles.length > 0
           ? failedFiles.map(f => `${f.name}: ${f.error}`).join('\n')
           : 'The AI could not find any transactions in the selected files.';
@@ -238,8 +249,10 @@ export default function ImportTransactionsScreen() {
         files: fileInfos,
         failedFiles,
       });
+      void trackImportAction({ action: 'upload_success', count: allGroups.length, step: 'upload' });
       router.push('/import-confirm');
     } catch (err) {
+      void trackImportAction({ action: 'upload_failure', count: files.length, step: 'upload' });
       reportError('[Import] Extraction failed', err, {
         fileCount: files.length,
         uploadedPathCount: uploadedPaths.length,
@@ -261,9 +274,13 @@ export default function ImportTransactionsScreen() {
     }
   };
 
-  const handleBrowse = () => setShowSourceSheet(true);
+  const handleBrowse = () => {
+    void trackImportAction({ action: 'open_source_sheet', step: 'upload' });
+    setShowSourceSheet(true);
+  };
 
   const handlePickSource = async (source: PickSource) => {
+    void trackImportAction({ action: 'pick_source', target: source, step: 'upload' });
     setShowSourceSheet(false);
     await new Promise<void>(resolve => setTimeout(resolve, 100));
 
@@ -376,7 +393,10 @@ export default function ImportTransactionsScreen() {
         title="Import Transactions"
         leftElement={
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => {
+              void trackImportAction({ action: 'back', step: 'upload' });
+              router.back();
+            }}
             style={[s.backBtn, { backgroundColor: isDark ? colors.cardBackground : colors.surface }]}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
@@ -400,7 +420,10 @@ export default function ImportTransactionsScreen() {
 
       {/* Source picker bottom sheet */}
       <Modal visible={showSourceSheet} transparent animationType="none">
-        <Pressable style={[s.overlay, { backgroundColor: colors.overlay }]} onPress={() => setShowSourceSheet(false)}>
+        <Pressable style={[s.overlay, { backgroundColor: colors.overlay }]} onPress={() => {
+          void trackImportAction({ action: 'close_source_sheet', step: 'upload' });
+          setShowSourceSheet(false);
+        }}>
           <Pressable
             style={[s.sheet, { backgroundColor: colors.cardBackground, paddingBottom: Math.max(insets.bottom, 8) + 16 }]}
             onPress={e => e.stopPropagation()}
@@ -426,7 +449,10 @@ export default function ImportTransactionsScreen() {
             ))}
             <TouchableOpacity
               style={[s.cancel, { borderTopColor: colors.cardBorder }]}
-              onPress={() => setShowSourceSheet(false)}
+              onPress={() => {
+                void trackImportAction({ action: 'close_source_sheet', step: 'upload' });
+                setShowSourceSheet(false);
+              }}
             >
               <Text style={[s.cancelText, { color: colors.icon }]}>Cancel</Text>
             </TouchableOpacity>

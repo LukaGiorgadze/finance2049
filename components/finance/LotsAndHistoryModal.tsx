@@ -2,7 +2,7 @@ import { ThemedText } from '@/components/themed-text';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { deleteTransaction, formatCurrency, formatDate, formatPercent, formatShares, getValueColor, UITransaction, useUITransactionsBySymbol, validateTransactionDeletion } from '@/lib';
+import { deleteTransaction, formatCurrency, formatDate, formatPercent, formatShares, getValueColor, trackPositionDetailAction, UITransaction, useUITransactionsBySymbol, validateTransactionDeletion } from '@/lib';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef } from 'react';
 import { Alert, FlatList, Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -45,9 +45,10 @@ interface LotsAndHistoryModalProps {
   lots?: ModalHoldingLot[];
   symbol: string;
   holding?: ModalHolding;
+  analyticsContext?: 'stock_detail' | 'portfolio' | 'statistics';
 }
 
-export function LotsAndHistoryModal({ visible, onClose, type, lots = [], symbol, holding }: LotsAndHistoryModalProps) {
+export function LotsAndHistoryModal({ visible, onClose, type, lots = [], symbol, holding, analyticsContext = 'portfolio' }: LotsAndHistoryModalProps) {
   // Get transactions from store
   const transactions = useUITransactionsBySymbol(symbol);
   const colorScheme = useColorScheme();
@@ -78,6 +79,7 @@ export function LotsAndHistoryModal({ visible, onClose, type, lots = [], symbol,
   const insets = useSafeAreaInsets();
   const colors = isDark ? Colors.dark : Colors.light;
   const textColor = colors.text;
+  const wasVisibleRef = useRef(false);
   const hasBrandColor = !!BRAND_COLORS[symbol];
   const brandColor = BRAND_COLORS[symbol] || colors.surface;
   const badgeTextColor = hasBrandColor ? colors.textOnColor : colors.text;
@@ -103,6 +105,12 @@ export function LotsAndHistoryModal({ visible, onClose, type, lots = [], symbol,
           style: 'destructive',
           onPress: () => {
             try {
+              void trackPositionDetailAction({
+                context: analyticsContext,
+                action: itemType === 'lot' ? 'delete_lot' : 'delete_transaction',
+                symbol,
+                target: lotTransactionId ?? id,
+              });
               deleteTransaction(txId);
             } catch (e) {
               Alert.alert(
@@ -115,6 +123,26 @@ export function LotsAndHistoryModal({ visible, onClose, type, lots = [], symbol,
       ]
     );
   };
+
+  useEffect(() => {
+    if (visible && !wasVisibleRef.current) {
+      void trackPositionDetailAction({
+        context: analyticsContext,
+        action: 'modal_open',
+        symbol,
+        target: type,
+      });
+    }
+    if (!visible && wasVisibleRef.current) {
+      void trackPositionDetailAction({
+        context: analyticsContext,
+        action: 'modal_close',
+        symbol,
+        target: type,
+      });
+    }
+    wasVisibleRef.current = visible;
+  }, [analyticsContext, symbol, type, visible]);
 
   const renderRightActions = (onDelete: () => void) => {
     return (

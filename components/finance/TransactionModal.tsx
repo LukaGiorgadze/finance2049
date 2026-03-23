@@ -1,9 +1,10 @@
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { trackTransactionsAction } from '@/lib';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TransactionData, TransactionForm } from './TransactionForm';
@@ -16,14 +17,32 @@ interface TransactionModalProps {
   initialType?: 'buy' | 'sell';
   initialAssetType?: import('@/lib/store/types').AssetType;
   onSubmit?: (data: TransactionData) => void;
+  analyticsContext?: string;
 }
 
-export function TransactionModal({ visible, onClose, initialSymbol, initialName, initialType, initialAssetType, onSubmit }: TransactionModalProps) {
+export function TransactionModal({ visible, onClose, initialSymbol, initialName, initialType, initialAssetType, onSubmit, analyticsContext = 'transaction_modal' }: TransactionModalProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const colors = isDark ? Colors.dark : Colors.light;
   const insets = useSafeAreaInsets();
   const textColor = colors.text;
+  const wasVisibleRef = useRef(false);
+
+  useEffect(() => {
+    if (visible && !wasVisibleRef.current) {
+      void trackTransactionsAction({
+        action: 'modal_open',
+        target: initialType ?? 'buy',
+        context: analyticsContext,
+      });
+    }
+
+    if (!visible && wasVisibleRef.current) {
+      void trackTransactionsAction({ action: 'modal_close', context: analyticsContext });
+    }
+
+    wasVisibleRef.current = visible;
+  }, [analyticsContext, initialType, visible]);
 
   const handleSubmit = (data: TransactionData) => {
     onSubmit?.(data);
@@ -67,9 +86,11 @@ export function TransactionModal({ visible, onClose, initialSymbol, initialName,
           onCancel={onClose}
           onDone={onClose}
           onImportPress={() => {
+            void trackTransactionsAction({ action: 'modal_import', context: analyticsContext });
             onClose();
             setTimeout(() => router.push('/import-transactions'), 350);
           }}
+          analyticsContext={analyticsContext}
         />
       </View>
     </Modal>

@@ -4,6 +4,7 @@ import { groupError, hasAnyError, txError, validateImportConsistency } from '@/c
 import { PageHeader } from '@/components/ui/page-header';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { trackImportAction, trackImportScreen } from '@/lib';
 import { importSession } from '@/lib/import-session';
 import { marketDataService } from '@/lib/services/marketDataService';
 import type { StockSplit } from '@/lib/services/types';
@@ -29,6 +30,10 @@ export default function ImportConfirmScreen() {
   const [splitPreviewImpacts, setSplitPreviewImpacts] = useState<Record<string, SplitPreviewImpact>>({});
 
   const bg = colors.surface;
+
+  useEffect(() => {
+    void trackImportScreen('confirm');
+  }, []);
 
   const runConsistencyValidation = useCallback((grps: ImportedGroup[]): ImportedGroup[] => {
     const existingHoldings: Record<string, number> = {};
@@ -296,6 +301,7 @@ export default function ImportConfirmScreen() {
       }
     }
 
+    void trackImportAction({ action: 'upload_success', step: 'confirm', count: allImportedTx.length });
     importSession.clear();
     router.dismissAll();
     router.replace('/(tabs)');
@@ -309,7 +315,10 @@ export default function ImportConfirmScreen() {
         title="Review & Import"
         leftElement={
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => {
+              void trackImportAction({ action: 'back', step: 'confirm' });
+              router.back();
+            }}
             style={[s.backBtn, { backgroundColor: isDark ? colors.cardBackground : colors.surface }]}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >

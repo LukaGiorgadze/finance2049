@@ -3,6 +3,7 @@ import { SectionTitle } from '@/components/ui/section-title';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { trackNewsAction } from '@/lib';
 import { reportError } from '@/lib/crashlytics';
 import { marketDataService } from '@/lib/services/marketDataService';
 import { getAccessToken } from '@/lib/supabase';
@@ -77,7 +78,10 @@ export function NewsFeed({ refreshKey = 0 }: { refreshKey?: number }) {
         </View>
         <TouchableOpacity
           style={styles.moreButton}
-          onPress={() => router.push('/news')}
+          onPress={() => {
+            void trackNewsAction({ action: 'open_news_list', source: 'home_feed' });
+            router.push('/news');
+          }}
         >
           <ThemedText style={styles.moreText}>More</ThemedText>
           <Ionicons
@@ -132,22 +136,29 @@ function NewsCard({ article, colors }: NewsCardProps) {
           borderColor: colors.cardBorder,
         }
       ]}
-      onPress={() => router.push({
-        pathname: '/news/[id]',
-        params: {
-          id: article.id,
-          title: article.title,
-          url: article.url,
+      onPress={() => {
+        void trackNewsAction({
+          action: 'open_article',
+          target: article.id,
           source: article.source,
-          publishedAt: article.publishedAt,
-          ...(article.ampUrl && { ampUrl: article.ampUrl }),
-          ...(article.author && { author: article.author }),
-          ...(article.description && { description: article.description }),
-          ...(article.imageUrl && { imageUrl: article.imageUrl }),
-          ...(article.tickers && article.tickers.length > 0 && { tickers: article.tickers.join(',') }),
-          ...(article.sentiment && { sentiment: article.sentiment }),
-        },
-      })}
+        });
+        router.push({
+          pathname: '/news/[id]',
+          params: {
+            id: article.id,
+            title: article.title,
+            url: article.url,
+            source: article.source,
+            publishedAt: article.publishedAt,
+            ...(article.ampUrl && { ampUrl: article.ampUrl }),
+            ...(article.author && { author: article.author }),
+            ...(article.description && { description: article.description }),
+            ...(article.imageUrl && { imageUrl: article.imageUrl }),
+            ...(article.tickers && article.tickers.length > 0 && { tickers: article.tickers.join(',') }),
+            ...(article.sentiment && { sentiment: article.sentiment }),
+          },
+        });
+      }}
     >
       <View style={styles.newsContent}>
         <View style={styles.newsHeader}>

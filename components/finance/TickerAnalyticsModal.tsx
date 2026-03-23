@@ -8,13 +8,14 @@ import {
   formatShares,
   getValueColor,
   MASKED,
+  trackPositionDetailAction,
   useShowPortfolioValue,
   useUIHolding,
   useUITransactionsBySymbol,
 } from '@/lib';
 import type { TickerStat } from '@/lib/hooks/useAnalytics';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Modal,
   ScrollView,
@@ -40,6 +41,7 @@ export function TickerAnalyticsModal({ visible, onClose, ticker }: Props) {
   const isVisible = useShowPortfolioValue();
   const neutralColor = colors.text;
   const dividerColor = colors.divider;
+  const wasVisibleRef = useRef(false);
 
   const symbol = ticker?.symbol ?? '';
   const transactions = useUITransactionsBySymbol(symbol);
@@ -55,6 +57,27 @@ export function TickerAnalyticsModal({ visible, onClose, ticker }: Props) {
   const buyTransactions = transactions.filter((t) => t.type === 'buy');
 
   const textColor = colors.text;
+
+  useEffect(() => {
+    if (!ticker) return;
+    if (visible && !wasVisibleRef.current) {
+      void trackPositionDetailAction({
+        context: 'statistics',
+        action: 'modal_open',
+        symbol: ticker.symbol,
+        target: 'ticker_analytics',
+      });
+    }
+    if (!visible && wasVisibleRef.current) {
+      void trackPositionDetailAction({
+        context: 'statistics',
+        action: 'modal_close',
+        symbol: ticker.symbol,
+        target: 'ticker_analytics',
+      });
+    }
+    wasVisibleRef.current = visible;
+  }, [ticker, visible]);
 
   return (
     <Modal
@@ -203,7 +226,14 @@ export function TickerAnalyticsModal({ visible, onClose, ticker }: Props) {
           {transactions.length > 0 && (
             <TouchableOpacity
               style={[styles.card, { backgroundColor: colors.cardBackground, borderWidth: 1, borderColor: colors.cardBorder }]}
-              onPress={() => setHistoryVisible(true)}
+              onPress={() => {
+                void trackPositionDetailAction({
+                  context: 'statistics',
+                  action: 'open_history',
+                  symbol,
+                });
+                setHistoryVisible(true);
+              }}
               activeOpacity={0.7}
             >
               <ThemedText style={styles.cardLabel}>Transaction History</ThemedText>
@@ -272,6 +302,7 @@ export function TickerAnalyticsModal({ visible, onClose, ticker }: Props) {
           onClose={() => setHistoryVisible(false)}
           type="history"
           symbol={symbol}
+          analyticsContext="statistics"
         />
       </View>
     </Modal>

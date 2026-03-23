@@ -6,8 +6,8 @@ import { SearchBar } from '@/components/finance/SearchBar';
 import { TopMovers } from '@/components/finance/TopMovers';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useRefreshPortfolioPrices } from '@/lib';
-import React, { useCallback, useState } from 'react';
+import { trackHomeAction, trackHomeScreen, useRefreshPortfolioPrices } from '@/lib';
+import React, { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -18,7 +18,12 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  useEffect(() => {
+    void trackHomeScreen();
+  }, []);
+
   const onRefresh = useCallback(async () => {
+    void trackHomeAction({ action: 'refresh' });
     setRefreshing(true);
     setRefreshKey((k) => k + 1);
     await refresh();

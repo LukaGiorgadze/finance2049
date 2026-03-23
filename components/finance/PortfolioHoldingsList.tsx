@@ -4,7 +4,7 @@ import { SectionTitle } from '@/components/ui/section-title';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { addTransaction, formatCurrency, formatPercent, formatShares, getValueColor, MASKED, setGainView, UIHolding, useGainView, useMarketPrices, useShowPortfolioValue, useUIHoldings } from '@/lib';
+import { addTransaction, formatCurrency, formatPercent, formatShares, getValueColor, MASKED, setGainView, trackPortfolioAction, UIHolding, useGainView, useMarketPrices, useShowPortfolioValue, useUIHoldings } from '@/lib';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -108,6 +108,10 @@ export function PortfolioHoldingsList() {
   const selectedHolding = holdings.find((h) => h.symbol === selectedSymbol);
 
   const handleOpenTransaction = (symbol: string, type: 'buy' | 'sell') => {
+    void trackPortfolioAction({
+      action: type === 'buy' ? 'holding_buy' : 'holding_sell',
+      target: symbol,
+    });
     setSelectedSymbol(symbol);
     setTransactionType(type);
     setTransactionModalVisible(true);
@@ -153,6 +157,7 @@ export function PortfolioHoldingsList() {
       if (swipingRef.current === item.symbol) {
         return;
       }
+      void trackPortfolioAction({ action: 'holding_open_stock', target: item.symbol });
       router.push(`/stock/${item.symbol}`);
     };
 
@@ -237,7 +242,11 @@ export function PortfolioHoldingsList() {
               </View>
               <TouchableOpacity
                 style={styles.gainRow}
-                onPress={() => setGainView(gainView === 'today' ? 'total' : 'today')}
+                onPress={() => {
+                  const nextGainView = gainView === 'today' ? 'total' : 'today';
+                  void trackPortfolioAction({ action: 'holding_toggle_gain_view', target: nextGainView });
+                  setGainView(nextGainView);
+                }}
                 activeOpacity={0.6}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
@@ -267,6 +276,7 @@ export function PortfolioHoldingsList() {
                 <>
                   <TouchableOpacity
                     onPress={() => {
+                      void trackPortfolioAction({ action: 'holding_open_lots', target: item.symbol });
                       setSelectedSymbol(item.symbol);
                       setModalVisible(true);
                     }}
@@ -302,7 +312,10 @@ export function PortfolioHoldingsList() {
         <SectionTitle style={styles.title}>Holdings ({holdings.length})</SectionTitle>
         <View style={styles.sortButtons}>
           <TouchableOpacity
-            onPress={() => setSortBy('value')}
+            onPress={() => {
+              void trackPortfolioAction({ action: 'holding_sort', target: 'value' });
+              setSortBy('value');
+            }}
             style={[
               styles.sortButton,
               {
@@ -320,7 +333,10 @@ export function PortfolioHoldingsList() {
             </ThemedText>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => setSortBy('gain')}
+            onPress={() => {
+              void trackPortfolioAction({ action: 'holding_sort', target: 'gain' });
+              setSortBy('gain');
+            }}
             style={[
               styles.sortButton,
               {
@@ -338,7 +354,10 @@ export function PortfolioHoldingsList() {
             </ThemedText>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => setSortBy('alpha')}
+            onPress={() => {
+              void trackPortfolioAction({ action: 'holding_sort', target: 'alpha' });
+              setSortBy('alpha');
+            }}
             style={[
               styles.sortButton,
               {
@@ -368,13 +387,22 @@ export function PortfolioHoldingsList() {
           <View style={styles.emptyActions}>
             <TouchableOpacity
               style={[styles.addManualBtn, { backgroundColor: colors.cardBorder }]}
-              onPress={() => setTransactionModalVisible(true)}
+              onPress={() => {
+                void trackPortfolioAction({ action: 'empty_add_transaction' });
+                setTransactionModalVisible(true);
+              }}
               activeOpacity={0.8}
             >
               <Ionicons name="add" size={16} color={colors.text} style={{ opacity: 0.7 }} />
               <ThemedText style={styles.addManualBtnText}>Add</ThemedText>
             </TouchableOpacity>
-            <ImportButton style={{ flex: 1 }} />
+            <ImportButton
+              style={{ flex: 1 }}
+              onPress={() => {
+                void trackPortfolioAction({ action: 'empty_import' });
+                router.push('/import-transactions');
+              }}
+            />
           </View>
         </View>
       ) : (

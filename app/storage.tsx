@@ -3,7 +3,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { PageHeader } from '@/components/ui/page-header';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { clearDatabase, store$, supabase } from '@/lib';
+import { clearDatabase, store$, supabase, trackStorageAction, trackStorageScreen } from '@/lib';
 import { ONBOARDING_KEY } from '@/constants/storage-keys';
 import { APP_CACHE_KEY } from '@/lib/hooks/useRefreshPortfolioPrices';
 import { Ionicons } from '@expo/vector-icons';
@@ -45,6 +45,10 @@ export default function StorageScreen() {
   const textColor = colors.text;
   const [totalStorageBytes, setTotalStorageBytes] = useState(0);
   const [miscCacheBytes, setMiscCacheBytes] = useState(0);
+
+  useEffect(() => {
+    void trackStorageScreen();
+  }, []);
 
   // Read store data
   const holdings = store$.portfolio.holdings.get();
@@ -140,6 +144,7 @@ export default function StorageScreen() {
   }, [categories]);
 
   const handleClearCache = () => {
+    void trackStorageAction({ action: 'clear_cache' });
     Alert.alert(
       'Clear App Cache',
       'This will clear cached data, such as API and other temporary data. Your investments and settings are not affected.',
@@ -158,6 +163,7 @@ export default function StorageScreen() {
   };
 
   const handleClearData = () => {
+    void trackStorageAction({ action: 'clear_all_data' });
     Alert.alert(
       'Clear All Data',
       'This will permanently delete all your investments, transactions, and cached data. Your app settings will be kept.\n\nThis cannot be undone.',
@@ -199,7 +205,10 @@ export default function StorageScreen() {
       <PageHeader
         title="Storage"
         leftElement={
-          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <TouchableOpacity onPress={() => {
+            void trackStorageAction({ action: 'back' });
+            router.back();
+          }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name="arrow-back" size={24} color={textColor} />
           </TouchableOpacity>
         }

@@ -2,7 +2,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { formatPercent, getValueColor } from '@/lib';
+import { formatPercent, getValueColor, trackHomeAction } from '@/lib';
 import { useMarketSummary } from '@/lib/hooks/useMarketSummary';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
@@ -31,6 +31,7 @@ export function MarketChart({ refreshKey = 0 }: { refreshKey?: number }) {
   }, []);
 
   function handleTabChange(key: TabKey) {
+    void trackHomeAction({ action: 'market_chart_tab', target: key });
     setActiveTab(key);
     AsyncStorage.setItem('market-chart-tab', key);
   }

@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { formatCurrency, formatPercent, getValueColor } from '@/lib';
+import { formatCurrency, formatPercent, getValueColor, trackTopMoversAction, trackTopMoversScreen } from '@/lib';
 import { reportError } from '@/lib/crashlytics';
 import { marketDataService } from '@/lib/services/marketDataService';
 import type { StockQuote } from '@/lib/services/types';
@@ -27,6 +27,10 @@ export default function TopMoversScreen() {
   const colors = isDark ? Colors.dark : Colors.light;
   const textColor = colors.text;
 
+  useEffect(() => {
+    void trackTopMoversScreen();
+  }, []);
+
   const fetchTopMovers = useCallback(async () => {
     try {
       const [gainersData, losersData] = await Promise.all([
@@ -44,6 +48,7 @@ export default function TopMoversScreen() {
   }, [selectedFilter]);
 
   const onRefresh = useCallback(async () => {
+    void trackTopMoversAction({ action: 'refresh' });
     setRefreshing(true);
     await fetchTopMovers();
     requestAnimationFrame(() => setRefreshing(false));
@@ -84,7 +89,10 @@ export default function TopMoversScreen() {
           }
         ]}
         activeOpacity={0.7}
-        onPress={() => router.push(`/stock/${item.symbol}`)}
+        onPress={() => {
+          void trackTopMoversAction({ action: 'open_stock', target: item.symbol });
+          router.push(`/stock/${item.symbol}`);
+        }}
       >
         <View style={styles.leftSection}>
           {/* Ticker Symbol Badge with Brand Color */}
@@ -149,7 +157,10 @@ export default function TopMoversScreen() {
                 backgroundColor: colors.surfaceElevated
               }
             ]}
-            onPress={() => setSelectedFilter('all')}
+            onPress={() => {
+              void trackTopMoversAction({ action: 'filter_change', target: 'all' });
+              setSelectedFilter('all');
+            }}
           >
             <ThemedText style={[
               styles.segmentText,
@@ -166,7 +177,10 @@ export default function TopMoversScreen() {
                 backgroundColor: colors.surfaceElevated
               }
             ]}
-            onPress={() => setSelectedFilter('gainers')}
+            onPress={() => {
+              void trackTopMoversAction({ action: 'filter_change', target: 'gainers' });
+              setSelectedFilter('gainers');
+            }}
           >
             <View style={styles.segmentContent}>
               <Ionicons
@@ -191,7 +205,10 @@ export default function TopMoversScreen() {
                 backgroundColor: colors.surfaceElevated
               }
             ]}
-            onPress={() => setSelectedFilter('losers')}
+            onPress={() => {
+              void trackTopMoversAction({ action: 'filter_change', target: 'losers' });
+              setSelectedFilter('losers');
+            }}
           >
             <View style={styles.segmentContent}>
               <Ionicons

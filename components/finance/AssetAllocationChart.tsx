@@ -1,7 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAssetAllocation, useShowPortfolioValue } from '@/lib';
+import { trackPortfolioAction, useAssetAllocation, useShowPortfolioValue } from '@/lib';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -18,7 +18,10 @@ export function AssetAllocationChart() {
     <View style={styles.container}>
       <TouchableOpacity
         style={[styles.sectionHeader, { marginBottom: isExpanded ? 12 : 0 }]}
-        onPress={() => setIsExpanded(!isExpanded)}
+        onPress={() => {
+          void trackPortfolioAction({ action: 'asset_allocation_toggle', target: isExpanded ? 'collapse' : 'expand' });
+          setIsExpanded(!isExpanded);
+        }}
         activeOpacity={0.7}
       >
         <ThemedText style={styles.title}>Asset Allocation</ThemedText>

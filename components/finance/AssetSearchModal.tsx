@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { trackSearchAction } from '@/lib';
 import { reportWarning } from '@/lib/crashlytics';
 import { marketDataService } from '@/lib/services/marketDataService';
 import type { TickerSearchResult } from '@/lib/services/types';
@@ -25,14 +26,16 @@ interface AssetSearchModalProps {
   visible: boolean;
   onClose: () => void;
   onSelectAsset: (asset: TickerSearchResult) => void;
+  analyticsContext?: string;
 }
 
-export function AssetSearchModal({ visible, onClose, onSelectAsset }: AssetSearchModalProps) {
+export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsContext }: AssetSearchModalProps) {
   const [searchText, setSearchText] = useState('');
   const [results, setResults] = useState<TickerSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const nextUrlRef = useRef<string | undefined>(undefined);
+  const wasVisibleRef = useRef(false);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
@@ -53,6 +56,23 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset }: AssetSearc
     }
   }, [visible]);
 
+  useEffect(() => {
+    if (!analyticsContext) {
+      wasVisibleRef.current = visible;
+      return;
+    }
+
+    if (visible && !wasVisibleRef.current) {
+      void trackSearchAction({ context: analyticsContext, action: 'modal_open' });
+    }
+
+    if (!visible && wasVisibleRef.current) {
+      void trackSearchAction({ context: analyticsContext, action: 'modal_close' });
+    }
+
+    wasVisibleRef.current = visible;
+  }, [analyticsContext, visible]);
+
   // Debounced API search — resets results on every query change
   useEffect(() => {
     const query = searchText.trim();
@@ -65,6 +85,9 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset }: AssetSearc
 
     setSearching(true);
     const timeout = setTimeout(async () => {
+      if (analyticsContext) {
+        void trackSearchAction({ context: analyticsContext, action: 'query', target: query });
+      }
       try {
         const response = await marketDataService.searchTickers(query);
         setResults(response.results);
@@ -81,7 +104,7 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset }: AssetSearc
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [searchText]);
+  }, [analyticsContext, searchText]);
 
   // Load more results via cursor pagination
   const handleLoadMore = useCallback(async () => {
@@ -89,6 +112,9 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset }: AssetSearc
     if (!nextUrl || loadingMore) return;
 
     setLoadingMore(true);
+    if (analyticsContext) {
+      void trackSearchAction({ context: analyticsContext, action: 'load_more' });
+    }
     try {
       const response = await marketDataService.searchTickers('', nextUrl);
       setResults(prev => [...prev, ...response.results]);
@@ -100,7 +126,7 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset }: AssetSearc
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore]);
+  }, [analyticsContext, loadingMore]);
 
   // Trigger load-more when scrolled near the bottom
   const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -112,6 +138,9 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset }: AssetSearc
   }, [loadingMore, handleLoadMore]);
 
   const handleSelectAsset = (asset: TickerSearchResult) => {
+    if (analyticsContext) {
+      void trackSearchAction({ context: analyticsContext, action: 'select_asset', target: asset.symbol });
+    }
     onSelectAsset(asset);
   };
 

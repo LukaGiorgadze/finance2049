@@ -13,6 +13,8 @@ import {
   getValueColor,
   MASKED,
   recalculatePortfolio,
+  trackStatisticsAction,
+  trackStatisticsScreen,
   useRefreshPortfolioPrices,
   useShowPortfolioValue,
 } from '@/lib';
@@ -546,7 +548,10 @@ const RealizedPnLChart = memo(function RealizedPnLChart({
         {PNL_RANGES.map((r) => (
           <TouchableOpacity
             key={r}
-            onPress={() => setPnlRange(r)}
+            onPress={() => {
+              void trackStatisticsAction({ action: 'pnl_range_change', target: r });
+              setPnlRange(r);
+            }}
             style={[
               styles.pnlTimelineButton,
               {
@@ -590,12 +595,18 @@ export default function StatisticsScreen() {
   const { refresh } = useRefreshPortfolioPrices();
   const [refreshing, setRefreshing] = useState(false);
 
+  useEffect(() => {
+    void trackStatisticsScreen();
+  }, []);
+
   const handleSelectAsset = useCallback((asset: { symbol: string }) => {
+    void trackStatisticsAction({ action: 'search_select_asset', target: asset.symbol });
     setSearchVisible(false);
     router.push(`/stock/${asset.symbol}`);
   }, []);
 
   const onRefresh = useCallback(async () => {
+    void trackStatisticsAction({ action: 'refresh' });
     setRefreshing(true);
     // Recalculate portfolio to fix any data inconsistencies from out-of-order entries
     recalculatePortfolio();
@@ -615,7 +626,10 @@ export default function StatisticsScreen() {
 
   const searchRightElement = (
     <TouchableOpacity
-      onPress={() => setSearchVisible(true)}
+      onPress={() => {
+        void trackStatisticsAction({ action: 'search_open' });
+        setSearchVisible(true);
+      }}
       style={[styles.searchButton ]}
       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
     >
@@ -818,7 +832,10 @@ export default function StatisticsScreen() {
                     {(['all', 'winners', 'losers'] as TickerFilter[]).map((f) => (
                       <TouchableOpacity
                         key={f}
-                        onPress={() => setTickerFilter(f)}
+                        onPress={() => {
+                          void trackStatisticsAction({ action: 'ticker_filter_change', target: f });
+                          setTickerFilter(f);
+                        }}
                         style={[
                           styles.filterPill,
                           {
@@ -845,7 +862,14 @@ export default function StatisticsScreen() {
                 {filteredTickers.length > 0 ? (
                   <View style={styles.tickerList}>
                     {filteredTickers.map((ticker) => (
-                      <TouchableOpacity key={ticker.symbol} activeOpacity={0.7} onPress={() => setSelectedTicker(ticker)}>
+                      <TouchableOpacity
+                        key={ticker.symbol}
+                        activeOpacity={0.7}
+                        onPress={() => {
+                          void trackStatisticsAction({ action: 'ticker_open_analytics', target: ticker.symbol });
+                          setSelectedTicker(ticker);
+                        }}
+                      >
                         <TickerRow
                           ticker={ticker}
                           isDark={isDark}

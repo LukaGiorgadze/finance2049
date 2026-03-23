@@ -3,6 +3,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { APP_CACHE_KEY } from '@/lib/hooks/useRefreshPortfolioPrices';
 import { useHolding } from '@/lib/hooks/useStore';
+import { trackTransactionsAction } from '@/lib';
 import { marketDataService } from '@/lib/services/marketDataService';
 import type { TickerSearchResult } from '@/lib/services/types';
 import type { AssetType } from '@/lib/store/types';
@@ -34,6 +35,7 @@ interface TransactionFormProps {
    * inside a Modal so the caller can dismiss the modal first.
    */
   onImportPress?: () => void;
+  analyticsContext?: string;
 }
 
 export interface TransactionData {
@@ -47,7 +49,7 @@ export interface TransactionData {
   assetType?: AssetType;
 }
 
-export function TransactionForm({ initialSymbol = '', initialType = 'buy', initialAssetType, initialName, onSubmit, onCancel, onDone, onImportPress }: TransactionFormProps) {
+export function TransactionForm({ initialSymbol = '', initialType = 'buy', initialAssetType, initialName, onSubmit, onCancel, onDone, onImportPress, analyticsContext = 'transaction_form' }: TransactionFormProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const colors = Colors[colorScheme ?? 'light'];
@@ -119,6 +121,7 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
   });
 
   const handleImportPress = () => {
+    void trackTransactionsAction({ action: 'form_import', context: analyticsContext });
     if (onImportPress) {
       onImportPress();
     } else {
@@ -171,6 +174,7 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
   }, [ticker, date]);
 
   const handleSelectAsset = (asset: TickerSearchResult) => {
+    void trackTransactionsAction({ action: 'form_select_symbol', target: asset.symbol, context: analyticsContext });
     setTicker(asset.symbol);
     setAssetName(asset.name);
     setAssetType(mapApiTypeToAssetType(asset.type, asset.market));
@@ -180,6 +184,7 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
 
   const handleQuantityModeChange = (mode: 'shares' | 'amount') => {
     if (mode !== quantityMode) {
+      void trackTransactionsAction({ action: 'form_quantity_mode_change', target: mode, context: analyticsContext });
       setQuantity('');
       setQuantityMode(mode);
     }
@@ -240,6 +245,11 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
       : `${label} ${sharesDisplay} shares of ${ticker.toUpperCase().trim()} at $${parsedPrice}/share.`;
 
     const submit = async () => {
+      void trackTransactionsAction({
+        action: 'form_submit',
+        target: `${transactionType}:${ticker.toUpperCase().trim()}`,
+        context: analyticsContext,
+      });
       onSubmit?.({
         type: transactionType,
         symbol: ticker,
@@ -313,7 +323,10 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
                 styles.toggleButton,
                 transactionType === 'buy' && { backgroundColor: colors.tint }
               ]}
-              onPress={() => setTransactionType('buy')}
+              onPress={() => {
+                void trackTransactionsAction({ action: 'form_type_change', target: 'buy', context: analyticsContext });
+                setTransactionType('buy');
+              }}
             >
               <Ionicons
                 name="add"
@@ -333,7 +346,10 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
                 styles.toggleButton,
                 transactionType === 'sell' && { backgroundColor: colors.red }
               ]}
-              onPress={() => setTransactionType('sell')}
+              onPress={() => {
+                void trackTransactionsAction({ action: 'form_type_change', target: 'sell', context: analyticsContext });
+                setTransactionType('sell');
+              }}
             >
               <Ionicons
                 name="remove"
@@ -363,6 +379,7 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
               }
             ]}
             onPress={() => {
+              void trackTransactionsAction({ action: 'form_open_symbol_search', context: analyticsContext });
               setShowDatePicker(false);
               setShowSearchModal(true);
             }}
@@ -391,6 +408,7 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
               }
             ]}
             onPress={() => {
+              void trackTransactionsAction({ action: 'form_open_date', context: analyticsContext });
               Keyboard.dismiss();
               setShowDatePicker(true);
             }}
@@ -501,7 +519,10 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
           rightAccessory={quantityMode === 'shares' && transactionType === 'sell' && holding && holding.totalShares > 0 ? (
             <TouchableOpacity
               style={styles.allButton}
-              onPress={() => setQuantity(parseFloat(holding.totalShares.toPrecision(15)).toString())}
+              onPress={() => {
+                void trackTransactionsAction({ action: 'form_fill_all_shares', target: ticker, context: analyticsContext });
+                setQuantity(parseFloat(holding.totalShares.toPrecision(15)).toString());
+              }}
             >
               <Text style={[styles.allButtonText, { color: colors.icon }]}>All</Text>
             </TouchableOpacity>
@@ -538,7 +559,10 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
           {onCancel && (
             <TouchableOpacity
               style={[styles.cancelButton, { backgroundColor: isDark ? colors.cardBackground : colors.surface }]}
-              onPress={onCancel}
+              onPress={() => {
+                void trackTransactionsAction({ action: 'form_cancel', context: analyticsContext });
+                onCancel();
+              }}
             >
               <Text style={[styles.cancelButtonText, { color: colors.text }]}>
                 Cancel
@@ -552,6 +576,7 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
         visible={showSearchModal}
         onClose={() => setShowSearchModal(false)}
         onSelectAsset={handleSelectAsset}
+        analyticsContext={analyticsContext}
       />
 
     </View>
