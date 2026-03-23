@@ -166,19 +166,41 @@ Deno.serve(async (req) => {
       ];
       console.debug(`[extract] step buildContent (image) took ${Date.now() - stepStart} ms`);
     } else if (isText) {
-      const res = await fetch(signedUrl);
+      let res: Response;
+      try {
+        res = await fetch(signedUrl);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[extract] Failed to download text file "${fileName}": fetch threw: ${message}`);
+        return json({ transactions: [], message: `Failed to download file: ${message}` }, 500);
+      }
       if (!res.ok) {
-        console.error(`[extract] Failed to download text file "${fileName}": ${res.status}`);
-        return json({ transactions: [], message: `Failed to download file: ${res.status}` }, 500);
+        const details = await getResponseErrorDetails(res);
+        console.error(`[extract] Failed to download text file "${fileName}": ${res.status} ${res.statusText}${details ? ` - ${details}` : ""}`);
+        return json({
+          transactions: [],
+          message: `Failed to download file: ${res.status} ${res.statusText}${details ? ` - ${details}` : ""}`,
+        }, 500);
       }
       const text = await res.text();
       console.debug(`[extract] step fetch(signedUrl) took ${Date.now() - stepStart} ms`);
       input = `File: ${fileName ?? "unknown"}\n\n${text}`;
     } else {
-      const res = await fetch(signedUrl);
+      let res: Response;
+      try {
+        res = await fetch(signedUrl);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[extract] Failed to download document "${fileName}": fetch threw: ${message}`);
+        return json({ transactions: [], message: `Failed to download file: ${message}` }, 500);
+      }
       if (!res.ok) {
-        console.error(`[extract] Failed to download document "${fileName}": ${res.status}`);
-        return json({ transactions: [], message: `Failed to download file: ${res.status}` }, 500);
+        const details = await getResponseErrorDetails(res);
+        console.error(`[extract] Failed to download document "${fileName}": ${res.status} ${res.statusText}${details ? ` - ${details}` : ""}`);
+        return json({
+          transactions: [],
+          message: `Failed to download file: ${res.status} ${res.statusText}${details ? ` - ${details}` : ""}`,
+        }, 500);
       }
       const bytes = new Uint8Array(await res.arrayBuffer());
       console.debug(`[extract] step fetchDocument took ${Date.now() - stepStart} ms`);
@@ -268,6 +290,16 @@ function getOutputText(
     }
   }
   return null;
+}
+
+async function getResponseErrorDetails(res: Response): Promise<string> {
+  try {
+    const text = (await res.text()).trim().replace(/\s+/g, " ");
+    if (!text) return "";
+    return text.slice(0, 300);
+  } catch {
+    return "";
+  }
 }
 
 function json(body: ExtractResponse, status = 200): Response {
