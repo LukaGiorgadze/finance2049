@@ -11,7 +11,11 @@ type AnalyticsParams = Record<
   string | number | boolean | string[] | number[] | boolean[] | null | undefined
 >;
 
+const isAnalyticsEnabled = !__DEV__;
+
 async function logEvent(name: string, params?: AnalyticsParams) {
+  if (!isAnalyticsEnabled) return;
+
   try {
     await analytics().logEvent(name, params);
   } catch (error) {
@@ -24,6 +28,8 @@ async function logEvent(name: string, params?: AnalyticsParams) {
 }
 
 async function setUserProperty(name: string, value: string) {
+  if (!isAnalyticsEnabled) return;
+
   try {
     await analytics().setUserProperty(name, value);
   } catch (error) {
@@ -35,23 +41,156 @@ async function setUserProperty(name: string, value: string) {
   }
 }
 
-export async function trackOnboardingScreen() {
+async function logScreenView(screenName: string, screenClass: string, errorContext: string) {
+  if (!isAnalyticsEnabled) return;
+
   try {
     await analytics().logScreenView({
-      screen_name: "Onboarding",
-      screen_class: "OnboardingScreen",
+      screen_name: screenName,
+      screen_class: screenClass,
     });
   } catch (error) {
-    reportWarning("analytics.logScreenView failed: onboarding", error, {
+    reportWarning(`analytics.logScreenView failed: ${errorContext}`, error, {
       analytics_method: "logScreenView",
-      screen_name: "Onboarding",
-      screen_class: "OnboardingScreen",
+      screen_name: screenName,
+      screen_class: screenClass,
     });
   }
 }
 
+async function logTutorialBegin() {
+  if (!isAnalyticsEnabled) return;
+
+  try {
+    await analytics().logTutorialBegin();
+  } catch (error) {
+    reportWarning("analytics.logTutorialBegin failed", error, {
+      analytics_method: "logTutorialBegin",
+    });
+  }
+}
+
+async function logTutorialComplete() {
+  if (!isAnalyticsEnabled) return;
+
+  try {
+    await analytics().logTutorialComplete();
+  } catch (error) {
+    reportWarning("analytics.logTutorialComplete failed", error, {
+      analytics_method: "logTutorialComplete",
+    });
+  }
+}
+
+async function logSearch(searchTerm: string) {
+  if (!isAnalyticsEnabled || !searchTerm.trim()) return;
+
+  try {
+    await analytics().logSearch({ search_term: searchTerm });
+  } catch (error) {
+    reportWarning("analytics.logSearch failed", error, {
+      analytics_method: "logSearch",
+      search_term: searchTerm,
+    });
+  }
+}
+
+async function logViewSearchResults(searchTerm: string) {
+  if (!isAnalyticsEnabled || !searchTerm.trim()) return;
+
+  try {
+    await analytics().logViewSearchResults({ search_term: searchTerm });
+  } catch (error) {
+    reportWarning("analytics.logViewSearchResults failed", error, {
+      analytics_method: "logViewSearchResults",
+      search_term: searchTerm,
+    });
+  }
+}
+
+async function logSelectItem(params: {
+  itemId: string;
+  itemListId: string;
+  itemListName: string;
+  itemName?: string;
+  itemCategory?: string;
+}) {
+  if (!isAnalyticsEnabled) return;
+
+  try {
+    await analytics().logSelectItem({
+      content_type: params.itemCategory ?? "item",
+      item_list_id: params.itemListId,
+      item_list_name: params.itemListName,
+      items: [
+        {
+          item_id: params.itemId,
+          item_name: params.itemName ?? params.itemId,
+          item_category: params.itemCategory,
+          item_list_id: params.itemListId,
+          item_list_name: params.itemListName,
+        },
+      ],
+    });
+  } catch (error) {
+    reportWarning("analytics.logSelectItem failed", error, {
+      analytics_method: "logSelectItem",
+      item_id: params.itemId,
+      item_list_id: params.itemListId,
+    });
+  }
+}
+
+async function logSelectContent(contentType: string, itemId: string) {
+  if (!isAnalyticsEnabled) return;
+
+  try {
+    await analytics().logSelectContent({
+      content_type: contentType,
+      item_id: itemId,
+    });
+  } catch (error) {
+    reportWarning("analytics.logSelectContent failed", error, {
+      analytics_method: "logSelectContent",
+      content_type: contentType,
+      item_id: itemId,
+    });
+  }
+}
+
+async function logViewItem(params: {
+  itemId: string;
+  itemName?: string;
+  itemCategory?: string;
+}) {
+  if (!isAnalyticsEnabled) return;
+
+  try {
+    await analytics().logViewItem({
+      items: [
+        {
+          item_id: params.itemId,
+          item_name: params.itemName ?? params.itemId,
+          item_category: params.itemCategory,
+        },
+      ],
+    });
+  } catch (error) {
+    reportWarning("analytics.logViewItem failed", error, {
+      analytics_method: "logViewItem",
+      item_id: params.itemId,
+      item_category: params.itemCategory,
+    });
+  }
+}
+
+export async function trackOnboardingScreen() {
+  await logScreenView("Onboarding", "OnboardingScreen", "onboarding");
+}
+
 export async function trackOnboardingStarted() {
   await Promise.all([
+    logTutorialBegin(),
     logEvent("onboarding_started"),
     setUserProperty("onboarding_state", "started"),
   ]);
@@ -129,6 +268,7 @@ export async function trackOnboardingCompleted(params: {
   importPlanned: boolean;
 }) {
   await Promise.all([
+    logTutorialComplete(),
     logEvent("onboarding_completed", {
       discovery_source: params.discoverySource ?? "unknown",
       theme: params.theme,
@@ -140,18 +280,7 @@ export async function trackOnboardingCompleted(params: {
 }
 
 export async function trackHomeScreen() {
-  try {
-    await analytics().logScreenView({
-      screen_name: "Home",
-      screen_class: "HomeScreen",
-    });
-  } catch (error) {
-    reportWarning("analytics.logScreenView failed: home", error, {
-      analytics_method: "logScreenView",
-      screen_name: "Home",
-      screen_class: "HomeScreen",
-    });
-  }
+  await logScreenView("Home", "HomeScreen", "home");
 }
 
 export async function trackHomeAction(params: {
@@ -178,18 +307,7 @@ export async function trackHomeAction(params: {
 }
 
 export async function trackPortfolioScreen() {
-  try {
-    await analytics().logScreenView({
-      screen_name: "Portfolio",
-      screen_class: "PortfolioScreen",
-    });
-  } catch (error) {
-    reportWarning("analytics.logScreenView failed: portfolio", error, {
-      analytics_method: "logScreenView",
-      screen_name: "Portfolio",
-      screen_class: "PortfolioScreen",
-    });
-  }
+  await logScreenView("Portfolio", "PortfolioScreen", "portfolio");
 }
 
 export async function trackPortfolioAction(params: {
@@ -215,18 +333,7 @@ export async function trackPortfolioAction(params: {
 }
 
 export async function trackStatisticsScreen() {
-  try {
-    await analytics().logScreenView({
-      screen_name: "Statistics",
-      screen_class: "StatisticsScreen",
-    });
-  } catch (error) {
-    reportWarning("analytics.logScreenView failed: statistics", error, {
-      analytics_method: "logScreenView",
-      screen_name: "Statistics",
-      screen_class: "StatisticsScreen",
-    });
-  }
+  await logScreenView("Statistics", "StatisticsScreen", "statistics");
 }
 
 export async function trackStatisticsAction(params: {
@@ -246,18 +353,7 @@ export async function trackStatisticsAction(params: {
 }
 
 export async function trackSettingsScreen() {
-  try {
-    await analytics().logScreenView({
-      screen_name: "Settings",
-      screen_class: "SettingsScreen",
-    });
-  } catch (error) {
-    reportWarning("analytics.logScreenView failed: settings", error, {
-      analytics_method: "logScreenView",
-      screen_name: "Settings",
-      screen_class: "SettingsScreen",
-    });
-  }
+  await logScreenView("Settings", "SettingsScreen", "settings");
 }
 
 export async function trackSettingsAction(params: {
@@ -281,16 +377,13 @@ export async function trackNewsScreen(params: {
   articleId?: string;
   source?: string;
 }) {
-  try {
-    await analytics().logScreenView({
-      screen_name: "NewsDetail",
-      screen_class: "NewsDetailScreen",
-    });
-  } catch (error) {
-    reportWarning("analytics.logScreenView failed: news_detail", error, {
-      analytics_method: "logScreenView",
-      screen_name: "NewsDetail",
-      screen_class: "NewsDetailScreen",
+  await logScreenView("NewsDetail", "NewsDetailScreen", "news_detail");
+
+  if (params.articleId) {
+    await logViewItem({
+      itemId: params.articleId,
+      itemName: params.articleId,
+      itemCategory: "news_article",
     });
   }
 
@@ -311,6 +404,14 @@ export async function trackNewsAction(params: {
   target?: string;
   source?: string;
 }) {
+  if ((params.action === "open_article" || params.action === "open_full_article") && params.target) {
+    await logSelectContent("news_article", params.target);
+  }
+
+  if (params.action === "open_related_ticker" && params.target) {
+    await logSelectContent("asset_symbol", params.target);
+  }
+
   await logEvent("news_action", {
     action: params.action,
     target: params.target,
@@ -323,6 +424,23 @@ export async function trackSearchAction(params: {
   action: "modal_open" | "modal_close" | "query" | "select_asset" | "load_more";
   target?: string;
 }) {
+  if (params.action === "query" && params.target) {
+    await Promise.all([
+      logSearch(params.target),
+      logViewSearchResults(params.target),
+    ]);
+  }
+
+  if (params.action === "select_asset" && params.target) {
+    await logSelectItem({
+      itemId: params.target,
+      itemName: params.target,
+      itemCategory: "asset",
+      itemListId: params.context,
+      itemListName: params.context,
+    });
+  }
+
   await logEvent("search_action", {
     context: params.context,
     action: params.action,
@@ -331,18 +449,7 @@ export async function trackSearchAction(params: {
 }
 
 export async function trackTransactionsScreen() {
-  try {
-    await analytics().logScreenView({
-      screen_name: "Transactions",
-      screen_class: "TransactionsScreen",
-    });
-  } catch (error) {
-    reportWarning("analytics.logScreenView failed: transactions", error, {
-      analytics_method: "logScreenView",
-      screen_name: "Transactions",
-      screen_class: "TransactionsScreen",
-    });
-  }
+  await logScreenView("Transactions", "TransactionsScreen", "transactions");
 }
 
 export async function trackTransactionsAction(params: {
@@ -375,18 +482,7 @@ export async function trackImportScreen(screen: "upload" | "confirm") {
   const screenName = screen === "upload" ? "ImportTransactions" : "ImportConfirm";
   const screenClass = screen === "upload" ? "ImportTransactionsScreen" : "ImportConfirmScreen";
 
-  try {
-    await analytics().logScreenView({
-      screen_name: screenName,
-      screen_class: screenClass,
-    });
-  } catch (error) {
-    reportWarning(`analytics.logScreenView failed: import_${screen}`, error, {
-      analytics_method: "logScreenView",
-      screen_name: screenName,
-      screen_class: screenClass,
-    });
-  }
+  await logScreenView(screenName, screenClass, `import_${screen}`);
 }
 
 export async function trackImportAction(params: {
@@ -423,18 +519,12 @@ export async function trackImportAction(params: {
 }
 
 export async function trackStockScreen(symbol: string) {
-  try {
-    await analytics().logScreenView({
-      screen_name: "StockDetail",
-      screen_class: "StockDetailScreen",
-    });
-  } catch (error) {
-    reportWarning("analytics.logScreenView failed: stock_detail", error, {
-      analytics_method: "logScreenView",
-      screen_name: "StockDetail",
-      screen_class: "StockDetailScreen",
-    });
-  }
+  await logScreenView("StockDetail", "StockDetailScreen", "stock_detail");
+  await logViewItem({
+    itemId: symbol,
+    itemName: symbol,
+    itemCategory: "asset",
+  });
 
   await logEvent("stock_screen_view", { symbol });
 }
@@ -461,18 +551,7 @@ export async function trackStockAction(params: {
 }
 
 export async function trackTopMoversScreen() {
-  try {
-    await analytics().logScreenView({
-      screen_name: "TopMovers",
-      screen_class: "TopMoversScreen",
-    });
-  } catch (error) {
-    reportWarning("analytics.logScreenView failed: top_movers", error, {
-      analytics_method: "logScreenView",
-      screen_name: "TopMovers",
-      screen_class: "TopMoversScreen",
-    });
-  }
+  await logScreenView("TopMovers", "TopMoversScreen", "top_movers");
 }
 
 export async function trackTopMoversAction(params: {
@@ -486,18 +565,7 @@ export async function trackTopMoversAction(params: {
 }
 
 export async function trackStorageScreen() {
-  try {
-    await analytics().logScreenView({
-      screen_name: "Storage",
-      screen_class: "StorageScreen",
-    });
-  } catch (error) {
-    reportWarning("analytics.logScreenView failed: storage", error, {
-      analytics_method: "logScreenView",
-      screen_name: "Storage",
-      screen_class: "StorageScreen",
-    });
-  }
+  await logScreenView("Storage", "StorageScreen", "storage");
 }
 
 export async function trackStorageAction(params: {

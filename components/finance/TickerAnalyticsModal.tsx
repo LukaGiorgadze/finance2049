@@ -47,17 +47,6 @@ export function TickerAnalyticsModal({ visible, onClose, ticker }: Props) {
   const transactions = useUITransactionsBySymbol(symbol);
   const holding = useUIHolding(symbol);
 
-  if (!ticker) return null;
-
-  const hasBrandColor = !!BRAND_COLORS[ticker.symbol];
-  const badgeBg = BRAND_COLORS[ticker.symbol] || colors.surface;
-  const badgeTextColor = hasBrandColor ? colors.textOnColor : colors.text;
-
-  const sellTransactions = transactions.filter((t) => t.type === 'sell');
-  const buyTransactions = transactions.filter((t) => t.type === 'buy');
-
-  const textColor = colors.text;
-
   useEffect(() => {
     if (!ticker) return;
     if (visible && !wasVisibleRef.current) {
@@ -78,6 +67,17 @@ export function TickerAnalyticsModal({ visible, onClose, ticker }: Props) {
     }
     wasVisibleRef.current = visible;
   }, [ticker, visible]);
+
+  if (!ticker) return null;
+
+  const hasBrandColor = !!BRAND_COLORS[ticker.symbol];
+  const badgeBg = BRAND_COLORS[ticker.symbol] || colors.surface;
+  const badgeTextColor = hasBrandColor ? colors.textOnColor : colors.text;
+
+  const sellTransactions = transactions.filter((t) => t.type === 'sell');
+  const buyTransactions = transactions.filter((t) => t.type === 'buy');
+
+  const textColor = colors.text;
 
   return (
     <Modal
