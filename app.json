@@ -3,7 +3,6 @@
     "name": "Finance 2049",
     "slug": "finance2049",
     "version": "0.1.10",
-    "jsEngine": "hermes",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "finance2049",
