@@ -5,8 +5,8 @@
  * Each migration transforms data from version N to version N+1.
  */
 
-import type { RootStore } from './types';
-import { CURRENT_SCHEMA_VERSION } from './types';
+import type { RootStore } from "./types";
+import { CURRENT_SCHEMA_VERSION } from "./types";
 
 type Migration = (state: any) => any;
 
@@ -34,7 +34,7 @@ const migrations: Record<number, Migration> = {
         ...state.portfolio,
         holdings: migratedHoldings,
       },
-      _schema: { version: 2 },
+      _schema: { version: CURRENT_SCHEMA_VERSION },
     };
   },
 };
@@ -53,7 +53,9 @@ export function migrateState(state: any): RootStore {
   while (currentVersion < CURRENT_SCHEMA_VERSION) {
     const migration = migrations[currentVersion];
     if (migration) {
-      console.debug(`[Store] Migrating from v${currentVersion} to v${currentVersion + 1}`);
+      console.debug(
+        `[Store] Migrating from v${currentVersion} to v${currentVersion + 1}`,
+      );
       migratedState = migration(migratedState);
     }
     currentVersion++;
@@ -80,10 +82,10 @@ export function getInitialState(): RootStore {
       lastUpdated: null,
     },
     preferences: {
-      defaultCurrency: 'USD',
+      defaultCurrency: "USD",
       showPortfolioValue: true,
-      defaultTimeline: '1M',
-      gainView: 'today',
+      defaultTimeline: "1M",
+      gainView: "today",
     },
     auth: {
       userId: null,

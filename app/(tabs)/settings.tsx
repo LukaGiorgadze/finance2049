@@ -5,6 +5,8 @@ import { useTheme } from '@/contexts/theme-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { store$, trackSettingsAction, trackSettingsScreen } from '@/lib';
 import { reportError } from '@/lib/crashlytics';
+import { CURRENT_SCHEMA_VERSION } from '@/lib/store/types';
+import Constants from 'expo-constants';
 import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,6 +33,7 @@ export default function SettingsScreen() {
   const [isExporting, setIsExporting] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [activeModal, setActiveModal] = useState<'support' | 'about' | null>(null);
+  const appVersion = Constants.expoConfig?.version ?? 'Unknown';
 
   useEffect(() => {
     void trackSettingsScreen();
@@ -79,7 +82,7 @@ export default function SettingsScreen() {
 
       const data = {
         exportedAt: new Date().toISOString(),
-        version: 1,
+        version: CURRENT_SCHEMA_VERSION,
         portfolio: {
           holdings: store$.portfolio.holdings.get(),
           transactions: store$.portfolio.transactions.get(),
@@ -424,7 +427,7 @@ export default function SettingsScreen() {
             <SettingsCard
               icon="info.circle.fill"
               title="About"
-              subtitle="Version 1.0.0"
+              subtitle={`Version v${appVersion}`}
               onPress={() => {
                 void trackSettingsAction({ action: 'open_about' });
                 setActiveModal('about');
