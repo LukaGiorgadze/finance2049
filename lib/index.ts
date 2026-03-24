@@ -51,7 +51,7 @@ export type {
 
 // Utils
 export {
-  buildAuthenticatedUrl, calculateAssetAllocation, calculateDayChange, calculateHoldingGain, calculateHoldingValue, calculatePortfolioTotals, clearDatabase, clearPortfolio, formatCurrency, formatDate, formatPercent, formatShares, getApiTypeLabel,
+  buildAuthenticatedUrl, calculateAssetAllocation, calculateDayChange, calculateHoldingGain, calculateHoldingValue, calculatePortfolioTotals, clearDatabase, clearPortfolio, formatCurrency, formatDate, formatLocalDateISO, formatPercent, formatShares, getApiTypeLabel,
   getTickerTypeInfo, getValueColor, hasMarketPrices, hasStoreData, mapApiTypeToAssetType, MASKED
 } from './utils';
 

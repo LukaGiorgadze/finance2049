@@ -3,7 +3,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { APP_CACHE_KEY } from '@/lib/hooks/useRefreshPortfolioPrices';
 import { useHolding } from '@/lib/hooks/useStore';
-import { trackTransactionsAction } from '@/lib';
+import { formatLocalDateISO, trackTransactionsAction } from '@/lib';
 import { marketDataService } from '@/lib/services/marketDataService';
 import type { TickerSearchResult } from '@/lib/services/types';
 import type { AssetType } from '@/lib/store/types';
@@ -137,8 +137,8 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
 
     const fetchPrice = async () => {
       try {
-        const todayStr = new Date().toISOString().split('T')[0];
-        const dateStr = date.toISOString().split('T')[0];
+        const todayStr = formatLocalDateISO(new Date());
+        const dateStr = formatLocalDateISO(date);
         const isToday = dateStr === todayStr;
 
         // For today, try the live quote first
@@ -276,8 +276,8 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
   const onDateChange = (event: any, selectedDate?: Date) => {
     const currentDate = selectedDate || date;
     setShowDatePicker(false);
-    const todayStr = new Date().toISOString().split('T')[0];
-    const selectedStr = currentDate.toISOString().split('T')[0];
+    const todayStr = formatLocalDateISO(new Date());
+    const selectedStr = formatLocalDateISO(currentDate);
     setDate(selectedStr > todayStr ? new Date() : currentDate);
   };
 
@@ -414,7 +414,7 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
             }}
           >
             <Text style={[styles.dateText, { color: colors.text }]}>
-              {date.toISOString().split('T')[0]}
+              {formatLocalDateISO(date)}
             </Text>
           </TouchableOpacity>
         </View>
@@ -455,8 +455,8 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
                     maximumDate={maxDate}
                     onChange={(event, selectedDate) => {
                       if (selectedDate) {
-                        const todayStr = new Date().toISOString().split('T')[0];
-                        const selectedStr = selectedDate.toISOString().split('T')[0];
+                        const todayStr = formatLocalDateISO(new Date());
+                        const selectedStr = formatLocalDateISO(selectedDate);
                         setDate(selectedStr > todayStr ? new Date() : selectedDate);
                       }
                     }}

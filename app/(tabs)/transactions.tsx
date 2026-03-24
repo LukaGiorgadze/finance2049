@@ -4,7 +4,7 @@ import { ThemedView } from '@/components/themed-view';
 import { PageHeader } from '@/components/ui/page-header';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { addTransaction, trackTransactionsAction, trackTransactionsScreen } from '@/lib';
+import { addTransaction, formatLocalDateISO, trackTransactionsAction, trackTransactionsScreen } from '@/lib';
 import { reportError } from '@/lib/crashlytics';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -44,7 +44,7 @@ export default function TransactionsScreen() {
           shares,
           price,
           total,
-          date: data.date.toISOString().split('T')[0],
+          date: formatLocalDateISO(data.date),
           commission,
         },
         data.assetType ?? 'stock',

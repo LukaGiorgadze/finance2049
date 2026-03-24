@@ -3,7 +3,7 @@ import { ImportButton } from '@/components/ui/import-button';
 import { SectionTitle } from '@/components/ui/section-title';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { addTransaction, formatCurrency, formatPercent, getValueColor, MASKED, toggleShowPortfolioValue, trackHomeAction, useHoldingsCount, usePortfolioSummary, useShowPortfolioValue } from '@/lib';
+import { addTransaction, formatCurrency, formatLocalDateISO, formatPercent, getValueColor, MASKED, toggleShowPortfolioValue, trackHomeAction, useHoldingsCount, usePortfolioSummary, useShowPortfolioValue } from '@/lib';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -49,7 +49,7 @@ export function PortfolioSummary() {
         price,
         total: shares * price,
         commission: parseFloat(data.commission) || 0,
-        date: data.date.toISOString(),
+        date: formatLocalDateISO(data.date),
       }, data.assetType ?? '', data.name ?? '');
     } catch (e) {
       Alert.alert('Transaction Failed', e instanceof Error ? e.message : 'Failed to record transaction.');

@@ -15,6 +15,7 @@ import {
   formatChartLabel,
   formatCurrency,
   formatEmployeeCount,
+  formatLocalDateISO,
   formatMarketCap,
   formatPercent,
   getValueColor,
@@ -168,7 +169,7 @@ export default function StockDetailScreen() {
         shares,
         price,
         total,
-        date: data.date.toISOString().split('T')[0],
+        date: formatLocalDateISO(data.date),
         commission,
       }, resolvedAssetType, data.name || details?.name);
     } catch (e) {

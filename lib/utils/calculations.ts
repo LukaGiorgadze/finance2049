@@ -195,6 +195,17 @@ export function formatDate(dateStr: string): string {
 }
 
 /**
+ * Format a Date as a local calendar date string in YYYY-MM-DD form.
+ * Avoids UTC conversion so date pickers do not shift by timezone.
+ */
+export function formatLocalDateISO(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Minimum share count treated as a real position.
  * Values below this are floating-point residue from sell arithmetic and should
  * be considered zero. Safe for any purchase quantity up to ~10M shares rounded

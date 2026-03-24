@@ -4,7 +4,7 @@ import { SectionTitle } from '@/components/ui/section-title';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { addTransaction, formatCurrency, formatPercent, formatShares, getValueColor, MASKED, setGainView, trackPortfolioAction, UIHolding, useGainView, useMarketPrices, useShowPortfolioValue, useUIHoldings } from '@/lib';
+import { addTransaction, formatCurrency, formatLocalDateISO, formatPercent, formatShares, getValueColor, MASKED, setGainView, trackPortfolioAction, UIHolding, useGainView, useMarketPrices, useShowPortfolioValue, useUIHoldings } from '@/lib';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -80,7 +80,7 @@ export function PortfolioHoldingsList() {
         shares,
         price,
         total,
-        date: data.date.toISOString().split('T')[0],
+        date: formatLocalDateISO(data.date),
         commission,
       }, data.assetType as string, data.name);
     } catch (e) {
