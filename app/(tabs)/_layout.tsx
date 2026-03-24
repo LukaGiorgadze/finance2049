@@ -104,7 +104,7 @@ export default function TabLayout() {
           elevation: 0,
           height: Platform.OS === 'ios' ? 75 : 65,
           paddingBottom: Platform.OS === 'ios' ? 20 : 10,
-          paddingTop: Platform.OS === 'ios' ? 12 : 10,
+          paddingTop: Platform.OS === 'ios' ? 12 : 5,
           left: 16,
           right: 16,
           marginHorizontal: 32,
@@ -117,9 +117,21 @@ export default function TabLayout() {
           borderWidth: 1,
           borderColor: colors.tabBarBorder,
         },
+        tabBarItemStyle: {
+          height: '100%',
+          paddingVertical: Platform.OS === 'android' ? 0 : undefined,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        tabBarIconStyle: {
+          marginTop: Platform.OS === 'android' ? 0 : undefined,
+          marginBottom: Platform.OS === 'android' ? 0 : undefined,
+        },
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
+          lineHeight: Platform.OS === 'android' ? 13 : undefined,
+          marginTop: Platform.OS === 'android' ? 0 : undefined,
         },
         tabBarBackground: () => (
           <BlurView
