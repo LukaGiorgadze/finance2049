@@ -19,9 +19,17 @@ const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY 
 export const hasSupabaseConfig = Boolean(supabaseUrl && supabasePublishableKey);
 
 let hasReportedMissingConfig = false;
+let hasWarnedMissingConfig = false;
 let supabaseClient: SupabaseClient | null = null;
 
 function reportMissingSupabaseConfig(context: string) {
+  if (!hasWarnedMissingConfig) {
+    hasWarnedMissingConfig = true;
+    console.warn(
+      '[Supabase] Missing envs: EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
+    );
+  }
+
   if (hasReportedMissingConfig || typeof __DEV__ === 'undefined' || __DEV__) {
     return;
   }
