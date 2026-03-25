@@ -18,7 +18,11 @@
     },
     "android": {
       "googleServicesFile": "./android/app/google-services.json",
-      "blockedPermissions": ["com.google.android.gms.permission.AD_ID"],
+      "blockedPermissions": [
+        "com.google.android.gms.permission.AD_ID",
+        "android.permission.ACCESS_ADSERVICES_AD_ID",
+        "android.permission.ACCESS_ADSERVICES_ATTRIBUTION"
+      ],
       "permissions": ["android.permission.CAMERA"],
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
