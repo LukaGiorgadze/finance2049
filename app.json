@@ -2,7 +2,7 @@
   "expo": {
     "name": "Finance 2049",
     "slug": "finance2049",
-    "version": "0.1.13",
+    "version": "0.1.14",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "finance2049",
@@ -18,11 +18,6 @@
     },
     "android": {
       "googleServicesFile": "./android/app/google-services.json",
-      "blockedPermissions": [
-        "com.google.android.gms.permission.AD_ID",
-        "android.permission.ACCESS_ADSERVICES_AD_ID",
-        "android.permission.ACCESS_ADSERVICES_ATTRIBUTION"
-      ],
       "permissions": ["android.permission.CAMERA"],
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
