@@ -10,7 +10,6 @@ import { configureObservablePersistence, persistObservable } from '@legendapp/st
 import { ObservablePersistAsyncStorage } from '@legendapp/state/persist-plugins/async-storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { reportWarning } from '../crashlytics';
-import { SHARES_EPSILON } from '../utils/calculations';
 import { getInitialState, migrateState } from './migrations';
 import type {
   AssetType,
@@ -20,6 +19,8 @@ import type {
   RootStore,
   Transaction,
 } from './types';
+
+const SHARES_EPSILON = 1e-9;
 
 // ============================================================================
 // Store Configuration
@@ -502,7 +503,10 @@ export const deleteTransaction = (transactionId: string) => {
  */
 export const recalculatePortfolio = () => {
   const transactions = store$.portfolio.transactions.get();
-  if (transactions.length === 0) return;
+  if (transactions.length === 0) {
+    store$.portfolio.holdings.set({});
+    return;
+  }
 
   // 1. Sort ALL transactions by date, then creation time for stability
   const sortedTransactions = [...transactions].sort((a, b) => {

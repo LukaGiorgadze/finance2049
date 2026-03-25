@@ -1,0 +1,1079 @@
+{
+  "scenarios": [
+    {
+      "name": "buy_only_single_lot",
+      "transactions": [
+        {
+          "id": "buy-only-1",
+          "symbol": "AAA",
+          "type": "buy",
+          "shares": 10,
+          "price": 100,
+          "total": 1000,
+          "date": "2026-01-01",
+          "commission": 1,
+          "createdAt": "2026-01-01T09:00:00.000Z",
+          "updatedAt": "2026-01-01T09:00:00.000Z"
+        }
+      ],
+      "expected": {
+        "holdings": [
+          {
+            "symbol": "AAA",
+            "totalShares": 10,
+            "avgCost": 100,
+            "totalCommissions": 1,
+            "lots": [
+              {
+                "transactionId": "buy-only-1",
+                "shares": 10,
+                "purchasePrice": 100,
+                "purchaseDate": "2026-01-01",
+                "remainingShares": 10
+              }
+            ]
+          }
+        ],
+        "transactions": [
+          {
+            "id": "buy-only-1",
+            "symbol": "AAA",
+            "type": "buy",
+            "shares": 10,
+            "price": 100,
+            "total": 1000,
+            "date": "2026-01-01",
+            "commission": 1,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": null,
+            "splitTo": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "two_buys_accumulate_weighted_average",
+      "transactions": [
+        {
+          "id": "two-buys-2",
+          "symbol": "AAA",
+          "type": "buy",
+          "shares": 5,
+          "price": 120,
+          "total": 600,
+          "date": "2026-01-02",
+          "commission": 2,
+          "createdAt": "2026-01-02T09:00:00.000Z",
+          "updatedAt": "2026-01-02T09:00:00.000Z"
+        },
+        {
+          "id": "two-buys-1",
+          "symbol": "AAA",
+          "type": "buy",
+          "shares": 10,
+          "price": 100,
+          "total": 1000,
+          "date": "2026-01-01",
+          "commission": 1,
+          "createdAt": "2026-01-01T09:00:00.000Z",
+          "updatedAt": "2026-01-01T09:00:00.000Z"
+        }
+      ],
+      "expected": {
+        "holdings": [
+          {
+            "symbol": "AAA",
+            "totalShares": 15,
+            "avgCost": 106.66666666666667,
+            "totalCommissions": 3,
+            "lots": [
+              {
+                "transactionId": "two-buys-1",
+                "shares": 10,
+                "purchasePrice": 100,
+                "purchaseDate": "2026-01-01",
+                "remainingShares": 10
+              },
+              {
+                "transactionId": "two-buys-2",
+                "shares": 5,
+                "purchasePrice": 120,
+                "purchaseDate": "2026-01-02",
+                "remainingShares": 5
+              }
+            ]
+          }
+        ],
+        "transactions": [
+          {
+            "id": "two-buys-1",
+            "symbol": "AAA",
+            "type": "buy",
+            "shares": 10,
+            "price": 100,
+            "total": 1000,
+            "date": "2026-01-01",
+            "commission": 1,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": null,
+            "splitTo": null
+          },
+          {
+            "id": "two-buys-2",
+            "symbol": "AAA",
+            "type": "buy",
+            "shares": 5,
+            "price": 120,
+            "total": 600,
+            "date": "2026-01-02",
+            "commission": 2,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": null,
+            "splitTo": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "fifo_partial_multi_lot_sell",
+      "transactions": [
+        {
+          "id": "fifo-sell-3",
+          "symbol": "AAA",
+          "type": "sell",
+          "shares": 12,
+          "price": 150,
+          "total": 1800,
+          "date": "2026-01-03",
+          "commission": 3,
+          "createdAt": "2026-01-03T09:00:00.000Z",
+          "updatedAt": "2026-01-03T09:00:00.000Z"
+        },
+        {
+          "id": "fifo-buy-2",
+          "symbol": "AAA",
+          "type": "buy",
+          "shares": 5,
+          "price": 120,
+          "total": 600,
+          "date": "2026-01-02",
+          "commission": 2,
+          "createdAt": "2026-01-02T09:00:00.000Z",
+          "updatedAt": "2026-01-02T09:00:00.000Z"
+        },
+        {
+          "id": "fifo-buy-1",
+          "symbol": "AAA",
+          "type": "buy",
+          "shares": 10,
+          "price": 100,
+          "total": 1000,
+          "date": "2026-01-01",
+          "commission": 1,
+          "createdAt": "2026-01-01T09:00:00.000Z",
+          "updatedAt": "2026-01-01T09:00:00.000Z"
+        }
+      ],
+      "expected": {
+        "holdings": [
+          {
+            "symbol": "AAA",
+            "totalShares": 3,
+            "avgCost": 120,
+            "totalCommissions": 0.6,
+            "lots": [
+              {
+                "transactionId": "fifo-buy-2",
+                "shares": 5,
+                "purchasePrice": 120,
+                "purchaseDate": "2026-01-02",
+                "remainingShares": 3
+              }
+            ]
+          }
+        ],
+        "transactions": [
+          {
+            "id": "fifo-buy-1",
+            "symbol": "AAA",
+            "type": "buy",
+            "shares": 10,
+            "price": 100,
+            "total": 1000,
+            "date": "2026-01-01",
+            "commission": 1,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": null,
+            "splitTo": null
+          },
+          {
+            "id": "fifo-buy-2",
+            "symbol": "AAA",
+            "type": "buy",
+            "shares": 5,
+            "price": 120,
+            "total": 600,
+            "date": "2026-01-02",
+            "commission": 2,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": null,
+            "splitTo": null
+          },
+          {
+            "id": "fifo-sell-3",
+            "symbol": "AAA",
+            "type": "sell",
+            "shares": 12,
+            "price": 150,
+            "total": 1800,
+            "date": "2026-01-03",
+            "commission": 3,
+            "costBasis": 1240,
+            "realizedGain": 557,
+            "realizedGainPercent": 44.91935483870968,
+            "splitFrom": null,
+            "splitTo": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "full_close_and_reopen",
+      "transactions": [
+        {
+          "id": "reopen-buy-2",
+          "symbol": "AAA",
+          "type": "buy",
+          "shares": 4,
+          "price": 90,
+          "total": 360,
+          "date": "2026-01-03",
+          "commission": 1,
+          "createdAt": "2026-01-03T09:00:00.000Z",
+          "updatedAt": "2026-01-03T09:00:00.000Z"
+        },
+        {
+          "id": "reopen-sell-1",
+          "symbol": "AAA",
+          "type": "sell",
+          "shares": 10,
+          "price": 150,
+          "total": 1500,
+          "date": "2026-01-02",
+          "commission": 2,
+          "createdAt": "2026-01-02T09:00:00.000Z",
+          "updatedAt": "2026-01-02T09:00:00.000Z"
+        },
+        {
+          "id": "reopen-buy-1",
+          "symbol": "AAA",
+          "type": "buy",
+          "shares": 10,
+          "price": 100,
+          "total": 1000,
+          "date": "2026-01-01",
+          "commission": 1,
+          "createdAt": "2026-01-01T09:00:00.000Z",
+          "updatedAt": "2026-01-01T09:00:00.000Z"
+        }
+      ],
+      "expected": {
+        "holdings": [
+          {
+            "symbol": "AAA",
+            "totalShares": 4,
+            "avgCost": 90,
+            "totalCommissions": 1,
+            "lots": [
+              {
+                "transactionId": "reopen-buy-2",
+                "shares": 4,
+                "purchasePrice": 90,
+                "purchaseDate": "2026-01-03",
+                "remainingShares": 4
+              }
+            ]
+          }
+        ],
+        "transactions": [
+          {
+            "id": "reopen-buy-1",
+            "symbol": "AAA",
+            "type": "buy",
+            "shares": 10,
+            "price": 100,
+            "total": 1000,
+            "date": "2026-01-01",
+            "commission": 1,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": null,
+            "splitTo": null
+          },
+          {
+            "id": "reopen-sell-1",
+            "symbol": "AAA",
+            "type": "sell",
+            "shares": 10,
+            "price": 150,
+            "total": 1500,
+            "date": "2026-01-02",
+            "commission": 2,
+            "costBasis": 1000,
+            "realizedGain": 498,
+            "realizedGainPercent": 49.8,
+            "splitFrom": null,
+            "splitTo": null
+          },
+          {
+            "id": "reopen-buy-2",
+            "symbol": "AAA",
+            "type": "buy",
+            "shares": 4,
+            "price": 90,
+            "total": 360,
+            "date": "2026-01-03",
+            "commission": 1,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": null,
+            "splitTo": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "sell_before_buy_same_symbol_invalid_history",
+      "transactions": [
+        {
+          "id": "invalid-buy-1",
+          "symbol": "AAA",
+          "type": "buy",
+          "shares": 10,
+          "price": 100,
+          "total": 1000,
+          "date": "2026-01-02",
+          "commission": 1,
+          "createdAt": "2026-01-02T09:00:00.000Z",
+          "updatedAt": "2026-01-02T09:00:00.000Z"
+        },
+        {
+          "id": "invalid-sell-1",
+          "symbol": "AAA",
+          "type": "sell",
+          "shares": 5,
+          "price": 110,
+          "total": 550,
+          "date": "2026-01-01",
+          "commission": 1,
+          "createdAt": "2026-01-01T09:00:00.000Z",
+          "updatedAt": "2026-01-01T09:00:00.000Z"
+        }
+      ],
+      "expected": {
+        "holdings": [
+          {
+            "symbol": "AAA",
+            "totalShares": 10,
+            "avgCost": 100,
+            "totalCommissions": 1,
+            "lots": [
+              {
+                "transactionId": "invalid-buy-1",
+                "shares": 10,
+                "purchasePrice": 100,
+                "purchaseDate": "2026-01-02",
+                "remainingShares": 10
+              }
+            ]
+          }
+        ],
+        "transactions": [
+          {
+            "id": "invalid-sell-1",
+            "symbol": "AAA",
+            "type": "sell",
+            "shares": 5,
+            "price": 110,
+            "total": 550,
+            "date": "2026-01-01",
+            "commission": 1,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": null,
+            "splitTo": null
+          },
+          {
+            "id": "invalid-buy-1",
+            "symbol": "AAA",
+            "type": "buy",
+            "shares": 10,
+            "price": 100,
+            "total": 1000,
+            "date": "2026-01-02",
+            "commission": 1,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": null,
+            "splitTo": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "oversell_then_later_buy_clamped",
+      "transactions": [
+        {
+          "id": "oversell-buy-2",
+          "symbol": "AAA",
+          "type": "buy",
+          "shares": 2,
+          "price": 90,
+          "total": 180,
+          "date": "2026-01-03",
+          "commission": 1,
+          "createdAt": "2026-01-03T09:00:00.000Z",
+          "updatedAt": "2026-01-03T09:00:00.000Z"
+        },
+        {
+          "id": "oversell-sell-1",
+          "symbol": "AAA",
+          "type": "sell",
+          "shares": 8,
+          "price": 110,
+          "total": 880,
+          "date": "2026-01-02",
+          "commission": 2,
+          "createdAt": "2026-01-02T09:00:00.000Z",
+          "updatedAt": "2026-01-02T09:00:00.000Z"
+        },
+        {
+          "id": "oversell-buy-1",
+          "symbol": "AAA",
+          "type": "buy",
+          "shares": 5,
+          "price": 100,
+          "total": 500,
+          "date": "2026-01-01",
+          "commission": 1,
+          "createdAt": "2026-01-01T09:00:00.000Z",
+          "updatedAt": "2026-01-01T09:00:00.000Z"
+        }
+      ],
+      "expected": {
+        "holdings": [
+          {
+            "symbol": "AAA",
+            "totalShares": 2,
+            "avgCost": 90,
+            "totalCommissions": 1,
+            "lots": [
+              {
+                "transactionId": "oversell-buy-2",
+                "shares": 2,
+                "purchasePrice": 90,
+                "purchaseDate": "2026-01-03",
+                "remainingShares": 2
+              }
+            ]
+          }
+        ],
+        "transactions": [
+          {
+            "id": "oversell-buy-1",
+            "symbol": "AAA",
+            "type": "buy",
+            "shares": 5,
+            "price": 100,
+            "total": 500,
+            "date": "2026-01-01",
+            "commission": 1,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": null,
+            "splitTo": null
+          },
+          {
+            "id": "oversell-sell-1",
+            "symbol": "AAA",
+            "type": "sell",
+            "shares": 8,
+            "price": 110,
+            "total": 880,
+            "date": "2026-01-02",
+            "commission": 2,
+            "costBasis": 500,
+            "realizedGain": 378,
+            "realizedGainPercent": 75.6,
+            "splitFrom": null,
+            "splitTo": null
+          },
+          {
+            "id": "oversell-buy-2",
+            "symbol": "AAA",
+            "type": "buy",
+            "shares": 2,
+            "price": 90,
+            "total": 180,
+            "date": "2026-01-03",
+            "commission": 1,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": null,
+            "splitTo": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "split_and_sell_open_lot_adjustment",
+      "transactions": [
+        {
+          "id": "split-sell-1",
+          "symbol": "SPLT",
+          "type": "sell",
+          "shares": 5,
+          "price": 60,
+          "total": 300,
+          "date": "2026-01-03",
+          "commission": 0,
+          "createdAt": "2026-01-03T09:00:00.000Z",
+          "updatedAt": "2026-01-03T09:00:00.000Z"
+        },
+        {
+          "id": "split-tx-1",
+          "symbol": "SPLT",
+          "type": "split",
+          "shares": 0,
+          "price": 0,
+          "total": 0,
+          "date": "2026-01-02",
+          "commission": 0,
+          "createdAt": "2026-01-02T09:00:00.000Z",
+          "updatedAt": "2026-01-02T09:00:00.000Z",
+          "splitFrom": 1,
+          "splitTo": 2
+        },
+        {
+          "id": "split-buy-1",
+          "symbol": "SPLT",
+          "type": "buy",
+          "shares": 10,
+          "price": 100,
+          "total": 1000,
+          "date": "2026-01-01",
+          "commission": 0,
+          "createdAt": "2026-01-01T09:00:00.000Z",
+          "updatedAt": "2026-01-01T09:00:00.000Z"
+        }
+      ],
+      "expected": {
+        "holdings": [
+          {
+            "symbol": "SPLT",
+            "totalShares": 15,
+            "avgCost": 50,
+            "totalCommissions": 0,
+            "lots": [
+              {
+                "transactionId": "split-buy-1",
+                "shares": 20,
+                "purchasePrice": 50,
+                "purchaseDate": "2026-01-01",
+                "remainingShares": 15
+              }
+            ]
+          }
+        ],
+        "transactions": [
+          {
+            "id": "split-buy-1",
+            "symbol": "SPLT",
+            "type": "buy",
+            "shares": 10,
+            "price": 100,
+            "total": 1000,
+            "date": "2026-01-01",
+            "commission": 0,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": null,
+            "splitTo": null
+          },
+          {
+            "id": "split-tx-1",
+            "symbol": "SPLT",
+            "type": "split",
+            "shares": 0,
+            "price": 0,
+            "total": 0,
+            "date": "2026-01-02",
+            "commission": 0,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": 1,
+            "splitTo": 2
+          },
+          {
+            "id": "split-sell-1",
+            "symbol": "SPLT",
+            "type": "sell",
+            "shares": 5,
+            "price": 60,
+            "total": 300,
+            "date": "2026-01-03",
+            "commission": 0,
+            "costBasis": 250,
+            "realizedGain": 50,
+            "realizedGainPercent": 20,
+            "splitFrom": null,
+            "splitTo": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_split_after_partial_sell",
+      "transactions": [
+        {
+          "id": "rsplit-tx-1",
+          "symbol": "RSPLT",
+          "type": "split",
+          "shares": 0,
+          "price": 0,
+          "total": 0,
+          "date": "2025-12-18",
+          "commission": 0,
+          "createdAt": "2025-12-18T09:00:00.000Z",
+          "updatedAt": "2025-12-18T09:00:00.000Z",
+          "splitFrom": 100,
+          "splitTo": 1
+        },
+        {
+          "id": "rsplit-sell-1",
+          "symbol": "RSPLT",
+          "type": "sell",
+          "shares": 40,
+          "price": 5,
+          "total": 200,
+          "date": "2025-12-15",
+          "commission": 0,
+          "createdAt": "2025-12-15T09:00:00.000Z",
+          "updatedAt": "2025-12-15T09:00:00.000Z"
+        },
+        {
+          "id": "rsplit-buy-1",
+          "symbol": "RSPLT",
+          "type": "buy",
+          "shares": 100,
+          "price": 4,
+          "total": 400,
+          "date": "2025-12-12",
+          "commission": 10,
+          "createdAt": "2025-12-12T09:00:00.000Z",
+          "updatedAt": "2025-12-12T09:00:00.000Z"
+        }
+      ],
+      "expected": {
+        "holdings": [
+          {
+            "symbol": "RSPLT",
+            "totalShares": 0.6,
+            "avgCost": 400,
+            "totalCommissions": 6,
+            "lots": [
+              {
+                "transactionId": "rsplit-buy-1",
+                "shares": 1,
+                "purchasePrice": 400,
+                "purchaseDate": "2025-12-12",
+                "remainingShares": 0.6
+              }
+            ]
+          }
+        ],
+        "transactions": [
+          {
+            "id": "rsplit-buy-1",
+            "symbol": "RSPLT",
+            "type": "buy",
+            "shares": 100,
+            "price": 4,
+            "total": 400,
+            "date": "2025-12-12",
+            "commission": 10,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": null,
+            "splitTo": null
+          },
+          {
+            "id": "rsplit-sell-1",
+            "symbol": "RSPLT",
+            "type": "sell",
+            "shares": 40,
+            "price": 5,
+            "total": 200,
+            "date": "2025-12-15",
+            "commission": 0,
+            "costBasis": 160,
+            "realizedGain": 40,
+            "realizedGainPercent": 25,
+            "splitFrom": null,
+            "splitTo": null
+          },
+          {
+            "id": "rsplit-tx-1",
+            "symbol": "RSPLT",
+            "type": "split",
+            "shares": 0,
+            "price": 0,
+            "total": 0,
+            "date": "2025-12-18",
+            "commission": 0,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": 100,
+            "splitTo": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "same_day_created_at_sell_before_buy",
+      "transactions": [
+        {
+          "id": "same-day-buy-late",
+          "symbol": "DAY",
+          "type": "buy",
+          "shares": 5,
+          "price": 50,
+          "total": 250,
+          "date": "2026-03-01",
+          "commission": 1,
+          "createdAt": "2026-03-01T10:00:00.000Z",
+          "updatedAt": "2026-03-01T10:00:00.000Z"
+        },
+        {
+          "id": "same-day-sell-early",
+          "symbol": "DAY",
+          "type": "sell",
+          "shares": 2,
+          "price": 60,
+          "total": 120,
+          "date": "2026-03-01",
+          "commission": 0,
+          "createdAt": "2026-03-01T09:00:00.000Z",
+          "updatedAt": "2026-03-01T09:00:00.000Z"
+        }
+      ],
+      "expected": {
+        "holdings": [
+          {
+            "symbol": "DAY",
+            "totalShares": 5,
+            "avgCost": 50,
+            "totalCommissions": 1,
+            "lots": [
+              {
+                "transactionId": "same-day-buy-late",
+                "shares": 5,
+                "purchasePrice": 50,
+                "purchaseDate": "2026-03-01",
+                "remainingShares": 5
+              }
+            ]
+          }
+        ],
+        "transactions": [
+          {
+            "id": "same-day-sell-early",
+            "symbol": "DAY",
+            "type": "sell",
+            "shares": 2,
+            "price": 60,
+            "total": 120,
+            "date": "2026-03-01",
+            "commission": 0,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": null,
+            "splitTo": null
+          },
+          {
+            "id": "same-day-buy-late",
+            "symbol": "DAY",
+            "type": "buy",
+            "shares": 5,
+            "price": 50,
+            "total": 250,
+            "date": "2026-03-01",
+            "commission": 1,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": null,
+            "splitTo": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "same_day_created_at_buy_before_sell",
+      "transactions": [
+        {
+          "id": "same-day-sell-late",
+          "symbol": "DAY",
+          "type": "sell",
+          "shares": 2,
+          "price": 60,
+          "total": 120,
+          "date": "2026-03-01",
+          "commission": 0,
+          "createdAt": "2026-03-01T10:00:00.000Z",
+          "updatedAt": "2026-03-01T10:00:00.000Z"
+        },
+        {
+          "id": "same-day-buy-early",
+          "symbol": "DAY",
+          "type": "buy",
+          "shares": 5,
+          "price": 50,
+          "total": 250,
+          "date": "2026-03-01",
+          "commission": 1,
+          "createdAt": "2026-03-01T09:00:00.000Z",
+          "updatedAt": "2026-03-01T09:00:00.000Z"
+        }
+      ],
+      "expected": {
+        "holdings": [
+          {
+            "symbol": "DAY",
+            "totalShares": 3,
+            "avgCost": 50,
+            "totalCommissions": 0.6,
+            "lots": [
+              {
+                "transactionId": "same-day-buy-early",
+                "shares": 5,
+                "purchasePrice": 50,
+                "purchaseDate": "2026-03-01",
+                "remainingShares": 3
+              }
+            ]
+          }
+        ],
+        "transactions": [
+          {
+            "id": "same-day-buy-early",
+            "symbol": "DAY",
+            "type": "buy",
+            "shares": 5,
+            "price": 50,
+            "total": 250,
+            "date": "2026-03-01",
+            "commission": 1,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": null,
+            "splitTo": null
+          },
+          {
+            "id": "same-day-sell-late",
+            "symbol": "DAY",
+            "type": "sell",
+            "shares": 2,
+            "price": 60,
+            "total": 120,
+            "date": "2026-03-01",
+            "commission": 0,
+            "costBasis": 100,
+            "realizedGain": 20,
+            "realizedGainPercent": 20,
+            "splitFrom": null,
+            "splitTo": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "multiple_symbols_out_of_order_replay",
+      "transactions": [
+        {
+          "id": "multi-aaa-sell",
+          "symbol": "AAA",
+          "type": "sell",
+          "shares": 3,
+          "price": 150,
+          "total": 450,
+          "date": "2026-02-03",
+          "commission": 0,
+          "createdAt": "2026-02-03T09:00:00.000Z",
+          "updatedAt": "2026-02-03T09:00:00.000Z"
+        },
+        {
+          "id": "multi-bbb-buy",
+          "symbol": "BBB",
+          "type": "buy",
+          "shares": 4,
+          "price": 20,
+          "total": 80,
+          "date": "2026-02-01",
+          "commission": 0.2,
+          "createdAt": "2026-02-01T11:00:00.000Z",
+          "updatedAt": "2026-02-01T11:00:00.000Z"
+        },
+        {
+          "id": "multi-aaa-buy-2",
+          "symbol": "AAA",
+          "type": "buy",
+          "shares": 2,
+          "price": 90,
+          "total": 180,
+          "date": "2026-02-02",
+          "commission": 0.5,
+          "createdAt": "2026-02-02T09:00:00.000Z",
+          "updatedAt": "2026-02-02T09:00:00.000Z"
+        },
+        {
+          "id": "multi-aaa-buy-1",
+          "symbol": "AAA",
+          "type": "buy",
+          "shares": 10,
+          "price": 100,
+          "total": 1000,
+          "date": "2026-02-01",
+          "commission": 1,
+          "createdAt": "2026-02-01T09:00:00.000Z",
+          "updatedAt": "2026-02-01T09:00:00.000Z"
+        }
+      ],
+      "expected": {
+        "holdings": [
+          {
+            "symbol": "AAA",
+            "totalShares": 9,
+            "avgCost": 97.77777777777777,
+            "totalCommissions": 1.125,
+            "lots": [
+              {
+                "transactionId": "multi-aaa-buy-1",
+                "shares": 10,
+                "purchasePrice": 100,
+                "purchaseDate": "2026-02-01",
+                "remainingShares": 7
+              },
+              {
+                "transactionId": "multi-aaa-buy-2",
+                "shares": 2,
+                "purchasePrice": 90,
+                "purchaseDate": "2026-02-02",
+                "remainingShares": 2
+              }
+            ]
+          },
+          {
+            "symbol": "BBB",
+            "totalShares": 4,
+            "avgCost": 20,
+            "totalCommissions": 0.2,
+            "lots": [
+              {
+                "transactionId": "multi-bbb-buy",
+                "shares": 4,
+                "purchasePrice": 20,
+                "purchaseDate": "2026-02-01",
+                "remainingShares": 4
+              }
+            ]
+          }
+        ],
+        "transactions": [
+          {
+            "id": "multi-aaa-buy-1",
+            "symbol": "AAA",
+            "type": "buy",
+            "shares": 10,
+            "price": 100,
+            "total": 1000,
+            "date": "2026-02-01",
+            "commission": 1,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": null,
+            "splitTo": null
+          },
+          {
+            "id": "multi-bbb-buy",
+            "symbol": "BBB",
+            "type": "buy",
+            "shares": 4,
+            "price": 20,
+            "total": 80,
+            "date": "2026-02-01",
+            "commission": 0.2,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": null,
+            "splitTo": null
+          },
+          {
+            "id": "multi-aaa-buy-2",
+            "symbol": "AAA",
+            "type": "buy",
+            "shares": 2,
+            "price": 90,
+            "total": 180,
+            "date": "2026-02-02",
+            "commission": 0.5,
+            "costBasis": null,
+            "realizedGain": null,
+            "realizedGainPercent": null,
+            "splitFrom": null,
+            "splitTo": null
+          },
+          {
+            "id": "multi-aaa-sell",
+            "symbol": "AAA",
+            "type": "sell",
+            "shares": 3,
+            "price": 150,
+            "total": 450,
+            "date": "2026-02-03",
+            "commission": 0,
+            "costBasis": 300,
+            "realizedGain": 150,
+            "realizedGainPercent": 50,
+            "splitFrom": null,
+            "splitTo": null
+          }
+        ]
+      }
+    }
+  ]
+}
