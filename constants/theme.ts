@@ -1,0 +1,199 @@
+/**
+ * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
+ * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ */
+
+import { Platform } from 'react-native';
+
+const tintColorLight = '#34C759'; // Finance green
+const tintColorDark = '#34C759';
+
+export const Colors = {
+  /** App accent color */
+  indigo: '#6366F1',
+  /** Darker indigo for gradients (e.g. primary button) */
+  indigoDark: '#4338CA',
+  /** Default shadow color */
+  shadow: '#000',
+  /** Gradient steps for indigo buttons */
+  indigoLight: '#818CF8',
+  indigoDarker: '#4F46E5',
+  light: {
+    text: '#11181C',
+    background: '#fff',
+    tint: tintColorLight,
+    icon: '#687076',
+    tabIconDefault: '#687076',
+    tabIconSelected: tintColorLight,
+    blue: '#007AFF',
+    red: '#FF3B30',
+    green: tintColorLight,
+    // Semantic (errors, warnings, accent)
+    error: '#EF4444',
+    warning: '#F59E0B',
+    warningIcon: '#D97706',
+    orange: '#FF9500',
+    orangeBg: '#FF950020',
+    greenTintBg: '#34C75920',
+    redTintBg: '#FF3B3020',
+    // Surfaces & borders
+    cardBackground: '#FFFFFF',
+    cardBorder: '#E5E5EA',
+    divider: '#F2F2F7',
+    surface: '#F2F2F7',
+    rowSurface: '#F5F5F7',
+    surfaceElevated: '#E5E5EA',
+    iconMuted: '#C0C0C0',
+    borderMuted: '#AAAAAA',
+    link: '#0a7ea4',
+    amber: '#FF9F0A',
+    yellow: '#FFD60A',
+    yellowMuted: '#856404',
+    textOnColor: '#FFFFFF',
+    placeholder: '#808080',
+    overlay: 'rgba(0,0,0,0.4)',
+    overlayStrong: 'rgba(0,0,0,0.5)',
+    errorBg: 'rgba(239,68,68,0.12)',
+    glassWhite: 'rgba(255,255,255,0.28)',
+    glassWhiteAlt: 'rgba(255,255,255,0.3)',
+    footerBorder: 'rgba(0,0,0,0.06)',
+    crosshairMuted: 'rgba(0,0,0,0.25)',
+    tooltipBg: 'rgba(255,255,255,0.92)',
+    tooltipBorder: 'rgba(0,0,0,0.08)',
+    headerAccent: 'rgba(0,0,0,0.08)',
+    chipInactive: 'rgba(0,0,0,0.04)',
+    cardInactive: 'rgba(0,0,0,0.03)',
+    iconCircleInactive: 'rgba(0,0,0,0.06)',
+    cardInactiveAlt: 'rgba(0,0,0,0.05)',
+    listItemBorder: 'rgba(0,0,0,0.06)',
+    tabBarBorder: 'rgba(0,0,0,0.03)',
+    tabBarIconInactive: 'rgba(0,0,0,0.8)',
+    /** Android tab bar background (BlurView fallback) */
+    tabBarBackgroundAndroid: 'rgba(255,255,255,0.85)',
+    badgeFrosted: 'rgba(255,255,255,0.92)',
+    subtextMuted: 'rgba(0,0,0,0.45)',
+    borderSubtle: 'rgba(0,0,0,0.08)',
+    dividerGray: 'rgba(128,128,128,0.12)',
+    dividerGrayStrong: 'rgba(128,128,128,0.15)',
+    borderGray: 'rgba(128,128,128,0.3)',
+    surfaceTint: 'rgba(255,255,255,0.3)',
+    greenTintBgSettings: 'rgba(52,199,89,0.2)',
+    /** Market status / warning banner background */
+    warningBannerLight: '#FFF3CD',
+    warningBannerDark: '#3A3A2C',
+    // Semantic (gain/loss)
+    greenBg: '#F0FFF4',
+    redBg: '#FFF5F5',
+    greenBorder: '#C3F0C8',
+    redBorder: '#FFC3C3',
+    greenBgBar: '#E8F5E9',
+    redBgBar: '#FFEBEE',
+    // Onboarding
+    onboardingBg: '#FAFAFA',
+    onboardingCard: '#FFFFFF',
+    onboardingText: '#0D0D1A',
+    onboardingThemeCard: '#FFFBF0',
+    onboardingIllustrationCard: '#1A1A2E',
+  },
+  dark: {
+    text: '#ECEDEE',
+    background: '#151718',
+    tint: tintColorDark,
+    icon: '#9BA1A6',
+    tabIconDefault: '#9BA1A6',
+    tabIconSelected: tintColorDark,
+    blue: '#007AFF',
+    red: '#FF3B30',
+    green: tintColorDark,
+    // Semantic (errors, warnings, accent)
+    error: '#EF4444',
+    warning: '#F59E0B',
+    warningIcon: '#D97706',
+    orange: '#FF9500',
+    orangeBg: '#FF950020',
+    greenTintBg: '#34C75920',
+    redTintBg: '#FF3B3020',
+    // Surfaces & borders
+    cardBackground: '#1C1C1E',
+    cardBorder: '#2C2C2E',
+    divider: '#2C2C2E',
+    surface: '#000000',
+    rowSurface: '#141416',
+    surfaceElevated: '#3A3A3C',
+    iconMuted: '#555555',
+    borderMuted: '#666666',
+    link: '#5eb8ff',
+    amber: '#FF9F0A',
+    yellow: '#FFD60A',
+    yellowMuted: '#856404',
+    textOnColor: '#FFFFFF',
+    placeholder: '#808080',
+    overlay: 'rgba(0,0,0,0.4)',
+    overlayStrong: 'rgba(0,0,0,0.5)',
+    errorBg: 'rgba(239,68,68,0.12)',
+    glassWhite: 'rgba(255,255,255,0.28)',
+    glassWhiteAlt: 'rgba(255,255,255,0.3)',
+    footerBorder: 'rgba(255,255,255,0.07)',
+    crosshairMuted: 'rgba(255,255,255,0.4)',
+    tooltipBg: 'rgba(44,44,46,0.92)',
+    tooltipBorder: 'rgba(255,255,255,0.1)',
+    headerAccent: 'rgba(255,255,255,0.12)',
+    chipInactive: 'rgba(255,255,255,0.06)',
+    cardInactive: 'rgba(255,255,255,0.06)',
+    iconCircleInactive: 'rgba(255,255,255,0.1)',
+    cardInactiveAlt: 'rgba(255,255,255,0.08)',
+    listItemBorder: 'rgba(255,255,255,0.08)',
+    tabBarBorder: 'rgba(255,255,255,0.03)',
+    tabBarIconInactive: 'rgba(255,255,255,0.8)',
+    /** Android tab bar background (BlurView fallback) */
+    tabBarBackgroundAndroid: 'rgba(28,28,30,0.85)',
+    badgeFrosted: 'rgba(255,255,255,0.09)',
+    subtextMuted: 'rgba(255,255,255,0.5)',
+    borderSubtle: 'rgba(255,255,255,0.1)',
+    dividerGray: 'rgba(128,128,128,0.12)',
+    dividerGrayStrong: 'rgba(128,128,128,0.15)',
+    borderGray: 'rgba(128,128,128,0.3)',
+    surfaceTint: 'rgba(255,255,255,0.3)',
+    greenTintBgSettings: 'rgba(52,199,89,0.2)',
+    warningBannerLight: '#FFF3CD',
+    warningBannerDark: '#3A3A2C',
+    // Semantic (gain/loss)
+    greenBg: '#0D2818',
+    redBg: '#280D0D',
+    greenBorder: '#1A4D2E',
+    redBorder: '#4D1A1A',
+    greenBgBar: '#0D2818',
+    redBgBar: '#280D0D',
+    // Onboarding
+    onboardingBg: '#0A0A12',
+    onboardingCard: '#0F0F1C',
+    onboardingText: '#FFFFFF',
+    onboardingThemeCard: '#1C1A10',
+    onboardingIllustrationCard: '#1A1A2E',
+  },
+};
+
+export const Fonts = Platform.select({
+  ios: {
+    /** iOS `UIFontDescriptorSystemDesignDefault` */
+    sans: 'system-ui',
+    /** iOS `UIFontDescriptorSystemDesignSerif` */
+    serif: 'ui-serif',
+    /** iOS `UIFontDescriptorSystemDesignRounded` */
+    rounded: 'ui-rounded',
+    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
+    mono: 'ui-monospace',
+  },
+  default: {
+    sans: 'normal',
+    serif: 'serif',
+    rounded: 'normal',
+    mono: 'monospace',
+  },
+  web: {
+    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    serif: "Georgia, 'Times New Roman', serif",
+    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
+    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+  },
+});

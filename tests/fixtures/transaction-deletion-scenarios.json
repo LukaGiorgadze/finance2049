@@ -1,0 +1,336 @@
+{
+  "scenarios": [
+    {
+      "name": "delete_first_buy_blocked_by_same_symbol_later_sell",
+      "targetTransactionId": "del-buy-1",
+      "transactions": [
+        {
+          "id": "del-buy-1",
+          "symbol": "AAA",
+          "type": "buy",
+          "shares": 10,
+          "price": 100,
+          "total": 1000,
+          "date": "2026-01-01",
+          "commission": 1,
+          "createdAt": "2026-01-01T09:00:00.000Z",
+          "updatedAt": "2026-01-01T09:00:00.000Z"
+        },
+        {
+          "id": "del-buy-2",
+          "symbol": "AAA",
+          "type": "buy",
+          "shares": 5,
+          "price": 120,
+          "total": 600,
+          "date": "2026-01-02",
+          "commission": 2,
+          "createdAt": "2026-01-02T09:00:00.000Z",
+          "updatedAt": "2026-01-02T09:00:00.000Z"
+        },
+        {
+          "id": "del-sell-1",
+          "symbol": "AAA",
+          "type": "sell",
+          "shares": 12,
+          "price": 150,
+          "total": 1800,
+          "date": "2026-01-03",
+          "commission": 0,
+          "createdAt": "2026-01-03T09:00:00.000Z",
+          "updatedAt": "2026-01-03T09:00:00.000Z"
+        }
+      ],
+      "expectedValidationError": "Deleting this buy would make a later AAA sell of 12 shares on 2026-01-03 invalid (only 5.000000 shares would be available, short by 7.000000 shares). Delete that sell transaction first."
+    },
+    {
+      "name": "delete_second_buy_blocked_by_same_symbol_later_sell",
+      "targetTransactionId": "del-buy-2",
+      "transactions": [
+        {
+          "id": "del-buy-1",
+          "symbol": "AAA",
+          "type": "buy",
+          "shares": 10,
+          "price": 100,
+          "total": 1000,
+          "date": "2026-01-01",
+          "commission": 1,
+          "createdAt": "2026-01-01T09:00:00.000Z",
+          "updatedAt": "2026-01-01T09:00:00.000Z"
+        },
+        {
+          "id": "del-buy-2",
+          "symbol": "AAA",
+          "type": "buy",
+          "shares": 5,
+          "price": 120,
+          "total": 600,
+          "date": "2026-01-02",
+          "commission": 2,
+          "createdAt": "2026-01-02T09:00:00.000Z",
+          "updatedAt": "2026-01-02T09:00:00.000Z"
+        },
+        {
+          "id": "del-sell-1",
+          "symbol": "AAA",
+          "type": "sell",
+          "shares": 12,
+          "price": 150,
+          "total": 1800,
+          "date": "2026-01-03",
+          "commission": 0,
+          "createdAt": "2026-01-03T09:00:00.000Z",
+          "updatedAt": "2026-01-03T09:00:00.000Z"
+        }
+      ],
+      "expectedValidationError": "Deleting this buy would make a later AAA sell of 12 shares on 2026-01-03 invalid (only 10.000000 shares would be available, short by 2.000000 shares). Delete that sell transaction first."
+    },
+    {
+      "name": "delete_buy_allowed_with_unrelated_invalid_symbol",
+      "targetTransactionId": "qqq-buy-1",
+      "transactions": [
+        {
+          "id": "qqq-buy-1",
+          "symbol": "QQQ",
+          "type": "buy",
+          "shares": 0.379325,
+          "price": 500.89,
+          "total": 190.57009925,
+          "date": "2025-03-03",
+          "commission": 0.57,
+          "createdAt": "2026-03-24T14:10:07.931Z",
+          "updatedAt": "2026-03-24T14:10:07.931Z"
+        },
+        {
+          "id": "voo-buy-1",
+          "symbol": "VOO",
+          "type": "buy",
+          "shares": 15.592023,
+          "price": 580,
+          "total": 9043.37334,
+          "date": "2025-12-31",
+          "commission": 0,
+          "createdAt": "2026-03-24T15:00:00.000Z",
+          "updatedAt": "2026-03-24T15:00:00.000Z"
+        },
+        {
+          "id": "qqq-buy-2",
+          "symbol": "QQQ",
+          "type": "buy",
+          "shares": 0.379328,
+          "price": 622.18,
+          "total": 236.72029504,
+          "date": "2026-01-14",
+          "commission": 0.71,
+          "createdAt": "2026-03-24T15:55:55.909Z",
+          "updatedAt": "2026-03-24T15:55:55.909Z"
+        },
+        {
+          "id": "voo-sell-1",
+          "symbol": "VOO",
+          "type": "sell",
+          "shares": 16.42259,
+          "price": 634.61,
+          "total": 10422.2422199,
+          "date": "2026-01-14",
+          "commission": 41.01,
+          "createdAt": "2026-03-24T16:42:54.748Z",
+          "updatedAt": "2026-03-24T16:42:54.748Z"
+        }
+      ],
+      "expectedValidationError": null,
+      "expectedRemainingTransactionIdsAfterDelete": [
+        "voo-buy-1",
+        "qqq-buy-2",
+        "voo-sell-1"
+      ],
+      "expectedHoldingsAfterDelete": [
+        {
+          "symbol": "QQQ",
+          "totalShares": 0.379328,
+          "avgCost": 622.18,
+          "totalCommissions": 0.71,
+          "lots": [
+            {
+              "transactionId": "qqq-buy-2",
+              "shares": 0.379328,
+              "purchasePrice": 622.18,
+              "purchaseDate": "2026-01-14",
+              "remainingShares": 0.379328
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "delete_sell_reopens_consumed_lots",
+      "targetTransactionId": "del-sell-1",
+      "transactions": [
+        {
+          "id": "del-buy-1",
+          "symbol": "AAA",
+          "type": "buy",
+          "shares": 10,
+          "price": 100,
+          "total": 1000,
+          "date": "2026-01-01",
+          "commission": 1,
+          "createdAt": "2026-01-01T09:00:00.000Z",
+          "updatedAt": "2026-01-01T09:00:00.000Z"
+        },
+        {
+          "id": "del-buy-2",
+          "symbol": "AAA",
+          "type": "buy",
+          "shares": 5,
+          "price": 120,
+          "total": 600,
+          "date": "2026-01-02",
+          "commission": 2,
+          "createdAt": "2026-01-02T09:00:00.000Z",
+          "updatedAt": "2026-01-02T09:00:00.000Z"
+        },
+        {
+          "id": "del-sell-1",
+          "symbol": "AAA",
+          "type": "sell",
+          "shares": 12,
+          "price": 150,
+          "total": 1800,
+          "date": "2026-01-03",
+          "commission": 0,
+          "createdAt": "2026-01-03T09:00:00.000Z",
+          "updatedAt": "2026-01-03T09:00:00.000Z"
+        }
+      ],
+      "expectedValidationError": null,
+      "expectedRemainingTransactionIdsAfterDelete": [
+        "del-buy-1",
+        "del-buy-2"
+      ],
+      "expectedHoldingsAfterDelete": [
+        {
+          "symbol": "AAA",
+          "totalShares": 15,
+          "avgCost": 106.66666666666667,
+          "totalCommissions": 3,
+          "lots": [
+            {
+              "transactionId": "del-buy-1",
+              "shares": 10,
+              "purchasePrice": 100,
+              "purchaseDate": "2026-01-01",
+              "remainingShares": 10
+            },
+            {
+              "transactionId": "del-buy-2",
+              "shares": 5,
+              "purchasePrice": 120,
+              "purchaseDate": "2026-01-02",
+              "remainingShares": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "delete_split_restores_pre_split_holding",
+      "targetTransactionId": "del-split-1",
+      "transactions": [
+        {
+          "id": "del-split-buy-1",
+          "symbol": "SPLT",
+          "type": "buy",
+          "shares": 10,
+          "price": 100,
+          "total": 1000,
+          "date": "2026-05-01",
+          "commission": 0,
+          "createdAt": "2026-05-01T09:00:00.000Z",
+          "updatedAt": "2026-05-01T09:00:00.000Z"
+        },
+        {
+          "id": "del-split-1",
+          "symbol": "SPLT",
+          "type": "split",
+          "shares": 0,
+          "price": 0,
+          "total": 0,
+          "date": "2026-05-02",
+          "commission": 0,
+          "createdAt": "2026-05-02T09:00:00.000Z",
+          "updatedAt": "2026-05-02T09:00:00.000Z",
+          "splitFrom": 1,
+          "splitTo": 2
+        }
+      ],
+      "expectedValidationError": null,
+      "expectedRemainingTransactionIdsAfterDelete": [
+        "del-split-buy-1"
+      ],
+      "expectedHoldingsAfterDelete": [
+        {
+          "symbol": "SPLT",
+          "totalShares": 10,
+          "avgCost": 100,
+          "totalCommissions": 0,
+          "lots": [
+            {
+              "transactionId": "del-split-buy-1",
+              "shares": 10,
+              "purchasePrice": 100,
+              "purchaseDate": "2026-05-01",
+              "remainingShares": 10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "delete_split_blocked_by_post_split_sell",
+      "targetTransactionId": "del-split-1",
+      "transactions": [
+        {
+          "id": "del-split-buy-1",
+          "symbol": "SPLT",
+          "type": "buy",
+          "shares": 10,
+          "price": 100,
+          "total": 1000,
+          "date": "2026-05-01",
+          "commission": 0,
+          "createdAt": "2026-05-01T09:00:00.000Z",
+          "updatedAt": "2026-05-01T09:00:00.000Z"
+        },
+        {
+          "id": "del-split-1",
+          "symbol": "SPLT",
+          "type": "split",
+          "shares": 0,
+          "price": 0,
+          "total": 0,
+          "date": "2026-05-02",
+          "commission": 0,
+          "createdAt": "2026-05-02T09:00:00.000Z",
+          "updatedAt": "2026-05-02T09:00:00.000Z",
+          "splitFrom": 1,
+          "splitTo": 2
+        },
+        {
+          "id": "del-split-sell-1",
+          "symbol": "SPLT",
+          "type": "sell",
+          "shares": 15,
+          "price": 60,
+          "total": 900,
+          "date": "2026-05-03",
+          "commission": 0,
+          "createdAt": "2026-05-03T09:00:00.000Z",
+          "updatedAt": "2026-05-03T09:00:00.000Z"
+        }
+      ],
+      "expectedValidationError": "Deleting this split would make a later SPLT sell of 15 shares on 2026-05-03 invalid (only 10.000000 shares would be available, short by 5.000000 shares). Delete that sell transaction first."
+    }
+  ]
+}
