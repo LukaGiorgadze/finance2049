@@ -387,8 +387,8 @@ export const toggleShowPortfolioValue = () => {
 };
 
 /**
- * Validate whether a transaction can be safely deleted by simulating a
- * full portfolio replay without it. Returns null if safe, or an error
+ * Validate whether a transaction can be safely deleted by simulating a replay
+ * of that symbol's history without it. Returns null if safe, or an error
  * message string describing the inconsistency.
  */
 export const validateTransactionDeletion = (transactionId: string): string | null => {
@@ -396,7 +396,12 @@ export const validateTransactionDeletion = (transactionId: string): string | nul
   const transaction = transactions.find((t) => t.id === transactionId);
   if (!transaction) return 'Transaction not found.';
 
-  const remaining = transactions.filter((t) => t.id !== transactionId);
+  // Deleting a transaction can only affect the replay of that symbol's lots.
+  // Replaying the entire portfolio here would incorrectly block deletions when
+  // some other symbol already has inconsistent history.
+  const remaining = transactions.filter(
+    (t) => t.id !== transactionId && t.symbol === transaction.symbol,
+  );
 
   const sorted = [...remaining].sort((a, b) => {
     const dateCompare = a.date.localeCompare(b.date);
@@ -404,54 +409,59 @@ export const validateTransactionDeletion = (transactionId: string): string | nul
     return a.createdAt.localeCompare(b.createdAt);
   });
 
-  const holdings = new Map<string, { totalShares: number; lots: { remainingShares: number; purchasePrice: number; purchaseDate: string }[] }>();
+  const holding: {
+    totalShares: number;
+    lots: { remainingShares: number; purchasePrice: number; purchaseDate: string }[];
+  } = {
+    totalShares: 0,
+    lots: [],
+  };
 
   for (const t of sorted) {
     if (t.type === 'buy') {
-      const h = holdings.get(t.symbol) ?? { totalShares: 0, lots: [] };
-      h.lots.push({ remainingShares: t.shares, purchasePrice: t.price, purchaseDate: t.date });
-      h.totalShares += t.shares;
-      holdings.set(t.symbol, h);
+      holding.lots.push({
+        remainingShares: t.shares,
+        purchasePrice: t.price,
+        purchaseDate: t.date,
+      });
+      holding.totalShares += t.shares;
     } else if (t.type === 'sell') {
-      const h = holdings.get(t.symbol);
-      const available = h?.totalShares ?? 0;
+      const available = holding.totalShares;
       if (t.shares > available + SHARES_EPSILON) {
         const shortfall = t.shares - available;
         return (
-          `Deleting this ${transaction.type} would make a later sell of ` +
+          `Deleting this ${transaction.type} would make a later ${t.symbol} sell of ` +
           `${t.shares} shares on ${t.date} invalid (only ${Math.max(0, available).toFixed(6)} shares would be available, ` +
           `short by ${shortfall.toFixed(6)} shares). Delete that sell transaction first.`
         );
       }
-      if (h) {
-        let toSell = t.shares;
-        const sortedLots = [...h.lots].sort(
-          (a, b) => new Date(a.purchaseDate).getTime() - new Date(b.purchaseDate).getTime(),
-        );
-        const updatedLots: typeof h.lots = [];
-        for (const lot of sortedLots) {
-          if (toSell <= 0) { updatedLots.push(lot); continue; }
-          if (lot.remainingShares <= toSell) {
-            toSell -= lot.remainingShares;
-          } else {
-            updatedLots.push({ ...lot, remainingShares: lot.remainingShares - toSell });
-            toSell = 0;
-          }
+      let toSell = t.shares;
+      const sortedLots = [...holding.lots].sort(
+        (a, b) => new Date(a.purchaseDate).getTime() - new Date(b.purchaseDate).getTime(),
+      );
+      const updatedLots: typeof holding.lots = [];
+      for (const lot of sortedLots) {
+        if (toSell <= 0) {
+          updatedLots.push(lot);
+          continue;
         }
-        h.lots = updatedLots;
-        h.totalShares = updatedLots.reduce((s, l) => s + l.remainingShares, 0);
+        if (lot.remainingShares <= toSell) {
+          toSell -= lot.remainingShares;
+        } else {
+          updatedLots.push({ ...lot, remainingShares: lot.remainingShares - toSell });
+          toSell = 0;
+        }
       }
+      holding.lots = updatedLots;
+      holding.totalShares = updatedLots.reduce((s, l) => s + l.remainingShares, 0);
     } else if (t.type === 'split') {
-      const h = holdings.get(t.symbol);
-      if (h) {
-        const ratio = (t.splitTo ?? 1) / (t.splitFrom ?? 1);
-        h.lots = h.lots.map((l) => ({
-          ...l,
-          remainingShares: l.remainingShares * ratio,
-          purchasePrice: l.purchasePrice / ratio,
-        }));
-        h.totalShares = h.lots.reduce((s, l) => s + l.remainingShares, 0);
-      }
+      const ratio = (t.splitTo ?? 1) / (t.splitFrom ?? 1);
+      holding.lots = holding.lots.map((l) => ({
+        ...l,
+        remainingShares: l.remainingShares * ratio,
+        purchasePrice: l.purchasePrice / ratio,
+      }));
+      holding.totalShares = holding.lots.reduce((s, l) => s + l.remainingShares, 0);
     }
   }
 
