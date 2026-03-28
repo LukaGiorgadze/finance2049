@@ -1,7 +1,7 @@
 {
   "name": "finance2049",
   "main": "expo-router/entry",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -13,8 +13,8 @@
     "deploy": "supabase functions deploy massive-proxy && supabase functions deploy extract-transactions"
   },
   "dependencies": {
-    "@expo/metro-runtime": "~55.0.6",
-    "@expo/ui": "~55.0.5",
+    "@expo/metro-runtime": "~55.0.7",
+    "@expo/ui": "~55.0.6",
     "@expo/vector-icons": "^15.0.3",
     "@legendapp/state": "^2.1.15",
     "@react-native-async-storage/async-storage": "^2.2.0",
@@ -30,31 +30,31 @@
     "@supabase/supabase-js": "^2.98.0",
     "axios": "^1.13.6",
     "base64-arraybuffer": "^1.0.2",
-    "expo": "^55.0.8",
+    "expo": "~55.0.9",
     "expo-blur": "~55.0.10",
     "expo-build-properties": "~55.0.10",
     "expo-constants": "~55.0.9",
-    "expo-dev-client": "~55.0.18",
+    "expo-dev-client": "~55.0.19",
     "expo-document-picker": "~55.0.9",
-    "expo-file-system": "~55.0.11",
+    "expo-file-system": "~55.0.12",
     "expo-font": "~55.0.4",
     "expo-haptics": "~55.0.9",
     "expo-image": "~55.0.6",
     "expo-image-manipulator": "~55.0.11",
-    "expo-image-picker": "~55.0.13",
+    "expo-image-picker": "~55.0.14",
     "expo-linear-gradient": "~55.0.9",
-    "expo-linking": "~55.0.8",
-    "expo-router": "~55.0.7",
+    "expo-linking": "~55.0.9",
+    "expo-router": "~55.0.8",
     "expo-sharing": "~55.0.14",
-    "expo-splash-screen": "~55.0.12",
+    "expo-splash-screen": "~55.0.13",
     "expo-status-bar": "~55.0.4",
     "expo-store-review": "~55.0.9",
     "expo-symbols": "~55.0.5",
-    "expo-system-ui": "~55.0.10",
+    "expo-system-ui": "~55.0.11",
     "expo-web-browser": "~55.0.10",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "react-native": "0.83.2",
+    "react-native": "0.83.4",
     "react-native-gesture-handler": "~2.30.0",
     "react-native-linear-gradient": "^2.8.3",
     "react-native-pager-view": "8.0.0",
@@ -71,6 +71,11 @@
     "eslint": "^9.25.0",
     "eslint-config-expo": "~55.0.0",
     "typescript": "~5.9.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@shopify/react-native-skia"
+    ]
   },
   "private": false
 }

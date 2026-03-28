@@ -2,13 +2,12 @@
   "expo": {
     "name": "Finance 2049",
     "slug": "finance2049",
-    "version": "0.1.14",
+    "version": "0.1.15",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "finance2049",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "buildNumber": "1",
       "googleServicesFile": "./ios/GoogleService-Info.plist",
       "supportsTablet": false,
       "bundleIdentifier": "com.lomsa.finance2049",
@@ -59,8 +58,11 @@
       [
         "expo-build-properties",
         {
+          "android": {
+            "useLegacyPackaging": true
+          },
           "ios": {
-            "reactNativeReleaseLevel": "canary",
+            "reactNativeReleaseLevel": "stable",
             "buildReactNativeFromSource": true,
             "deploymentTarget": "16.0",
             "useFrameworks": "static",
