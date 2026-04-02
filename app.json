@@ -58,11 +58,9 @@
       [
         "expo-build-properties",
         {
-          "android": {
-            "useLegacyPackaging": true
-          },
+          "android": {},
           "ios": {
-            "reactNativeReleaseLevel": "stable",
+            "reactNativeReleaseLevel": "canary",
             "buildReactNativeFromSource": true,
             "deploymentTarget": "16.0",
             "useFrameworks": "static",
