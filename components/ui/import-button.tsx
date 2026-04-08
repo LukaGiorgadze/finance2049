@@ -3,71 +3,74 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, Text, TouchableOpacity, type ViewStyle } from 'react-native';
+import React, { useRef } from 'react';
+import { Animated, StyleSheet, Text, TouchableOpacity, type ViewStyle } from 'react-native';
 
 interface Props {
   onPress?: () => void;
+  size?: 'default' | 'small';
   style?: ViewStyle;
 }
 
-export function ImportButton({ onPress, style }: Props) {
+export function ImportButton({ onPress, size = 'default', style }: Props) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const shimmerAnim = useRef(new Animated.Value(0)).current;
-  const sparkleScale = useRef(new Animated.Value(1)).current;
-  const sparkleRotate = useRef(new Animated.Value(0)).current;
+  const pressAnim = useRef(new Animated.Value(0)).current;
+  const isSmall = size === 'small';
 
-  useEffect(() => {
-    const shimmer = Animated.loop(
-      Animated.timing(shimmerAnim, { toValue: 1, duration: 3000, easing: Easing.linear, useNativeDriver: true })
-    );
-    const sparkle = Animated.loop(
-      Animated.sequence([
-        Animated.parallel([
-          Animated.timing(sparkleScale, { toValue: 1.35, duration: 500, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-          Animated.timing(sparkleRotate, { toValue: 1, duration: 500, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-        ]),
-        Animated.parallel([
-          Animated.timing(sparkleScale, { toValue: 1, duration: 500, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
-          Animated.timing(sparkleRotate, { toValue: 0, duration: 500, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
-        ]),
-        Animated.delay(2000),
-      ])
-    );
-    shimmer.start();
-    sparkle.start();
-    return () => { shimmer.stop(); sparkle.stop(); };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const handlePressIn = () => {
+    Animated.spring(pressAnim, {
+      toValue: 1,
+      tension: 220,
+      friction: 24,
+      useNativeDriver: true,
+    }).start();
+  };
 
-  const shimmerTranslate = shimmerAnim.interpolate({
-    inputRange: [0, 0.3, 0.55, 1],
-    outputRange: [-100, -100, 100, 100],
-  });
-  const sparkleRotateDeg = sparkleRotate.interpolate({
+  const handlePressOut = () => {
+    Animated.spring(pressAnim, {
+      toValue: 0,
+      tension: 220,
+      friction: 24,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const buttonScale = pressAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '25deg'],
+    outputRange: [1, 0.985],
+  });
+  const buttonTranslateY = pressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
   });
 
   const handlePress = onPress ?? (() => router.push('/import-transactions'));
 
   return (
-    <TouchableOpacity style={[s.shadow, style]} onPress={handlePress} activeOpacity={0.8}>
-      <LinearGradient
-        colors={[Colors.indigoLight, Colors.indigo, Colors.indigoDarker]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={s.gradient}
+    <TouchableOpacity
+      style={style}
+      onPress={handlePress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      activeOpacity={0.96}
+    >
+      <Animated.View
+        style={[
+          isSmall ? s.smallShadow : s.shadow,
+          { transform: [{ scale: buttonScale }, { translateY: buttonTranslateY }] },
+        ]}
       >
-        <Animated.View style={{ transform: [{ scale: sparkleScale }, { rotate: sparkleRotateDeg }] }}>
-          <Ionicons name="sparkles" size={13} color={colors.textOnColor} />
-        </Animated.View>
-        <Text style={s.label}>Import</Text>
-        <Animated.View
-          pointerEvents="none"
-          style={[s.shimmer, { backgroundColor: colors.glassWhite, transform: [{ translateX: shimmerTranslate }, { skewX: '-20deg' }] }]}
-        />
-      </LinearGradient>
+        <LinearGradient
+          colors={[Colors.indigoLight, Colors.indigo, Colors.indigoDarker]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={isSmall ? s.smallGradient : s.gradient}
+        >
+          <Ionicons name="sparkles" size={isSmall ? 11 : 13} color={colors.textOnColor} />
+          <Text style={isSmall ? s.smallLabel : s.label}>Import</Text>
+        </LinearGradient>
+      </Animated.View>
     </TouchableOpacity>
   );
 }
@@ -81,13 +84,32 @@ const s = StyleSheet.create({
     elevation: 6,
     borderRadius: 12,
   },
+  smallShadow: {
+    shadowColor: Colors.indigo,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
+    elevation: 4,
+    borderRadius: 20,
+  },
   gradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 13,
+    paddingHorizontal: 14,
     borderRadius: 12,
+    overflow: 'hidden',
+  },
+  smallGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 11,
+    borderRadius: 20,
     overflow: 'hidden',
   },
   label: {
@@ -95,10 +117,10 @@ const s = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
-  shimmer: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: 36,
+  smallLabel: {
+    color: Colors.light.textOnColor,
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
 });

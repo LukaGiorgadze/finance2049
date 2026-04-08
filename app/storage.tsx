@@ -1,10 +1,10 @@
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { PageHeader } from '@/components/ui/page-header';
+import { APP_REVIEW_PROMPT_KEY, ONBOARDING_KEY } from '@/constants/storage-keys';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { clearDatabase, store$, trackStorageAction, trackStorageScreen } from '@/lib';
-import { ONBOARDING_KEY } from '@/constants/storage-keys';
 import { APP_CACHE_KEY } from '@/lib/hooks/useRefreshPortfolioPrices';
 import { getSupabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
@@ -186,7 +186,7 @@ export default function StorageScreen() {
                     await clearDatabase();
                     const supabase = getSupabase();
                     await supabase?.auth.signOut();
-                    await AsyncStorage.removeItem(ONBOARDING_KEY);
+                    await AsyncStorage.multiRemove([ONBOARDING_KEY, APP_REVIEW_PROMPT_KEY]);
                     Alert.alert('All Clear', 'Your data has been wiped clean.', [
                       { text: 'OK', onPress: () => router.replace('/onboarding') },
                     ]);

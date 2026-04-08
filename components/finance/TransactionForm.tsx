@@ -1,21 +1,21 @@
+import { ImportButton } from '@/components/ui/import-button';
 import { Input } from '@/components/ui/input';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { formatLocalDateISO, maybePromptForAppReview, trackTransactionsAction } from '@/lib';
+import { useTransactionType } from '@/lib/contexts/TransactionTypeContext';
 import { APP_CACHE_KEY } from '@/lib/hooks/useRefreshPortfolioPrices';
 import { useHolding } from '@/lib/hooks/useStore';
-import { formatLocalDateISO, trackTransactionsAction } from '@/lib';
 import { marketDataService } from '@/lib/services/marketDataService';
 import type { TickerSearchResult } from '@/lib/services/types';
 import type { AssetType } from '@/lib/store/types';
 import { mapApiTypeToAssetType } from '@/lib/utils/assetLookup';
-import { useTransactionType } from '@/lib/contexts/TransactionTypeContext';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Easing, Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AssetSearchModal } from './AssetSearchModal';
 
 type TransactionType = 'buy' | 'sell';
@@ -25,7 +25,7 @@ interface TransactionFormProps {
   initialName?: string;
   initialType?: TransactionType;
   initialAssetType?: AssetType;
-  onSubmit?: (data: TransactionData) => void;
+  onSubmit?: (data: TransactionData) => void | boolean | Promise<void | boolean>;
   onCancel?: () => void;
   /** When provided, the confirmation alert includes a "Done" button that calls this after recording. */
   onDone?: () => void;
@@ -75,50 +75,6 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
   const holding = useHolding(ticker);
 
   const maxDate = new Date();
-
-  // Import button magic animation
-  const shimmerAnim = useRef(new Animated.Value(0)).current;
-  const sparkleScale = useRef(new Animated.Value(1)).current;
-  const sparkleRotate = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const shimmer = Animated.loop(
-      Animated.timing(shimmerAnim, {
-        toValue: 1,
-        duration: 3000,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    );
-    const sparkle = Animated.loop(
-      Animated.sequence([
-        Animated.parallel([
-          Animated.timing(sparkleScale, { toValue: 1.35, duration: 500, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-          Animated.timing(sparkleRotate, { toValue: 1, duration: 500, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-        ]),
-        Animated.parallel([
-          Animated.timing(sparkleScale, { toValue: 1, duration: 500, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
-          Animated.timing(sparkleRotate, { toValue: 0, duration: 500, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
-        ]),
-        Animated.delay(2000),
-      ])
-    );
-    shimmer.start();
-    sparkle.start();
-    return () => {
-      shimmer.stop();
-      sparkle.stop();
-    };
-  }, [shimmerAnim, sparkleScale, sparkleRotate]);
-
-  const shimmerTranslate = shimmerAnim.interpolate({
-    inputRange: [0, 0.3, 0.55, 1],
-    outputRange: [-100, -100, 100, 100],
-  });
-  const sparkleRotateDeg = sparkleRotate.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '25deg'],
-  });
 
   const handleImportPress = () => {
     void trackTransactionsAction({ action: 'form_import', context: analyticsContext });
@@ -202,6 +158,12 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
     setAssetType(undefined);
   };
 
+  const promptForReviewWithDelay = () => {
+    setTimeout(() => {
+      void maybePromptForAppReview();
+    }, 1000);
+  };
+
   const handleSubmit = () => {
     if (!ticker.trim()) {
       Alert.alert('Missing Symbol', 'Please enter a ticker symbol.');
@@ -250,7 +212,7 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
         target: `${transactionType}:${ticker.toUpperCase().trim()}`,
         context: analyticsContext,
       });
-      onSubmit?.({
+      const didSubmit = await onSubmit?.({
         type: transactionType,
         symbol: ticker,
         name: assetName || undefined,
@@ -261,16 +223,41 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
         assetType,
       });
       await AsyncStorage.removeItem(APP_CACHE_KEY);
+      return didSubmit !== false;
     };
 
-    void submit();
-    Alert.alert('Transaction Recorded', message, onDone
-      ? [
-        { text: 'Record Another', onPress: () => { resetForm(); } },
-        { text: 'OK', style: 'cancel', onPress: () => { onDone(); } },
-      ]
-      : [{ text: 'OK', style: 'cancel', onPress: () => { resetForm(); } }]
-    );
+    void (async () => {
+      const didSubmit = await submit();
+      if (!didSubmit) return;
+
+      Alert.alert('Transaction Recorded', message, onDone
+        ? [
+          {
+            text: 'Record Another',
+            onPress: () => {
+              resetForm();
+              promptForReviewWithDelay();
+            },
+          },
+          {
+            text: 'OK',
+            style: 'cancel',
+            onPress: () => {
+              onDone();
+              promptForReviewWithDelay();
+            },
+          },
+        ]
+        : [{
+            text: 'OK',
+            style: 'cancel',
+            onPress: () => {
+              resetForm();
+              promptForReviewWithDelay();
+            },
+          }]
+      );
+    })();
   };
 
   const onDateChange = (event: any, selectedDate?: Date) => {
@@ -294,28 +281,7 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
         <View style={styles.section}>
           <View style={styles.sectionLabelRow}>
             <Text style={[styles.sectionLabel, { color: colors.icon }]}>Transaction Type</Text>
-            <TouchableOpacity
-              onPress={handleImportPress}
-              activeOpacity={0.75}
-            >
-              <View style={styles.importChipShadow}>
-                <LinearGradient
-                  colors={[Colors.indigoLight, Colors.indigo, Colors.indigoDarker]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.importChip}
-                >
-                  <Animated.View style={{ transform: [{ scale: sparkleScale }, { rotate: sparkleRotateDeg }] }}>
-                    <Ionicons name="sparkles" size={11} color={colors.textOnColor} />
-                  </Animated.View>
-                  <Text style={styles.importChipText}>Import</Text>
-                  <Animated.View
-                    pointerEvents="none"
-                    style={[styles.shimmer, { backgroundColor: colors.glassWhite, transform: [{ translateX: shimmerTranslate }, { skewX: '-20deg' }] }]}
-                  />
-                </LinearGradient>
-              </View>
-            </TouchableOpacity>
+            <ImportButton onPress={handleImportPress} size="small" />
           </View>
           <View style={[styles.toggleContainer, { backgroundColor: colors.cardBackground }]}>
             <TouchableOpacity
@@ -608,35 +574,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 14,
     fontWeight: '600',
-  },
-  importChipShadow: {
-    shadowColor: Colors.indigo,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 6,
-    elevation: 4,
-    borderRadius: 20,
-  },
-  importChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  shimmer: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: 28,
-  },
-  importChipText: {
-    color: Colors.light.textOnColor,
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.2,
   },
   toggleContainer: {
     flexDirection: 'row',

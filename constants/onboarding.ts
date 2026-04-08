@@ -3,7 +3,6 @@ export const ONBOARDING_STEPS = [
   'discovery',
   'theme',
   'import',
-  'rate',
 ] as const;
 
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];

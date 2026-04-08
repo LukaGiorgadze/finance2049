@@ -50,6 +50,7 @@ export default function TransactionsScreen() {
         data.assetType ?? 'stock',
         data.name,
       );
+      return true;
     } catch (e) {
       reportError(`[Transactions] Failed to record transaction for ${symbol}`, e, {
         symbol,
@@ -57,6 +58,7 @@ export default function TransactionsScreen() {
         screen: 'transactions_tab',
       });
       Alert.alert('Transaction Failed', e instanceof Error ? e.message : 'Failed to record transaction.');
+      return false;
     }
   }, []);
 

@@ -58,17 +58,17 @@ export function PortfolioHoldingsList() {
   const handleTransactionSubmit = useCallback((data: TransactionData) => {
     if (!data.symbol.trim()) {
       Alert.alert('Missing Symbol', 'Please enter a ticker symbol.');
-      return;
+      return false;
     }
     const shares = parseFloat(data.quantity);
     if (isNaN(shares) || shares <= 0) {
       Alert.alert('Invalid Quantity', 'Please enter a valid number of shares.');
-      return;
+      return false;
     }
     const price = parseFloat(data.price);
     if (isNaN(price) || price <= 0) {
       Alert.alert('Invalid Price', 'Please enter a valid price per share.');
-      return;
+      return false;
     }
     const commission = data.commission ? parseFloat(data.commission) : 0;
     const symbol = data.symbol.toUpperCase().trim();
@@ -83,8 +83,10 @@ export function PortfolioHoldingsList() {
         date: formatLocalDateISO(data.date),
         commission,
       }, data.assetType as string, data.name);
+      return true;
     } catch (e) {
       Alert.alert('Transaction Failed', e instanceof Error ? e.message : 'Failed to record transaction.');
+      return false;
     }
   }, []);
 

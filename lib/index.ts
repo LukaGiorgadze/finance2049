@@ -60,6 +60,7 @@ export { ensureSession, getAccessToken, getSupabase, hasSupabaseConfig, waitForI
 
 // Services
 export { marketDataService } from './services/marketDataService';
+export { maybePromptForAppReview } from './app-review';
 
 export type {
   HistoricalBarsParams, IndexSnapshot, MarketDataProvider, NewsArticle,

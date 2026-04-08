@@ -172,6 +172,7 @@ export default function StockDetailScreen() {
         date: formatLocalDateISO(data.date),
         commission,
       }, resolvedAssetType, data.name || details?.name);
+      return true;
     } catch (e) {
       reportError(`[StockDetail] Failed to record transaction for ${symbolUpper}`, e, {
         symbol: symbolUpper,
@@ -179,6 +180,7 @@ export default function StockDetailScreen() {
         screen: 'stock_detail',
       });
       Alert.alert('Transaction Failed', e instanceof Error ? e.message : 'Failed to record transaction.');
+      return false;
     }
   }, [details?.type, details?.name]);
 
