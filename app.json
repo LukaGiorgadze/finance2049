@@ -2,7 +2,7 @@
   "expo": {
     "name": "Finance 2049",
     "slug": "finance2049",
-    "version": "0.1.15",
+    "version": "0.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "finance2049",
@@ -17,9 +17,7 @@
     },
     "android": {
       "googleServicesFile": "./android/app/google-services.json",
-      "permissions": [
-        "android.permission.CAMERA"
-      ],
+      "permissions": ["android.permission.CAMERA"],
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
@@ -66,11 +64,7 @@
             "buildReactNativeFromSource": true,
             "deploymentTarget": "16.0",
             "useFrameworks": "static",
-            "forceStaticLinking": [
-              "RNFBApp",
-              "RNFBAuth",
-              "RNFBFirestore"
-            ]
+            "forceStaticLinking": ["RNFBApp", "RNFBAuth", "RNFBFirestore"]
           }
         }
       ],
