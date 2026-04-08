@@ -17,6 +17,116 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+const MODAL_FADE_DURATION = 140;
+const MODAL_CLOSE_DURATION = 110;
+
+function InfoModal({
+  visible,
+  onClose,
+  children,
+  colors,
+  isDarkMode,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+  colors: typeof Colors.light;
+  isDarkMode: boolean;
+}) {
+  const [isMounted, setIsMounted] = useState(visible);
+  const opacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
+  const cardScale = useRef(new Animated.Value(visible ? 1 : 0.96)).current;
+  const cardTranslateY = useRef(new Animated.Value(visible ? 0 : 8)).current;
+
+  useEffect(() => {
+    if (visible) {
+      setIsMounted(true);
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: MODAL_FADE_DURATION,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardScale, {
+          toValue: 1,
+          duration: MODAL_FADE_DURATION,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardTranslateY, {
+          toValue: 0,
+          duration: MODAL_FADE_DURATION,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      return;
+    }
+
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: MODAL_CLOSE_DURATION,
+        useNativeDriver: true,
+      }),
+      Animated.timing(cardScale, {
+        toValue: 0.98,
+        duration: MODAL_CLOSE_DURATION,
+        useNativeDriver: true,
+      }),
+      Animated.timing(cardTranslateY, {
+        toValue: 6,
+        duration: MODAL_CLOSE_DURATION,
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) {
+        setIsMounted(false);
+      }
+    });
+  }, [cardScale, cardTranslateY, opacity, visible]);
+
+  if (!isMounted) return null;
+
+  return (
+    <Modal
+      visible
+      transparent
+      animationType="none"
+      onRequestClose={onClose}
+    >
+      <Animated.View style={[styles.supportOverlay, { backgroundColor: colors.modalOverlay, opacity }]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <Animated.View
+          style={[
+            styles.supportModalCard,
+            {
+              backgroundColor: colors.modalSurface,
+              borderColor: colors.borderSubtle,
+              opacity,
+              transform: [{ translateY: cardTranslateY }, { scale: cardScale }],
+            }
+          ]}
+        >
+          <TouchableOpacity
+            onPress={onClose}
+            style={[styles.supportCloseButton, { backgroundColor: isDarkMode ? colors.surfaceElevated : colors.surface }]}
+            activeOpacity={0.8}
+          >
+            <IconSymbol name="xmark" size={16} color={colors.text} />
+          </TouchableOpacity>
+
+          <ScrollView
+            style={styles.supportScroll}
+            contentContainerStyle={styles.supportContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {children}
+          </ScrollView>
+        </Animated.View>
+      </Animated.View>
+    </Modal>
+  );
+}
+
 export default function SettingsScreen() {
   const SUPPORT_EMAIL = 'hi@finance2049.com';
   const DISCORD_URL = 'https://discord.gg/XdXRAHUKMh';
@@ -251,45 +361,6 @@ export default function SettingsScreen() {
     </TouchableOpacity>
   );
 
-  const InfoModal = ({ visible, onClose, children }: {
-    visible: boolean;
-    onClose: () => void;
-    children: React.ReactNode;
-  }) => (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <Pressable
-        style={[styles.supportOverlay, { backgroundColor: colors.overlay }]}
-        onPress={onClose}
-      >
-        <Pressable
-          style={[styles.supportModalCard, { backgroundColor: colors.surface }]}
-          onPress={(event) => event.stopPropagation()}
-        >
-          <TouchableOpacity
-            onPress={onClose}
-            style={[styles.supportCloseButton, { backgroundColor: isDarkMode ? colors.surfaceElevated : colors.cardBackground }]}
-            activeOpacity={0.8}
-          >
-            <IconSymbol name="xmark" size={16} color={colors.text} />
-          </TouchableOpacity>
-
-          <ScrollView
-            style={styles.supportScroll}
-            contentContainerStyle={styles.supportContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {children}
-          </ScrollView>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-
   return (
     <SafeAreaView style={styles.wrapper} edges={['top']}>
       <LinearGradient
@@ -444,7 +515,12 @@ export default function SettingsScreen() {
         </View>
       </Animated.ScrollView>
 
-      <InfoModal visible={activeModal === 'support'} onClose={() => setActiveModal(null)}>
+      <InfoModal
+        visible={activeModal === 'support'}
+        onClose={() => setActiveModal(null)}
+        colors={colors}
+        isDarkMode={isDarkMode}
+      >
         <Text style={[styles.supportParagraph, { color: colors.text }]}>
           Want faster updates and feedback? Join our{' '}
           <Text
@@ -492,7 +568,12 @@ export default function SettingsScreen() {
         </View>
       </InfoModal>
 
-      <InfoModal visible={activeModal === 'about'} onClose={() => setActiveModal(null)}>
+      <InfoModal
+        visible={activeModal === 'about'}
+        onClose={() => setActiveModal(null)}
+        colors={colors}
+        isDarkMode={isDarkMode}
+      >
         <Text style={[styles.supportParagraph, { color: colors.text }]}>
           Finance 2049 is a simple portfolio tracking app for long-term investors.
         </Text>
@@ -727,11 +808,12 @@ const styles = StyleSheet.create({
     maxHeight: '82%',
     width: '100%',
     maxWidth: 420,
+    borderWidth: 1,
     shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.22,
+    shadowOpacity: 0.28,
     shadowRadius: 28,
-    elevation: 12,
+    elevation: 16,
   },
   supportCloseButton: {
     position: 'absolute',

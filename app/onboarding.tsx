@@ -523,15 +523,7 @@ export default function OnboardingScreen() {
   }, [step, animToStep]);
 
   const handleImportNow = useCallback(async () => {
-    await Promise.all([
-      trackOnboardingNavigation({
-        action: 'complete',
-        step: ONBOARDING_STEPS[3],
-        stepIndex: 3,
-        cta: 'import_portfolio',
-      }),
-      trackOnboardingImportDecision('import_now'),
-    ]);
+    await trackOnboardingImportDecision('import_now');
     pendingImportRef.current = true;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     await complete();

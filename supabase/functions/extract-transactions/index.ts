@@ -28,6 +28,7 @@ Extract EVERY individual buy/sell transaction. Rules:
 6. The input may be in any format: JSON, CSV, plain text, brokerage statement, screenshot, PDF, etc. Adapt accordingly but always follow the rules above.
 7. If you find no transactions, return an empty transactions array and explain why in the message field.
 8. Always follow the rules above and return a flat array of transactions.
+9. Set extractionMode to "transactions".
 ---
 
 ## STEP 2B — IF NO TRANSACTIONS FOUND (PORTFOLIO SUMMARY MODE)
@@ -44,18 +45,25 @@ Treat each holding row as a synthetic "buy" transaction using today's date (${ne
 5. commission = 0.
 6. Preserve exact numeric precision.
 7. In the message field, clearly state that this was a portfolio summary, not a transaction history.
+8. Set extractionMode to "portfolio_summary".
 
 ---
 
 ## GENERAL RULES (apply to both modes)
 - The input may be in any format: JSON, CSV, plain text, brokerage statement, screenshot, PDF, etc. Adapt accordingly.
-- If you find neither transactions nor a recognizable portfolio summary, return an empty transactions array and explain why in the message field.
+- If you find neither transactions nor a recognizable portfolio summary, return an empty transactions array, set extractionMode to "none", and explain why in the message field.
 - Always return a flat array of transactions.
 `;
 
 const RESPONSE_SCHEMA = {
   type: "object",
   properties: {
+    extractionMode: {
+      type: "string",
+      enum: ["transactions", "portfolio_summary", "none"],
+      description:
+        "Whether the input contained real transactions, only a portfolio summary, or nothing recognizable",
+    },
     transactions: {
       type: "array",
       items: {
@@ -84,7 +92,7 @@ const RESPONSE_SCHEMA = {
         "Short summary of what was extracted, or reason nothing was found",
     },
   },
-  required: ["transactions", "message"],
+  required: ["extractionMode", "transactions", "message"],
   additionalProperties: false,
 } as const;
 
@@ -121,6 +129,7 @@ interface ExtractedTransaction {
 }
 
 interface ExtractResponse {
+  extractionMode?: "transactions" | "portfolio_summary" | "none";
   transactions: ExtractedTransaction[];
   message: string;
 }

@@ -8,6 +8,7 @@ export interface ImportedTx {
   price: string;
   commission: string;
   type: TxType;
+  extractionMode?: 'transactions' | 'portfolio_summary';
   isDuplicate?: boolean;
   skipDuplicate?: boolean;
   consistencyError?: string;
