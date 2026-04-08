@@ -17,7 +17,9 @@
     },
     "android": {
       "googleServicesFile": "./android/app/google-services.json",
-      "permissions": ["android.permission.CAMERA"],
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
@@ -64,10 +66,18 @@
             "buildReactNativeFromSource": true,
             "deploymentTarget": "16.0",
             "useFrameworks": "static",
-            "forceStaticLinking": ["RNFBApp", "RNFBAuth", "RNFBFirestore"]
+            "forceStaticLinking": [
+              "RNFBApp",
+              "RNFBAuth",
+              "RNFBFirestore"
+            ]
           }
         }
-      ]
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-sharing",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
