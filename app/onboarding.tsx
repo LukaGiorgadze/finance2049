@@ -12,7 +12,6 @@ import {
   trackOnboardingExited,
   trackOnboardingImportDecision,
   trackOnboardingNavigation,
-  trackOnboardingReviewPrompt,
   trackOnboardingScreen,
   trackOnboardingStarted,
   trackOnboardingStepViewed,
@@ -24,11 +23,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import * as StoreReview from 'expo-store-review';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   StyleSheet,
   Text,
@@ -40,16 +39,14 @@ import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export { ONBOARDING_KEY } from '@/constants/storage-keys';
 
-const STEP_COUNT = 5;
+const STEP_COUNT = 4;
 
 type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -426,92 +423,12 @@ function ImportSlide({ colors, isDark, themeColors }: { colors: OnboardingColors
   );
 }
 
-function RateSlide({
-  isActive,
-  colors,
-  themeColors,
-  onCanCompleteChange,
-  onReviewPromptStatus,
-}: {
-  isActive: boolean;
-  colors: OnboardingColors;
-  themeColors: typeof Colors.dark;
-  onCanCompleteChange: (v: boolean) => void;
-  onReviewPromptStatus: (status: 'requested' | 'unavailable' | 'failed') => void;
-}) {
-  // 5 individual shared values (hooks cannot be called in a loop)
-  const s0 = useSharedValue(0);
-  const s1 = useSharedValue(0);
-  const s2 = useSharedValue(0);
-  const s3 = useSharedValue(0);
-  const s4 = useSharedValue(0);
-
-  const a0 = useAnimatedStyle(() => ({ opacity: s0.value, transform: [{ scale: s0.value }] }));
-  const a1 = useAnimatedStyle(() => ({ opacity: s1.value, transform: [{ scale: s1.value }] }));
-  const a2 = useAnimatedStyle(() => ({ opacity: s2.value, transform: [{ scale: s2.value }] }));
-  const a3 = useAnimatedStyle(() => ({ opacity: s3.value, transform: [{ scale: s3.value }] }));
-  const a4 = useAnimatedStyle(() => ({ opacity: s4.value, transform: [{ scale: s4.value }] }));
-
-  const hasTriggered = useRef(false);
-
-  useEffect(() => {
-    if (!isActive || hasTriggered.current) return;
-    hasTriggered.current = true;
-
-    [s0, s1, s2, s3, s4].forEach((sv, i) => {
-      sv.value = withDelay(i * 100, withTiming(1, { duration: 300 }));
-    });
-
-    const timer = setTimeout(async () => {
-      try {
-        const available = await StoreReview.isAvailableAsync();
-        if (!available) {
-          onReviewPromptStatus('unavailable');
-          onCanCompleteChange(true);
-          return;
-        }
-
-        onReviewPromptStatus('requested');
-        await StoreReview.requestReview();
-      } catch {
-        // Unavailable on simulator / quota exceeded
-        onReviewPromptStatus('failed');
-      } finally {
-        onCanCompleteChange(true);
-      }
-    }, 800);
-
-    return () => clearTimeout(timer);
-  }, [isActive]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  return (
-    <Slide colors={colors}
-      illustration={
-        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-          {[a0, a1, a2, a3, a4].map((aStyle, i) => (
-            <Animated.View key={i} style={aStyle}>
-              <Ionicons name="star" size={40} color={themeColors.yellow} />
-            </Animated.View>
-          ))}
-        </View>
-      }
-    >
-      <Text style={[s.headline, { color: colors.text }]}>Loving{'\n'}the app?</Text>
-      <Text style={[s.body, { color: colors.subtext }]}>
-        A quick review makes a big difference — it helps others discover privacy-first finance tracking.
-      </Text>
-    </Slide>
-  );
-}
-
 const SCREEN_W = Dimensions.get('window').width;
 const SPRING = { damping: 22, stiffness: 200, mass: 0.8 };
 
 export default function OnboardingScreen() {
   const [step, setStep] = useState(0);
   const [discoverySource, setDiscoverySource] = useState<OnboardingDiscoverySource | null>(null);
-  const [canComplete, setCanComplete] = useState(false);
-  const [pendingImport, setPendingImport] = useState(false);
   const pendingImportRef = useRef(false);
   const completedRef = useRef(false);
   const { colorScheme, themeMode, setThemeMode } = useTheme();
@@ -605,10 +522,10 @@ export default function OnboardingScreen() {
     }
   }, [step, animToStep]);
 
-  const goToRateForImport = useCallback(async () => {
+  const handleImportNow = useCallback(async () => {
     await Promise.all([
       trackOnboardingNavigation({
-        action: 'jump_to_rate',
+        action: 'complete',
         step: ONBOARDING_STEPS[3],
         stepIndex: 3,
         cta: 'import_portfolio',
@@ -616,10 +533,9 @@ export default function OnboardingScreen() {
       trackOnboardingImportDecision('import_now'),
     ]);
     pendingImportRef.current = true;
-    setPendingImport(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    animToStep(STEP_COUNT - 1);
-  }, [animToStep]);
+    await complete();
+  }, [complete]);
 
   const handleDiscoverySelect = useCallback((source: OnboardingDiscoverySource) => {
     setDiscoverySource(source);
@@ -679,7 +595,7 @@ export default function OnboardingScreen() {
         return { primary: { label: 'Continue', onPress: () => { void goNext(2, 'continue'); } }, secondary: null };
       case 3:
         return {
-          primary: { label: 'Import Portfolio', onPress: () => { void goToRateForImport(); } },
+          primary: { label: 'Import Portfolio', onPress: () => { void handleImportNow(); } },
           secondary: {
             label: 'Set up later',
             onPress: () => {
@@ -687,11 +603,6 @@ export default function OnboardingScreen() {
               void goNext(3, 'set_up_later', 'skip');
             },
           },
-        };
-      case 4:
-        return {
-          primary: { label: pendingImport ? 'Continue to Import' : 'Finish', onPress: () => { void complete(); }, disabled: !canComplete },
-          secondary: null,
         };
       default:
         return { primary: { label: '', onPress: () => {} }, secondary: null };
@@ -738,17 +649,6 @@ export default function OnboardingScreen() {
             <View style={{ width: SCREEN_W, flex: 1 }}>
               <ImportSlide colors={colors} isDark={isDark} themeColors={themeColors} />
             </View>
-            <View style={{ width: SCREEN_W, flex: 1 }}>
-              <RateSlide
-                isActive={step === 4}
-                colors={colors}
-                themeColors={themeColors}
-                onCanCompleteChange={setCanComplete}
-                onReviewPromptStatus={(status) => {
-                  void trackOnboardingReviewPrompt(status);
-                }}
-              />
-            </View>
           </Animated.View>
         </GestureDetector>
       </View>
@@ -761,7 +661,18 @@ export default function OnboardingScreen() {
       >
         <PrimaryButton {...primary} />
         <View style={s.secondarySlot}>
-          {secondary && (
+          {step === 0 ? (
+            <TouchableOpacity
+              onPress={() => {
+                void Linking.openURL('https://finance2049.com');
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={[s.secondaryText, { color: colors.subtext, textDecorationLine: 'underline' }]}>
+                finance2049.com
+              </Text>
+            </TouchableOpacity>
+          ) : secondary && (
             <TouchableOpacity onPress={secondary.onPress} activeOpacity={0.7}>
               <Text style={[s.secondaryText, { color: colors.subtext }]}>{secondary.label}</Text>
             </TouchableOpacity>
