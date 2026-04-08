@@ -196,7 +196,8 @@ export default function ImportConfirmScreen() {
 
   useEffect(() => {
     const existing = selectTransactions();
-    if (existing.length === 0) return;
+    const existingHoldings = selectAllHoldings();
+    if (existing.length === 0 && existingHoldings.length === 0) return;
 
     // Relative float comparison — tolerates AI rounding (1% threshold)
     const closeEnough = (a: number, b: number) => {
@@ -225,12 +226,19 @@ export default function ImportConfirmScreen() {
         const qty = parseFloat(tx.quantity);
         const prc = parseFloat(tx.price);
         const txDate = normalizeDate(tx.date);
-        const dup = existing.some(e =>
-          e.symbol.toUpperCase() === g.symbol.toUpperCase() &&
-          normalizeDate(e.date) === txDate &&
-          closeEnough(e.shares, qty) &&
-          closeEnough(e.price, prc)
-        );
+        const symbolUpper = g.symbol.toUpperCase();
+        const dup = tx.extractionMode === 'portfolio_summary'
+          ? existingHoldings.some(h =>
+              h.symbol.toUpperCase() === symbolUpper &&
+              closeEnough(h.totalShares, qty) &&
+              closeEnough(h.avgCost, prc)
+            )
+          : existing.some(e =>
+              e.symbol.toUpperCase() === symbolUpper &&
+              normalizeDate(e.date) === txDate &&
+              closeEnough(e.shares, qty) &&
+              closeEnough(e.price, prc)
+            );
         return dup ? { ...tx, isDuplicate: true, skipDuplicate: true } : tx;
       }),
     })));

@@ -174,6 +174,7 @@ export default function ImportTransactionsScreen() {
         });
 
         const rawTxs = data.transactions ?? [];
+        const extractionMode = data.extractionMode === 'portfolio_summary' ? 'portfolio_summary' : 'transactions';
         if (rawTxs.length === 0) {
           return { status: 'failed', name: file.name, mimeType: file.mimeType, error: data.message || 'No transactions found' };
         }
@@ -193,6 +194,7 @@ export default function ImportTransactionsScreen() {
             price: t.price != null ? String(t.price) : '',
             commission: t.commission != null ? String(t.commission) : '0',
             type: (t.type === 'sell' ? 'sell' : 'buy') as TxType,
+            extractionMode,
           });
         }
 

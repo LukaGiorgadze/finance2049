@@ -29,6 +29,7 @@ const MAPPING = {
   'lock.shield.fill': 'security',
   'questionmark.circle.fill': 'help',
   'info.circle.fill': 'info',
+  xmark: 'close',
   'xmark.circle.fill': 'cancel',
   'checkmark.circle.fill': 'check-circle',
   'dollarsign.circle.fill': 'attach-money',
@@ -38,6 +39,9 @@ const MAPPING = {
   'chart.line.uptrend.xyaxis': 'trending-up',
   'trash.fill': 'delete',
   'arrow.triangle.2.circlepath': 'cached',
+  'person.2.fill': 'groups',
+  'envelope.fill': 'email',
+  globe: 'public',
 } as IconMapping;
 
 /**
@@ -57,5 +61,7 @@ export function IconSymbol({
   style?: StyleProp<TextStyle>;
   weight?: SymbolWeight;
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  const materialIconName = MAPPING[name] ?? 'help-outline';
+
+  return <MaterialIcons color={color} size={size} name={materialIconName} style={style} />;
 }

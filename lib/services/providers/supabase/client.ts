@@ -85,6 +85,7 @@ export interface RawTransaction {
 }
 
 export interface ExtractTransactionsResult {
+  extractionMode?: 'transactions' | 'portfolio_summary' | 'none';
   transactions: RawTransaction[];
   message: string;
 }
