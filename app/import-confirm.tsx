@@ -4,7 +4,7 @@ import { groupError, hasAnyError, txError, validateImportConsistency } from '@/c
 import { PageHeader } from '@/components/ui/page-header';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { trackImportAction, trackImportScreen } from '@/lib';
+import { maybePromptForAppReview, trackImportAction, trackImportScreen } from '@/lib';
 import { importSession } from '@/lib/import-session';
 import { marketDataService } from '@/lib/services/marketDataService';
 import type { StockSplit } from '@/lib/services/types';
@@ -34,6 +34,12 @@ export default function ImportConfirmScreen() {
   useEffect(() => {
     void trackImportScreen('confirm');
   }, []);
+
+  const promptForReviewWithDelay = () => {
+    setTimeout(() => {
+      void maybePromptForAppReview();
+    }, 1000);
+  };
 
   const runConsistencyValidation = useCallback((grps: ImportedGroup[]): ImportedGroup[] => {
     const existingHoldings: Record<string, number> = {};
@@ -236,7 +242,7 @@ export default function ImportConfirmScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (hasErrors) {
       const errLines = groups
         .filter(g => hasAnyError(g))
@@ -303,6 +309,7 @@ export default function ImportConfirmScreen() {
 
     void trackImportAction({ action: 'upload_success', step: 'confirm', count: allImportedTx.length });
     importSession.clear();
+    promptForReviewWithDelay();
     router.dismissAll();
     router.replace('/(tabs)');
   };

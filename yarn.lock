@@ -2089,10 +2089,10 @@
   dependencies:
     superstruct "^2.0.2"
 
-"@react-native-firebase/app@^23.8.8":
-  version "23.8.8"
-  resolved "https://registry.yarnpkg.com/@react-native-firebase/app/-/app-23.8.8.tgz#a96aadde079b5c90e5814e94937c1083159c8894"
-  integrity sha512-9KeKToqsEPhaL+KlTYIdUB0bsXYAcKk0Zzpu608zf2qsXbyTscuYs1caLWxk8AdGtt3+j7ZsoOFt/8qnlo4Ugg==
+"@react-native-firebase/app@^24.0.0":
+  version "24.0.0"
+  resolved "https://registry.yarnpkg.com/@react-native-firebase/app/-/app-24.0.0.tgz#b9400ac3c13617811b0375d1335d24edeec986bf"
+  integrity sha512-rLWNd8/4FjKYV7PeDR9uiT5vwYWdJ7dJ1yiIIaZ/eL+Y56Ij2iXbqRCUu4zWkvu/ZrJfaGOyT12Vhy1SLy0NMg==
   dependencies:
     firebase "12.10.0"
 
