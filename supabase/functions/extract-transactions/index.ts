@@ -83,6 +83,17 @@ interface ExtractResponse {
   message: string;
 }
 
+function normalizeUploadFileName(fileName?: string): string {
+  if (!fileName) return "upload";
+
+  const dotIndex = fileName.lastIndexOf(".");
+  if (dotIndex <= 0 || dotIndex === fileName.length - 1) {
+    return fileName;
+  }
+
+  return `${fileName.slice(0, dotIndex)}${fileName.slice(dotIndex).toLowerCase()}`;
+}
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -122,6 +133,9 @@ Deno.serve(async (req) => {
     return json({ transactions: [], message: "Missing required fields: signedUrl, mimeType" }, 400);
   }
 
+  const normalizedMimeType = mimeType.toLowerCase();
+  const normalizedUploadFileName = normalizeUploadFileName(fileName);
+
   stepStart = Date.now();
   const apiKey = Deno.env.get("OPENAI_API_KEY");
   if (!apiKey) {
@@ -138,10 +152,10 @@ Deno.serve(async (req) => {
   stepStart = Date.now();
   const ext = (fileName ?? "").split(".").pop()?.toLowerCase() ?? "";
   const isText =
-    mimeType.startsWith("text/") ||
-    mimeType === "application/json" ||
+    normalizedMimeType.startsWith("text/") ||
+    normalizedMimeType === "application/json" ||
     ["csv", "tsv", "json", "txt"].includes(ext);
-  const isImage = mimeType.startsWith("image/");
+  const isImage = normalizedMimeType.startsWith("image/");
   console.debug(`[extract] step fileTypeCheck took ${Date.now() - stepStart} ms`);
 
   let openaiFileId: string | undefined;
@@ -206,7 +220,7 @@ Deno.serve(async (req) => {
       console.debug(`[extract] step fetchDocument took ${Date.now() - stepStart} ms`);
       const uploadStepStart = Date.now();
       const file = await openai.files.create({
-        file: await toFile(bytes, fileName ?? "upload", { type: mimeType }),
+        file: await toFile(bytes, normalizedUploadFileName, { type: normalizedMimeType }),
         purpose: "user_data",
       });
       openaiFileId = file.id;
