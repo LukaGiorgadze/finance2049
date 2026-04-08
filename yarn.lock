@@ -2082,10 +2082,10 @@
   dependencies:
     invariant "^2.2.4"
 
-"@react-native-firebase/analytics@^23.8.8":
-  version "23.8.8"
-  resolved "https://registry.yarnpkg.com/@react-native-firebase/analytics/-/analytics-23.8.8.tgz#f63fa444b7fa7b8dfa48a75fd66f5f4c727ba774"
-  integrity sha512-hNGUzxZvtgERO5DABUq7Bt/U/3RH8kgiKr2pCmYjNnITv6VlPp3/FxNCz9kBTtXAmxEa7JojFqZ/Z0QNKRLdpQ==
+"@react-native-firebase/analytics@^24.0.0":
+  version "24.0.0"
+  resolved "https://registry.yarnpkg.com/@react-native-firebase/analytics/-/analytics-24.0.0.tgz#bb1143478ffa0e1a85c8371247d9f3b961834f3a"
+  integrity sha512-Hg8xbnpjn56L7uwYKZ9QIffx5YTsqtPUS5C7Y207MSwi+qVFp0GHWJ/onAk5JOvPPPtM3pVm3Nn+b/EQomFOcA==
   dependencies:
     superstruct "^2.0.2"
 
@@ -2096,17 +2096,17 @@
   dependencies:
     firebase "12.10.0"
 
-"@react-native-firebase/crashlytics@^23.8.8":
-  version "23.8.8"
-  resolved "https://registry.yarnpkg.com/@react-native-firebase/crashlytics/-/crashlytics-23.8.8.tgz#c8beb5ba3086afb97a02291b456827153f454bf5"
-  integrity sha512-2aw6MDyh2Y0N5InSNQlEkJ1Ds3NDdssCHUwIWItnCfIk2VmQt9lWWsKAk8y2GFw7FsIrdHgwI8uLXkm7ARQYXQ==
+"@react-native-firebase/crashlytics@^24.0.0":
+  version "24.0.0"
+  resolved "https://registry.yarnpkg.com/@react-native-firebase/crashlytics/-/crashlytics-24.0.0.tgz#dc7f4c0d43787ed1fc91e04c6f1ff40bf67150e9"
+  integrity sha512-slNW6ood4SO9J15OLv2HjWLIsKlVT4VVGew7OacRql0VNDFDxjPwqPDrPus4lCz2oJWS6DQZ+tzZ2BEdT0irSA==
   dependencies:
     stacktrace-js "^2.0.2"
 
-"@react-native-firebase/perf@^23.8.8":
-  version "23.8.8"
-  resolved "https://registry.yarnpkg.com/@react-native-firebase/perf/-/perf-23.8.8.tgz#4f8b8f1f8d2ae5df3edb0ca7434d305916344b29"
-  integrity sha512-wirlkatqbZR97fPOs8y1arFVvL7WoynzXYn6bIRWS0ozbKqjKzGrjckcT/bU30ZwZ7m7WLUvhAodg/wb2BKkyQ==
+"@react-native-firebase/perf@^24.0.0":
+  version "24.0.0"
+  resolved "https://registry.yarnpkg.com/@react-native-firebase/perf/-/perf-24.0.0.tgz#569594893c1ec80ac16d6dc94aeee145e8e6c8f1"
+  integrity sha512-Sad85xBo/KFZz9xJHxT7KamgDs0Wa59xEzugJzEJdsJgjKek5Lb4kr7m4z1sCJurswUppEiPAYRPQIBCPWiaew==
 
 "@react-native/assets-registry@0.83.4":
   version "0.83.4"
