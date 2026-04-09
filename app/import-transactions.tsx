@@ -3,6 +3,7 @@ import { UploadStep, type QueuedFile } from '@/components/import/UploadStep';
 import { PageHeader } from '@/components/ui/page-header';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import type { ImportedTxExtractionMode } from '@/lib/import/extraction-mode';
 import { trackImportAction, trackImportScreen } from '@/lib';
 import { reportError, reportWarning } from '@/lib/crashlytics';
 import { importSession, type FailedFileInfo, type ImportFileInfo } from '@/lib/import-session';
@@ -174,10 +175,11 @@ export default function ImportTransactionsScreen() {
         });
 
         const rawTxs = data.transactions ?? [];
-        const extractionMode = data.extractionMode === 'portfolio_summary' ? 'portfolio_summary' : 'transactions';
-        if (rawTxs.length === 0) {
+        if (data.extractionMode === 'none' || rawTxs.length === 0) {
           return { status: 'failed', name: file.name, mimeType: file.mimeType, error: data.message || 'No transactions found' };
         }
+        const extractionMode: ImportedTxExtractionMode =
+          data.extractionMode === 'portfolio_summary' ? 'portfolio_summary' : 'transactions';
 
         const groupMap = new Map<string, ImportedTx[]>();
         const groupOrder: string[] = [];

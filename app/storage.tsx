@@ -1,5 +1,5 @@
 import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { IconSymbol, type IconSymbolName } from '@/components/ui/icon-symbol';
 import { PageHeader } from '@/components/ui/page-header';
 import { APP_REVIEW_PROMPT_KEY, ONBOARDING_KEY } from '@/constants/storage-keys';
 import { Colors } from '@/constants/theme';
@@ -10,12 +10,11 @@ import { getSupabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import type { SymbolViewProps } from 'expo-symbols';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface StorageCategory {
-  icon: SymbolViewProps['name'];
+  icon: IconSymbolName;
   label: string;
   description: string;
   records: number;

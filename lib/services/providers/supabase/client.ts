@@ -7,6 +7,7 @@
 
 import { API_CONFIG } from '../../config';
 import { getResponseData, getResponseStatus, httpClient, isNetworkError } from '../../http/client';
+import type { ExtractionMode } from '@/lib/import/extraction-mode';
 
 export class SupabaseEdgeFunctionError extends Error {
   constructor(
@@ -85,7 +86,7 @@ export interface RawTransaction {
 }
 
 export interface ExtractTransactionsResult {
-  extractionMode?: 'transactions' | 'portfolio_summary' | 'none';
+  extractionMode?: ExtractionMode;
   transactions: RawTransaction[];
   message: string;
 }

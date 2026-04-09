@@ -50,7 +50,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Determine the actual color scheme based on theme mode
   const colorScheme: ColorScheme =
     themeMode === 'system'
-      ? (systemColorScheme ?? 'light')
+      ? systemColorScheme === 'dark' || systemColorScheme === 'light'
+        ? systemColorScheme
+        : 'light'
       : themeMode;
 
   const value = useMemo(

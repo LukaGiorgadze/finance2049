@@ -1,4 +1,4 @@
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { IconSymbol, type IconSymbolName } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 // import { AVAILABLE_CURRENCIES, Currency, useCurrency } from '@/contexts/currency-context';
 import { useTheme } from '@/contexts/theme-context';
@@ -12,7 +12,6 @@ import { Directory, File, Paths } from 'expo-file-system';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-import type { SymbolViewProps } from 'expo-symbols';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -330,7 +329,7 @@ export default function SettingsScreen() {
   });
 
   const SettingsCard = ({ icon, title, subtitle, onPress, rightElement, iconBg }: {
-    icon: SymbolViewProps['name'];
+    icon: IconSymbolName;
     title: string;
     subtitle?: string;
     onPress?: () => void;

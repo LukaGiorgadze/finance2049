@@ -1,3 +1,5 @@
+import type { ImportedTxExtractionMode } from '@/lib/import/extraction-mode';
+
 export type ImportStep = 'upload' | 'processing' | 'confirm';
 export type TxType = 'buy' | 'sell';
 
@@ -8,7 +10,7 @@ export interface ImportedTx {
   price: string;
   commission: string;
   type: TxType;
-  extractionMode?: 'transactions' | 'portfolio_summary';
+  extractionMode?: ImportedTxExtractionMode;
   isDuplicate?: boolean;
   skipDuplicate?: boolean;
   consistencyError?: string;
