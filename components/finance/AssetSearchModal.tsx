@@ -15,9 +15,11 @@ import {
   Modal,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
@@ -35,26 +37,41 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
   const [searching, setSearching] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const nextUrlRef = useRef<string | undefined>(undefined);
+  const searchInputRef = useRef<TextInput>(null);
+  const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wasVisibleRef = useRef(false);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const isDark = colorScheme === 'dark';
 
-  // Dismiss keyboard as soon as results appear so single-tap always works
-  useEffect(() => {
-    if (results.length > 0) {
-      Keyboard.dismiss();
+  const focusSearchInput = useCallback(() => {
+    if (focusTimeoutRef.current) {
+      clearTimeout(focusTimeoutRef.current);
     }
-  }, [results.length]);
+
+    focusTimeoutRef.current = setTimeout(() => {
+      focusTimeoutRef.current = null;
+      searchInputRef.current?.focus();
+    }, 150);
+  }, []);
 
   // Reset state when modal closes
   useEffect(() => {
     if (!visible) {
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+        focusTimeoutRef.current = null;
+      }
       setSearchText('');
       setResults([]);
       nextUrlRef.current = undefined;
     }
   }, [visible]);
+
+  useEffect(() => () => {
+    if (focusTimeoutRef.current) {
+      clearTimeout(focusTimeoutRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     if (!analyticsContext) {
@@ -155,12 +172,14 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
       animationType="slide"
       transparent={true}
       onRequestClose={handleClose}
+      onShow={Platform.OS === 'android' ? focusSearchInput : undefined}
       statusBarTranslucent
     >
       <View style={[styles.overlay, { backgroundColor: colors.overlayStrong }]}>
         <View style={[styles.content, { backgroundColor: colors.surface }]}>
           <View style={styles.header}>
             <Input
+              ref={searchInputRef}
               icon="search"
               placeholder="Search for stocks, ETFs & more"
               value={searchText}
@@ -168,7 +187,7 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
               onClear={() => setSearchText('')}
               showClearButton={true}
               containerStyle={styles.input}
-              autoFocus={true}
+              autoFocus={Platform.OS !== 'android'}
             />
             <TouchableOpacity onPress={handleClose} style={styles.cancelButton}>
               <Text style={[styles.cancelText, { color: colors.blue }]}>Cancel</Text>

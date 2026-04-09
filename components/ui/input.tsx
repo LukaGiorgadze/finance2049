@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, TextInputProps, Platform, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -14,7 +14,7 @@ interface InputProps extends TextInputProps {
   rightAccessory?: React.ReactNode;
 }
 
-export function Input({
+export const Input = React.forwardRef<TextInput, InputProps>(function Input({
   label,
   labelAccessory,
   icon,
@@ -24,11 +24,23 @@ export function Input({
   containerStyle,
   rightAccessory,
   ...textInputProps
-}: InputProps) {
+}: InputProps, forwardedRef) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const isDark = colorScheme === 'dark';
   const inputRef = useRef<TextInput>(null);
+
+  const setInputRef = useCallback((node: TextInput | null) => {
+    inputRef.current = node;
+
+    if (typeof forwardedRef === 'function') {
+      forwardedRef(node);
+      return;
+    }
+
+    if (forwardedRef) {
+      forwardedRef.current = node;
+    }
+  }, [forwardedRef]);
 
   const handleContainerPress = () => {
     inputRef.current?.focus();
@@ -62,7 +74,7 @@ export function Input({
           />
         )}
         <TextInput
-          ref={inputRef}
+          ref={setInputRef}
           style={[styles.input, { color: colors.text }]}
           placeholderTextColor={colors.icon}
           value={value}
@@ -77,7 +89,7 @@ export function Input({
       </TouchableOpacity>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   wrapper: {
