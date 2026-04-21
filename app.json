@@ -2,7 +2,7 @@
   "expo": {
     "name": "Finance 2049",
     "slug": "finance2049",
-    "version": "0.2.1",
+    "version": "0.3.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "finance2049",
@@ -60,11 +60,8 @@
         {
           "android": {},
           "ios": {
-            "reactNativeReleaseLevel": "canary",
-            "buildReactNativeFromSource": true,
             "deploymentTarget": "16.0",
-            "useFrameworks": "static",
-            "forceStaticLinking": ["RNFBApp", "RNFBAuth", "RNFBFirestore"]
+            "useFrameworks": "static"
           }
         }
       ],
