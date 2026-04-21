@@ -60,8 +60,9 @@
         {
           "android": {},
           "ios": {
-            "deploymentTarget": "16.0",
-            "useFrameworks": "static"
+            "useFrameworks": "static",
+            "buildReactNativeFromSource": true,
+            "forceStaticLinking": ["RNFBApp", "RNFBAuth", "RNFBFirestore"]
           }
         }
       ],
