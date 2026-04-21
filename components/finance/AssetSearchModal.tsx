@@ -39,9 +39,15 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
   const nextUrlRef = useRef<string | undefined>(undefined);
   const searchInputRef = useRef<TextInput>(null);
   const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchRequestIdRef = useRef(0);
   const wasVisibleRef = useRef(false);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+
+  const dismissSearchKeyboard = useCallback(() => {
+    searchInputRef.current?.blur();
+    Keyboard.dismiss();
+  }, []);
 
   const focusSearchInput = useCallback(() => {
     if (focusTimeoutRef.current) {
@@ -61,11 +67,15 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
         clearTimeout(focusTimeoutRef.current);
         focusTimeoutRef.current = null;
       }
+      searchRequestIdRef.current += 1;
+      dismissSearchKeyboard();
       setSearchText('');
       setResults([]);
+      setSearching(false);
+      setLoadingMore(false);
       nextUrlRef.current = undefined;
     }
-  }, [visible]);
+  }, [dismissSearchKeyboard, visible]);
 
   useEffect(() => () => {
     if (focusTimeoutRef.current) {
@@ -93,6 +103,8 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
   // Debounced API search — resets results on every query change
   useEffect(() => {
     const query = searchText.trim();
+    const requestId = ++searchRequestIdRef.current;
+
     if (query.length < 2) {
       setResults([]);
       nextUrlRef.current = undefined;
@@ -101,27 +113,42 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
     }
 
     setSearching(true);
+    let isActive = true;
+
     const timeout = setTimeout(async () => {
       if (analyticsContext) {
         void trackSearchAction({ context: analyticsContext, action: 'query', target: query });
       }
       try {
         const response = await marketDataService.searchTickers(query);
+        if (!isActive || requestId !== searchRequestIdRef.current) {
+          return;
+        }
         setResults(response.results);
         nextUrlRef.current = response.nextUrl;
       } catch (err) {
+        if (!isActive || requestId !== searchRequestIdRef.current) {
+          return;
+        }
         reportWarning('[AssetSearchModal] Search failed', err, {
           query,
         });
         setResults([]);
         nextUrlRef.current = undefined;
       } finally {
+        if (!isActive || requestId !== searchRequestIdRef.current) {
+          return;
+        }
         setSearching(false);
+        dismissSearchKeyboard();
       }
     }, 300);
 
-    return () => clearTimeout(timeout);
-  }, [analyticsContext, searchText]);
+    return () => {
+      isActive = false;
+      clearTimeout(timeout);
+    };
+  }, [analyticsContext, dismissSearchKeyboard, searchText]);
 
   // Load more results via cursor pagination
   const handleLoadMore = useCallback(async () => {
@@ -155,6 +182,7 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
   }, [loadingMore, handleLoadMore]);
 
   const handleSelectAsset = (asset: TickerSearchResult) => {
+    dismissSearchKeyboard();
     if (analyticsContext) {
       void trackSearchAction({ context: analyticsContext, action: 'select_asset', target: asset.symbol });
     }
@@ -162,7 +190,7 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
   };
 
   const handleClose = () => {
-    Keyboard.dismiss();
+    dismissSearchKeyboard();
     onClose();
   };
 
@@ -197,8 +225,10 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
           <ScrollView
             style={styles.resultsContainer}
             showsVerticalScrollIndicator={true}
-            keyboardShouldPersistTaps="always"
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             onScroll={handleScroll}
+            onScrollBeginDrag={dismissSearchKeyboard}
             scrollEventThrottle={400}
           >
             {searching ? (

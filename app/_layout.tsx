@@ -5,12 +5,15 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { TransactionTypeProvider } from '@/lib/contexts/TransactionTypeContext';
 import { initializeCrashlytics } from '@/lib/crashlytics';
 import { StoreProvider } from '@/lib/store/StoreProvider';
+// The published package points its root typings at missing build artifacts, but the source entry is complete.
+import * as Clarity from '@microsoft/react-native-clarity/src';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useEffect, useMemo } from 'react';
 import 'react-native-reanimated';
 
 SplashScreen.setOptions({
@@ -23,6 +26,39 @@ initializeCrashlytics();
 export const unstable_settings = {
   anchor: '(tabs)',
 };
+
+const CLARITY_PROJECT_ID = 'wf8c1t82m7';
+
+function useClarityTracking() {
+  const pathname = usePathname();
+  const isSupportedPlatform = Platform.OS === 'ios' || Platform.OS === 'android';
+  const clarityConfig = useMemo(
+    () => ({
+      logLevel: __DEV__ ? Clarity.LogLevel.Verbose : Clarity.LogLevel.Warning,
+    }),
+    []
+  );
+
+  useEffect(() => {
+    if (!isSupportedPlatform) {
+      return;
+    }
+
+    Clarity.initialize(CLARITY_PROJECT_ID, clarityConfig);
+    void Clarity.consent(true, true);
+  }, [clarityConfig, isSupportedPlatform]);
+
+  useEffect(() => {
+    if (!isSupportedPlatform) {
+      return;
+    }
+
+    Clarity.setOnSessionStartedCallback(() => {
+      void Clarity.setCurrentScreenName(pathname || '/');
+    });
+    void Clarity.setCurrentScreenName(pathname || '/');
+  }, [isSupportedPlatform, pathname]);
+}
 
 function LoadingFallback() {
   const colorScheme = useColorScheme();
@@ -37,6 +73,7 @@ function LoadingFallback() {
 
 function RootLayoutContent() {
   const colorScheme = useColorScheme();
+  useClarityTracking();
 
   return (
     <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

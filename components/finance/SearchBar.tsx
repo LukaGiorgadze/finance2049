@@ -5,7 +5,7 @@ import type { TickerSearchResult } from '@/lib/services/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Keyboard, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AssetSearchModal } from './AssetSearchModal';
 
 export function SearchBar() {
@@ -23,6 +23,7 @@ export function SearchBar() {
     <>
       <View style={styles.container}>
         <TouchableOpacity onPress={() => {
+          Keyboard.dismiss();
           void trackHomeAction({ action: 'search_open' });
           setShowModal(true);
         }} activeOpacity={0.7}>
