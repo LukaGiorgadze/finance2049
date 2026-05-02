@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import OpenAI, { toFile } from "openai";
 
-const MODEL = "gpt-5-mini";
+const MODEL = "gpt-5.4-mini";
 
 const SYSTEM_PROMPT = `You are a financial transaction extractor. Your job is to extract stock/ETF transactions from the provided content.
 
