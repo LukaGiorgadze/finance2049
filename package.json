@@ -1,7 +1,7 @@
 {
   "name": "finance2049",
   "main": "expo-router/entry",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -17,7 +17,7 @@
     "@expo/ui": "~55.0.12",
     "@expo/vector-icons": "^15.0.3",
     "@legendapp/state": "^2.1.15",
-    "@microsoft/react-native-clarity": "^4.6.0",
+    "@microsoft/react-native-clarity": "4.6.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.6.0",
     "@react-native-firebase/analytics": "^24.0.0",
