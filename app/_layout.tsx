@@ -31,9 +31,8 @@ const CLARITY_PROJECT_ID = 'wf8c1t82m7';
 
 function useClarityTracking() {
   const pathname = usePathname();
-  // Clarity iOS 3.5.1 has a touch-handling bug around lifecycle transitions.
-  // Keep iOS disabled until the React Native wrapper ships the native 3.5.2+ fix.
-  const isClarityEnabled = Platform.OS === 'android';
+  const isSupportedPlatform = Platform.OS === 'ios' || Platform.OS === 'android';
+  
   const clarityConfig = useMemo(
     () => ({
       logLevel: __DEV__ ? Clarity.LogLevel.Verbose : Clarity.LogLevel.Warning,
@@ -42,16 +41,16 @@ function useClarityTracking() {
   );
 
   useEffect(() => {
-    if (!isClarityEnabled) {
+    if (!isSupportedPlatform) {
       return;
     }
 
     Clarity.initialize(CLARITY_PROJECT_ID, clarityConfig);
     void Clarity.consent(true, true);
-  }, [clarityConfig, isClarityEnabled]);
+  }, [clarityConfig, isSupportedPlatform]);
 
   useEffect(() => {
-    if (!isClarityEnabled) {
+    if (!isSupportedPlatform) {
       return;
     }
 
@@ -59,7 +58,7 @@ function useClarityTracking() {
       void Clarity.setCurrentScreenName(pathname || '/');
     });
     void Clarity.setCurrentScreenName(pathname || '/');
-  }, [isClarityEnabled, pathname]);
+  }, [isSupportedPlatform, pathname]);
 }
 
 function LoadingFallback() {
