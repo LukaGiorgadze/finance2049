@@ -32,6 +32,7 @@ const CLARITY_PROJECT_ID = 'wf8c1t82m7';
 function useClarityTracking() {
   const pathname = usePathname();
   const isSupportedPlatform = Platform.OS === 'ios' || Platform.OS === 'android';
+  
   const clarityConfig = useMemo(
     () => ({
       logLevel: __DEV__ ? Clarity.LogLevel.Verbose : Clarity.LogLevel.Warning,
