@@ -10,6 +10,29 @@ import { CURRENT_SCHEMA_VERSION } from "./types";
 
 type Migration = (state: any) => any;
 
+function hasBoolean(value: unknown): value is boolean {
+  return typeof value === "boolean";
+}
+
+function inferSchemaVersion(state: any) {
+  const explicitVersion = state?._schema?.version;
+  if (typeof explicitVersion === "number") return explicitVersion;
+
+  const preferences = state?.preferences ?? {};
+  if (hasBoolean(preferences.inAppMessagesEnabled)) return 4;
+  if (hasBoolean(preferences.notificationsEnabled)) return 3;
+
+  const holdings = Object.values(state?.portfolio?.holdings ?? {});
+  if (
+    holdings.length === 0 ||
+    holdings.every((holding: any) => typeof holding?.totalCommissions === "number")
+  ) {
+    return 2;
+  }
+
+  return 1;
+}
+
 /**
  * Migration registry
  * Key is the version we're migrating FROM
@@ -43,7 +66,9 @@ const migrations: Record<number, Migration> = {
       ...state,
       preferences: {
         ...state.preferences,
-        notificationsEnabled: false,
+        notificationsEnabled: hasBoolean(state.preferences?.notificationsEnabled)
+          ? state.preferences.notificationsEnabled
+          : false,
       },
       _schema: { version: 3 },
     };
@@ -54,7 +79,9 @@ const migrations: Record<number, Migration> = {
       ...state,
       preferences: {
         ...state.preferences,
-        inAppMessagesEnabled: true,
+        inAppMessagesEnabled: hasBoolean(state.preferences?.inAppMessagesEnabled)
+          ? state.preferences.inAppMessagesEnabled
+          : true,
       },
       _schema: { version: 4 },
     };
@@ -69,7 +96,7 @@ export function migrateState(state: any): RootStore {
     return getInitialState();
   }
 
-  let currentVersion = state._schema?.version ?? 0;
+  let currentVersion = inferSchemaVersion(state);
   let migratedState = { ...state };
 
   while (currentVersion < CURRENT_SCHEMA_VERSION) {

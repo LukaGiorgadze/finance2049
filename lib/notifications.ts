@@ -69,6 +69,12 @@ interface TestNotificationResponse {
   disabledTokens: number;
 }
 
+interface PushAuthorizationState {
+  status: FirebaseMessagingTypes.AuthorizationStatus;
+  granted: boolean;
+  canAskAgain: boolean;
+}
+
 function isSupportedPlatform() {
   return Platform.OS === 'ios' || Platform.OS === 'android';
 }
@@ -114,6 +120,15 @@ function getAppVersion() {
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function markPushNotificationPromptSeen() {
+  hasShownPushNotificationPrompt = true;
+  void AsyncStorage.setItem(PUSH_NOTIFICATION_PROMPT_SEEN_KEY, 'true').catch((error) => {
+    reportWarning('[Notifications] Failed to store prompt seen state', error, {
+      platform: Platform.OS,
+    });
+  });
 }
 
 function getEnableFailureMessage(error: unknown) {
@@ -480,13 +495,6 @@ async function postNotifications<TResponse>(
   return parsed as TResponse;
 }
 
-async function hasAndroidNotificationPermission() {
-  if (Platform.OS !== 'android') return true;
-  const apiLevel = getAndroidApiLevel();
-  if (apiLevel < 33) return true;
-  return PermissionsAndroid.check(ANDROID_POST_NOTIFICATIONS_PERMISSION as never);
-}
-
 async function requestAndroidNotificationPermission() {
   if (Platform.OS !== 'android') return true;
   const apiLevel = getAndroidApiLevel();
@@ -505,28 +513,58 @@ export async function hasPushNotificationPermission() {
 }
 
 async function getPushAuthorizationStatus(): Promise<FirebaseMessagingTypes.AuthorizationStatus> {
-  if (!isSupportedPlatform()) return AuthorizationStatus.DENIED;
+  return (await getPushAuthorizationState()).status;
+}
+
+async function getPushAuthorizationState(): Promise<PushAuthorizationState> {
+  if (!isSupportedPlatform()) {
+    return {
+      status: AuthorizationStatus.DENIED,
+      granted: false,
+      canAskAgain: false,
+    };
+  }
 
   const permissions = await Notifications.getPermissionsAsync();
   if (permissions.granted) {
-    return AuthorizationStatus.AUTHORIZED;
+    return {
+      status: AuthorizationStatus.AUTHORIZED,
+      granted: true,
+      canAskAgain: permissions.canAskAgain,
+    };
   }
 
   if (Platform.OS === 'ios') {
     if (permissions.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL) {
-      return AuthorizationStatus.PROVISIONAL;
+      return {
+        status: AuthorizationStatus.PROVISIONAL,
+        granted: false,
+        canAskAgain: permissions.canAskAgain,
+      };
     }
     if (permissions.ios?.status === Notifications.IosAuthorizationStatus.EPHEMERAL) {
-      return AuthorizationStatus.EPHEMERAL;
+      return {
+        status: AuthorizationStatus.EPHEMERAL,
+        granted: false,
+        canAskAgain: permissions.canAskAgain,
+      };
     }
     if (permissions.ios?.status === Notifications.IosAuthorizationStatus.NOT_DETERMINED) {
-      return AuthorizationStatus.NOT_DETERMINED;
+      return {
+        status: AuthorizationStatus.NOT_DETERMINED,
+        granted: false,
+        canAskAgain: permissions.canAskAgain,
+      };
     }
   }
 
-  return permissions.status === 'undetermined'
-    ? AuthorizationStatus.NOT_DETERMINED
-    : AuthorizationStatus.DENIED;
+  return {
+    status: permissions.status === 'undetermined'
+      ? AuthorizationStatus.NOT_DETERMINED
+      : AuthorizationStatus.DENIED,
+    granted: false,
+    canAskAgain: permissions.canAskAgain,
+  };
 }
 
 async function requestPushNotificationPermission() {
@@ -545,6 +583,23 @@ async function requestPushNotificationPermission() {
   return isAuthorizedStatus(status);
 }
 
+function canPromptForPushNotificationPermission(authorizationState: PushAuthorizationState) {
+  return (
+    authorizationState.status === AuthorizationStatus.NOT_DETERMINED ||
+    isAuthorizedStatus(authorizationState.status) ||
+    authorizationState.canAskAgain
+  );
+}
+
+function shouldUseAndroidSystemNotificationPrompt(authorizationState: PushAuthorizationState) {
+  return (
+    Platform.OS === 'android' &&
+    getAndroidApiLevel() >= 33 &&
+    !authorizationState.granted &&
+    authorizationState.canAskAgain
+  );
+}
+
 export async function maybePromptForPushNotifications() {
   if (hasShownPushNotificationPrompt || !isSupportedPlatform() || !hasSupabaseConfig) {
     return;
@@ -561,14 +616,22 @@ export async function maybePromptForPushNotifications() {
       return;
     }
 
-    const permissionStatus = await getPushAuthorizationStatus();
-    const canPromptForNotifications = (
-      permissionStatus === AuthorizationStatus.NOT_DETERMINED ||
-      isAuthorizedStatus(permissionStatus)
-    );
-    if (!canPromptForNotifications) return;
+    const authorizationState = await getPushAuthorizationState();
+    if (!canPromptForPushNotificationPermission(authorizationState)) return;
 
     hasShownPushNotificationPrompt = true;
+
+    if (shouldUseAndroidSystemNotificationPrompt(authorizationState)) {
+      markPushNotificationPromptSeen();
+      const result = await enablePushNotifications();
+      if (!result.enabled && result.status !== 'permission_denied') {
+        Alert.alert(
+          'Notifications Not Enabled',
+          result.message ?? 'Unable to enable notifications. Please try again.',
+        );
+      }
+      return;
+    }
 
     Alert.alert(
       'Enable Notifications?',
@@ -579,13 +642,13 @@ export async function maybePromptForPushNotifications() {
           style: 'cancel',
           onPress: () => {
             updatePreferences({ notificationsEnabled: false });
-            void AsyncStorage.setItem(PUSH_NOTIFICATION_PROMPT_SEEN_KEY, 'true');
+            markPushNotificationPromptSeen();
           },
         },
         {
           text: 'Enable',
           onPress: () => {
-            void AsyncStorage.setItem(PUSH_NOTIFICATION_PROMPT_SEEN_KEY, 'true');
+            markPushNotificationPromptSeen();
             void enablePushNotifications().then((result) => {
               if (!result.enabled && result.status !== 'permission_denied') {
                 Alert.alert(

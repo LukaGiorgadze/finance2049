@@ -578,6 +578,28 @@ test('reloadStoreFromStorage reloads persisted portfolio and preferences, and mi
   assert.equal(migrated.preferences.inAppMessagesEnabled, true);
 });
 
+test('migrateState preserves notification preferences when persisted schema metadata is missing', () => {
+  const latestPersistedState = getInitialState();
+  delete (latestPersistedState as any)._schema;
+  latestPersistedState.preferences.notificationsEnabled = true;
+  latestPersistedState.preferences.inAppMessagesEnabled = false;
+
+  const latestMigrated = migrateState(latestPersistedState);
+  assert.equal(latestMigrated._schema.version, CURRENT_SCHEMA_VERSION);
+  assert.equal(latestMigrated.preferences.notificationsEnabled, true);
+  assert.equal(latestMigrated.preferences.inAppMessagesEnabled, false);
+
+  const v3PersistedState = getInitialState() as any;
+  delete v3PersistedState._schema;
+  delete v3PersistedState.preferences.inAppMessagesEnabled;
+  v3PersistedState.preferences.notificationsEnabled = true;
+
+  const v3Migrated = migrateState(v3PersistedState);
+  assert.equal(v3Migrated._schema.version, CURRENT_SCHEMA_VERSION);
+  assert.equal(v3Migrated.preferences.notificationsEnabled, true);
+  assert.equal(v3Migrated.preferences.inAppMessagesEnabled, true);
+});
+
 test('validateTransactionDeletion and deleteTransaction handle missing ids safely', () => {
   assert.equal(validateTransactionDeletion('missing-id'), 'Transaction not found.');
   assert.doesNotThrow(() => deleteTransaction('missing-id'));
