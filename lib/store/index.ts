@@ -21,6 +21,7 @@ import type {
 } from './types';
 
 const SHARES_EPSILON = 1e-9;
+const STORE_STORAGE_KEY = 'finance-app-store';
 
 // ============================================================================
 // Store Configuration
@@ -51,10 +52,19 @@ let persistenceInitialized = false;
 export const initializeStore = async (): Promise<void> => {
   if (persistenceInitialized) return;
 
+  try {
+    const raw = await AsyncStorage.getItem(STORE_STORAGE_KEY);
+    if (raw) {
+      store$.set(migrateState(JSON.parse(raw)));
+    }
+  } catch (error) {
+    reportWarning('[Store] Failed to pre-load persisted store', error);
+  }
+
   // Set up persistence with migration transform
   const persistedStore$ = persistObservable(store$, {
     local: {
-      name: 'finance-app-store',
+      name: STORE_STORAGE_KEY,
       transform: {
         // 'in' transforms data coming from storage into the observable
         in: (value: RootStore) => migrateState(value),
@@ -67,12 +77,9 @@ export const initializeStore = async (): Promise<void> => {
 
   persistenceInitialized = true;
 
-  const persistState = (persistedStore$ as any)._state;
+  const persistState = (persistedStore$ as any).state ?? (persistedStore$ as any)._state;
   if (persistState?.isLoadedLocal?.get) {
-    await Promise.race([
-      when(() => persistState.isLoadedLocal.get() === true),
-      new Promise((resolve) => setTimeout(resolve, 1000)),
-    ]);
+    await when(() => persistState.isLoadedLocal.get() === true);
   }
 };
 
@@ -662,7 +669,7 @@ export const clearStore = () => {
  */
 export const reloadStoreFromStorage = async (): Promise<void> => {
   try {
-    const raw = await AsyncStorage.getItem('finance-app-store');
+    const raw = await AsyncStorage.getItem(STORE_STORAGE_KEY);
     if (!raw) return;
     const parsed = JSON.parse(raw);
     const migrated = migrateState(parsed);
