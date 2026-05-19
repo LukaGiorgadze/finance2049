@@ -5,7 +5,7 @@
  * Designed to be sync-ready for future Supabase integration.
  */
 
-import { observable } from '@legendapp/state';
+import { observable, when } from '@legendapp/state';
 import { configureObservablePersistence, persistObservable } from '@legendapp/state/persist';
 import { ObservablePersistAsyncStorage } from '@legendapp/state/persist-plugins/async-storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -52,7 +52,7 @@ export const initializeStore = async (): Promise<void> => {
   if (persistenceInitialized) return;
 
   // Set up persistence with migration transform
-  persistObservable(store$, {
+  const persistedStore$ = persistObservable(store$, {
     local: {
       name: 'finance-app-store',
       transform: {
@@ -67,8 +67,13 @@ export const initializeStore = async (): Promise<void> => {
 
   persistenceInitialized = true;
 
-  // Small delay to ensure persistence loads
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  const persistState = (persistedStore$ as any)._state;
+  if (persistState?.isLoadedLocal?.get) {
+    await Promise.race([
+      when(() => persistState.isLoadedLocal.get() === true),
+      new Promise((resolve) => setTimeout(resolve, 1000)),
+    ]);
+  }
 };
 
 // ============================================================================

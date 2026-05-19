@@ -507,13 +507,26 @@ export async function hasPushNotificationPermission() {
 async function getPushAuthorizationStatus(): Promise<FirebaseMessagingTypes.AuthorizationStatus> {
   if (!isSupportedPlatform()) return AuthorizationStatus.DENIED;
 
-  if (Platform.OS === 'android') {
-    return (await hasAndroidNotificationPermission())
-      ? AuthorizationStatus.AUTHORIZED
-      : AuthorizationStatus.DENIED;
+  const permissions = await Notifications.getPermissionsAsync();
+  if (permissions.granted) {
+    return AuthorizationStatus.AUTHORIZED;
   }
 
-  return messaging().hasPermission();
+  if (Platform.OS === 'ios') {
+    if (permissions.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL) {
+      return AuthorizationStatus.PROVISIONAL;
+    }
+    if (permissions.ios?.status === Notifications.IosAuthorizationStatus.EPHEMERAL) {
+      return AuthorizationStatus.EPHEMERAL;
+    }
+    if (permissions.ios?.status === Notifications.IosAuthorizationStatus.NOT_DETERMINED) {
+      return AuthorizationStatus.NOT_DETERMINED;
+    }
+  }
+
+  return permissions.status === 'undetermined'
+    ? AuthorizationStatus.NOT_DETERMINED
+    : AuthorizationStatus.DENIED;
 }
 
 async function requestPushNotificationPermission() {
@@ -549,7 +562,11 @@ export async function maybePromptForPushNotifications() {
     }
 
     const permissionStatus = await getPushAuthorizationStatus();
-    if (permissionStatus !== AuthorizationStatus.NOT_DETERMINED) return;
+    const canPromptForNotifications = (
+      permissionStatus === AuthorizationStatus.NOT_DETERMINED ||
+      isAuthorizedStatus(permissionStatus)
+    );
+    if (!canPromptForNotifications) return;
 
     hasShownPushNotificationPrompt = true;
 
