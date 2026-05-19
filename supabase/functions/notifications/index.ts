@@ -230,7 +230,8 @@ async function sendFcmTest(accessToken: string, fcmToken: string) {
             body: "Push notifications are working.",
           },
           data: {
-            type: "test",
+            type: "portfolio",
+            route: "/(tabs)/portfolio",
             notification_id: crypto.randomUUID(),
           },
           apns: {

@@ -397,6 +397,7 @@ export async function trackNotificationAction(params: {
     | "foreground_received"
     | "opened"
     | "initial_open"
+    | "deep_link_opened"
     | "test_send";
   target?: string;
   source?: string;

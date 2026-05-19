@@ -79,6 +79,7 @@ export default function NewsDetailScreen() {
     params.sentiment === 'negative' ? 'Negative' :
     params.sentiment === 'neutral' ? 'Neutral' :
     undefined;
+  const articleUrl = params.ampUrl || params.url;
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: colors.surface }]}>
@@ -150,7 +151,7 @@ export default function NewsDetailScreen() {
             </View>
 
             {/* Title */}
-            <ThemedText style={styles.articleTitle}>{params.title}</ThemedText>
+            <ThemedText style={styles.articleTitle}>{params.title || 'News article'}</ThemedText>
 
             {/* Author + Timestamp */}
             <View style={styles.authorRow}>
@@ -174,7 +175,9 @@ export default function NewsDetailScreen() {
               <ThemedText style={styles.descriptionText}>{params.description}</ThemedText>
             ) : (
               <ThemedText style={styles.noDescriptionText}>
-                No preview available. Tap the button below to read the full article.
+                {articleUrl
+                  ? 'No preview available. Tap the button below to read the full article.'
+                  : 'No preview available.'}
               </ThemedText>
             )}
 
@@ -220,22 +223,24 @@ export default function NewsDetailScreen() {
           </View>
 
           {/* Read Original Article Button */}
-          <TouchableOpacity
-            style={[styles.readArticleButton, { backgroundColor: colors.blue }]}
-            onPress={() => {
-              void trackNewsAction({
-                action: 'open_full_article',
-                target: params.id,
-                source: params.source,
-              });
-              Linking.openURL(params.ampUrl || params.url);
-            }}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="globe-outline" size={20} color={colors.textOnColor} />
-            <ThemedText style={[styles.readArticleText, { color: colors.textOnColor }]}>Read Full Article</ThemedText>
-            <Ionicons name="open-outline" size={16} color={colors.textOnColor} style={{ opacity: 0.7 }} />
-          </TouchableOpacity>
+          {articleUrl ? (
+            <TouchableOpacity
+              style={[styles.readArticleButton, { backgroundColor: colors.blue }]}
+              onPress={() => {
+                void trackNewsAction({
+                  action: 'open_full_article',
+                  target: params.id,
+                  source: params.source,
+                });
+                Linking.openURL(articleUrl);
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="globe-outline" size={20} color={colors.textOnColor} />
+              <ThemedText style={[styles.readArticleText, { color: colors.textOnColor }]}>Read Full Article</ThemedText>
+              <Ionicons name="open-outline" size={16} color={colors.textOnColor} style={{ opacity: 0.7 }} />
+            </TouchableOpacity>
+          ) : null}
 
           <ThemedText style={styles.sourceAttribution}>
             Source: {params.source}

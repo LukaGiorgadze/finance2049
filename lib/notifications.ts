@@ -4,6 +4,7 @@ import messaging, {
   AuthorizationStatus,
   type FirebaseMessagingTypes,
 } from '@react-native-firebase/messaging';
+import { router } from 'expo-router';
 import { PermissionsAndroid, Platform } from 'react-native';
 import { trackNotificationAction } from './analytics';
 import { reportError, reportWarning } from './crashlytics';
@@ -15,8 +16,27 @@ const ANDROID_POST_NOTIFICATIONS_PERMISSION = 'android.permission.POST_NOTIFICAT
 const ANDROID_FOREGROUND_CHANNEL_ID = 'default';
 const APNS_TOKEN_WAIT_ATTEMPTS = 10;
 const APNS_TOKEN_WAIT_MS = 500;
+const INITIAL_NOTIFICATION_NAVIGATION_DELAY_MS = 800;
+const NOTIFICATION_OPEN_DEDUPE_WINDOW_MS = 10_000;
 
 let hasConfiguredForegroundNotificationPresentation = false;
+const handledNotificationOpenKeys = new Map<string, number>();
+
+type NotificationData = Record<string, unknown>;
+type NotificationDestination = Parameters<typeof router.push>[0];
+type NewsArticleRouteParams = {
+  id: string;
+  title?: string;
+  author?: string;
+  description?: string;
+  url?: string;
+  ampUrl?: string;
+  imageUrl?: string;
+  publishedAt?: string;
+  source?: string;
+  tickers?: string;
+  sentiment?: string;
+};
 
 export type PushNotificationStatus =
   | 'registered'
@@ -117,14 +137,278 @@ function isUnregisteredForRemoteMessagesError(error: unknown) {
 function getMessageTarget(message: FirebaseMessagingTypes.RemoteMessage) {
   const data = message.data ?? {};
   const candidate =
+    data.deep_link ??
+    data.href ??
     data.target ??
     data.route ??
+    data.screen ??
+    data.symbol ??
+    data.ticker ??
+    data.article_id ??
+    data.news_id ??
     data.notification_id ??
     data.type ??
     message.messageId ??
     message.from;
 
   return typeof candidate === 'string' ? candidate : undefined;
+}
+
+function readString(data: NotificationData, keys: string[]) {
+  for (const key of keys) {
+    const value = data[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  return undefined;
+}
+
+function normalizeRouteInput(route: string) {
+  const trimmed = route.trim();
+  if (!trimmed) return null;
+
+  if (trimmed.startsWith('/')) {
+    return trimmed;
+  }
+
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== 'finance2049:') return null;
+
+    if (url.hostname) {
+      return `/${url.hostname}${url.pathname}${url.search}`;
+    }
+
+    return `${url.pathname}${url.search}`;
+  } catch {
+    return null;
+  }
+}
+
+function getSearchParamString(params: URLSearchParams, keys: string[]) {
+  for (const key of keys) {
+    const value = params.get(key);
+    if (value?.trim()) {
+      return value.trim();
+    }
+  }
+  return undefined;
+}
+
+function decodePathSegment(segment: string) {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
+function getNewsArticleParams(
+  data: NotificationData,
+  urlSearchParams?: URLSearchParams,
+): NewsArticleRouteParams | null {
+  const id =
+    readString(data, ['article_id', 'news_id', 'id']) ??
+    (urlSearchParams ? getSearchParamString(urlSearchParams, ['article_id', 'news_id', 'id']) : undefined);
+
+  if (!id) return null;
+
+  const params: NewsArticleRouteParams = { id };
+  const aliases: Array<[Exclude<keyof NewsArticleRouteParams, 'id'>, string[]]> = [
+    ['title', ['title', 'article_title']],
+    ['author', ['author', 'article_author']],
+    ['description', ['description', 'article_description', 'body']],
+    ['url', ['url', 'article_url']],
+    ['ampUrl', ['ampUrl', 'amp_url']],
+    ['imageUrl', ['imageUrl', 'image_url']],
+    ['publishedAt', ['publishedAt', 'published_at', 'published_utc']],
+    ['source', ['source', 'publisher']],
+    ['tickers', ['tickers', 'ticker', 'symbol']],
+    ['sentiment', ['sentiment']],
+  ];
+
+  for (const [paramName, keys] of aliases) {
+    const value =
+      readString(data, keys) ??
+      (urlSearchParams ? getSearchParamString(urlSearchParams, keys) : undefined);
+    if (value) {
+      params[paramName] = value;
+    }
+  }
+
+  return params;
+}
+
+function getStockDestination(symbol: string): NotificationDestination {
+  return {
+    pathname: '/stock/[symbol]',
+    params: { symbol },
+  };
+}
+
+function getNewsArticleDestination(params: NewsArticleRouteParams): NotificationDestination {
+  return {
+    pathname: '/news/[id]',
+    params,
+  };
+}
+
+function routePathToDestination(
+  route: string,
+  data: NotificationData = {},
+): NotificationDestination | null {
+  const normalizedRoute = normalizeRouteInput(route);
+  if (!normalizedRoute) return null;
+
+  const url = new URL(normalizedRoute, 'finance2049://app');
+  const pathname = url.pathname.replace(/\/+$/, '') || '/';
+
+  if (pathname === '/portfolio' || pathname === '/(tabs)/portfolio') {
+    return '/(tabs)/portfolio';
+  }
+
+  if (pathname === '/import-result' || pathname === '/import-confirm') {
+    return '/import-confirm';
+  }
+
+  if (pathname === '/import' || pathname === '/import-transactions') {
+    return '/import-transactions';
+  }
+
+  if (pathname === '/news' || pathname === '/news/index') {
+    const articleParams = getNewsArticleParams(data, url.searchParams);
+    if (articleParams) {
+      return getNewsArticleDestination(articleParams);
+    }
+    return '/news';
+  }
+
+  const stockMatch = pathname.match(/^\/stock\/([^/]+)$/);
+  if (stockMatch?.[1]) {
+    return getStockDestination(decodePathSegment(stockMatch[1]).toUpperCase());
+  }
+
+  const newsMatch = pathname.match(/^\/news\/([^/]+)$/);
+  if (newsMatch?.[1]) {
+    const articleParams = getNewsArticleParams(
+      { ...data, id: decodePathSegment(newsMatch[1]) },
+      url.searchParams,
+    );
+    if (articleParams) {
+      return getNewsArticleDestination(articleParams);
+    }
+  }
+
+  return null;
+}
+
+function getNotificationDestination(data: NotificationData): NotificationDestination | null {
+  const explicitRoute = readString(data, ['deep_link', 'href', 'route']);
+  if (explicitRoute) {
+    const destination = routePathToDestination(explicitRoute, data);
+    if (destination) return destination;
+  }
+
+  const type = readString(data, ['type', 'target', 'screen'])?.toLowerCase();
+  const symbol = readString(data, ['symbol', 'ticker']);
+
+  if ((type === 'stock' || type === 'ticker' || type === 'asset') && symbol) {
+    return getStockDestination(symbol.toUpperCase());
+  }
+
+  if (type === 'portfolio') {
+    return '/(tabs)/portfolio';
+  }
+
+  if (type === 'import_result' || type === 'import-result' || type === 'import_confirm') {
+    return '/import-confirm';
+  }
+
+  if (type === 'import' || type === 'import_transactions' || type === 'import-transactions') {
+    return '/import-transactions';
+  }
+
+  if (type === 'news' || type === 'article' || type === 'news_article') {
+    const articleParams = getNewsArticleParams(data);
+    if (articleParams) {
+      return getNewsArticleDestination(articleParams);
+    }
+    return '/news';
+  }
+
+  return null;
+}
+
+function getDestinationTarget(destination: NotificationDestination) {
+  return typeof destination === 'string'
+    ? destination
+    : `${destination.pathname}`;
+}
+
+function getNotificationOpenKey(
+  data: NotificationData,
+  fallback?: string | null,
+) {
+  return (
+    readString(data, ['notification_id', 'message_id', 'google.message_id', 'id']) ??
+    fallback ??
+    readString(data, ['deep_link', 'href', 'route', 'type', 'target'])
+  );
+}
+
+function shouldSkipDuplicateNotificationOpen(openKey: string) {
+  const now = Date.now();
+  for (const [key, handledAt] of handledNotificationOpenKeys) {
+    if (now - handledAt > NOTIFICATION_OPEN_DEDUPE_WINDOW_MS) {
+      handledNotificationOpenKeys.delete(key);
+    }
+  }
+
+  const lastHandledAt = handledNotificationOpenKeys.get(openKey);
+  if (lastHandledAt && now - lastHandledAt <= NOTIFICATION_OPEN_DEDUPE_WINDOW_MS) {
+    return true;
+  }
+
+  handledNotificationOpenKeys.set(openKey, now);
+  return false;
+}
+
+function navigateFromNotification(
+  data: NotificationData,
+  source: 'opened' | 'initial_open' | 'expo_response',
+  fallbackKey?: string | null,
+  delayMs = 0,
+) {
+  const destination = getNotificationDestination(data);
+  if (!destination) return;
+
+  const openKey = getNotificationOpenKey(data, fallbackKey);
+  if (openKey) {
+    if (shouldSkipDuplicateNotificationOpen(openKey)) return;
+  }
+
+  const navigate = () => {
+    try {
+      router.push(destination);
+      void trackNotificationAction({
+        action: 'deep_link_opened',
+        target: getDestinationTarget(destination),
+        source,
+      });
+    } catch (error) {
+      reportWarning('[Notifications] Failed to open notification deep link', error, {
+        source,
+        destination: getDestinationTarget(destination),
+      });
+    }
+  };
+
+  if (delayMs > 0) {
+    setTimeout(navigate, delayMs);
+  } else {
+    requestAnimationFrame(navigate);
+  }
 }
 
 async function displayAndroidForegroundNotification(
@@ -463,6 +747,15 @@ export function subscribeToPushNotificationHandlers() {
 
   const instance = messaging();
 
+  const expoResponseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+    navigateFromNotification(
+      response.notification.request.content.data ?? {},
+      'expo_response',
+      response.notification.request.identifier,
+    );
+    Notifications.clearLastNotificationResponse();
+  });
+
   const unsubscribeForeground = instance.onMessage((message) => {
     void displayAndroidForegroundNotification(message).catch((error) => {
       reportWarning('[Notifications] Failed to display foreground notification', error, {
@@ -482,6 +775,7 @@ export function subscribeToPushNotificationHandlers() {
       target: getMessageTarget(message),
       source: message.from,
     });
+    navigateFromNotification(message.data ?? {}, 'opened', message.messageId);
   });
 
   const unsubscribeTokenRefresh = instance.onTokenRefresh((fcmToken) => {
@@ -507,13 +801,37 @@ export function subscribeToPushNotificationHandlers() {
       target: getMessageTarget(message),
       source: message.from,
     });
+    navigateFromNotification(
+      message.data ?? {},
+      'initial_open',
+      message.messageId,
+      INITIAL_NOTIFICATION_NAVIGATION_DELAY_MS,
+    );
   }).catch((error) => {
     reportWarning('[Notifications] Failed to read initial notification', error, {
       platform: Platform.OS,
     });
   });
 
+  try {
+    const lastNotificationResponse = Notifications.getLastNotificationResponse();
+    if (lastNotificationResponse) {
+      navigateFromNotification(
+        lastNotificationResponse.notification.request.content.data ?? {},
+        'expo_response',
+        lastNotificationResponse.notification.request.identifier,
+        INITIAL_NOTIFICATION_NAVIGATION_DELAY_MS,
+      );
+      Notifications.clearLastNotificationResponse();
+    }
+  } catch (error) {
+    reportWarning('[Notifications] Failed to read Expo notification response', error, {
+      platform: Platform.OS,
+    });
+  }
+
   return () => {
+    expoResponseSubscription.remove();
     unsubscribeForeground();
     unsubscribeOpened();
     unsubscribeTokenRefresh();
