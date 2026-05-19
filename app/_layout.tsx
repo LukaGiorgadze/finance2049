@@ -5,7 +5,11 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { TransactionTypeProvider } from '@/lib/contexts/TransactionTypeContext';
 import { initializeCrashlytics } from '@/lib/crashlytics';
 import { syncInAppMessagingState } from '@/lib/in-app-messaging';
-import { subscribeToPushNotificationHandlers, syncPushNotificationsOnStartup } from '@/lib/notifications';
+import {
+  maybePromptForPushNotifications,
+  subscribeToPushNotificationHandlers,
+  syncPushNotificationsOnStartup,
+} from '@/lib/notifications';
 import { StoreProvider } from '@/lib/store/StoreProvider';
 import { useInAppMessagesEnabled } from '@/lib/hooks';
 // The published package points its root typings at missing build artifacts, but the source entry is complete.
@@ -86,6 +90,20 @@ function RootLayoutContent() {
     void syncPushNotificationsOnStartup();
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (pathname.startsWith('/onboarding') || pathname.startsWith('/import') || pathname === '/modal') {
+      return;
+    }
+
+    const promptTimer = setTimeout(() => {
+      void maybePromptForPushNotifications();
+    }, 1000);
+
+    return () => {
+      clearTimeout(promptTimer);
+    };
+  }, [pathname]);
 
   useEffect(() => {
     void syncInAppMessagingState(pathname);

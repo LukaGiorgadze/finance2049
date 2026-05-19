@@ -574,7 +574,7 @@ test('reloadStoreFromStorage reloads persisted portfolio and preferences, and mi
 
   assert.equal(migrated._schema.version, CURRENT_SCHEMA_VERSION);
   assert.equal(migrated.portfolio.holdings.OLD.totalCommissions, 0);
-  assert.equal(migrated.preferences.notificationsEnabled, true);
+  assert.equal(migrated.preferences.notificationsEnabled, false);
   assert.equal(migrated.preferences.inAppMessagesEnabled, true);
 });
 

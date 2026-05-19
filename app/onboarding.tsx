@@ -17,8 +17,7 @@ import {
   trackOnboardingStepViewed,
   trackOnboardingThemeSelected,
 } from '@/lib/analytics';
-import { reportWarning } from '@/lib/crashlytics';
-import { enablePushNotifications } from '@/lib/notifications';
+import { maybePromptForPushNotifications } from '@/lib/notifications';
 import { ensureSession } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -471,13 +470,13 @@ export default function OnboardingScreen() {
     });
     await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
     await ensureSession();
-    void enablePushNotifications().catch((error) => {
-      reportWarning('[Notifications] Post-onboarding enable failed', error, {
-        surface: 'onboarding',
-      });
-    });
     router.replace('/(tabs)');
     if (pendingImportRef.current) router.push('/import-transactions');
+    if (!pendingImportRef.current) {
+      setTimeout(() => {
+        void maybePromptForPushNotifications();
+      }, 1000);
+    }
   }, [discoverySource, step, themeMode]);
 
   useEffect(() => {

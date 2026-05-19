@@ -119,7 +119,7 @@ export function useGainView() {
  * Get push notifications opt-in preference
  */
 export function useNotificationsEnabled(): boolean {
-  return useSelector(() => store$.preferences.notificationsEnabled.get() ?? true);
+  return useSelector(() => store$.preferences.notificationsEnabled.get() ?? false);
 }
 
 /**

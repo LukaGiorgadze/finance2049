@@ -37,13 +37,13 @@ const migrations: Record<number, Migration> = {
       _schema: { version: 2 },
     };
   },
-  // Migration from v2 to v3: Add push notifications preference enabled by default.
+  // Migration from v2 to v3: Add push notifications preference as explicit opt-in.
   2: (state) => {
     return {
       ...state,
       preferences: {
         ...state.preferences,
-        notificationsEnabled: true,
+        notificationsEnabled: false,
       },
       _schema: { version: 3 },
     };
@@ -108,7 +108,7 @@ export function getInitialState(): RootStore {
       showPortfolioValue: true,
       defaultTimeline: "1M",
       gainView: "today",
-      notificationsEnabled: true,
+      notificationsEnabled: false,
       inAppMessagesEnabled: true,
     },
     auth: {

@@ -4,8 +4,10 @@ import messaging, {
   AuthorizationStatus,
   type FirebaseMessagingTypes,
 } from '@react-native-firebase/messaging';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import { PermissionsAndroid, Platform } from 'react-native';
+import { Alert, PermissionsAndroid, Platform } from 'react-native';
+import { ONBOARDING_KEY } from '@/constants/storage-keys';
 import { trackNotificationAction } from './analytics';
 import { reportError, reportWarning } from './crashlytics';
 import { API_CONFIG } from './services/config';
@@ -18,8 +20,10 @@ const APNS_TOKEN_WAIT_ATTEMPTS = 10;
 const APNS_TOKEN_WAIT_MS = 500;
 const INITIAL_NOTIFICATION_NAVIGATION_DELAY_MS = 800;
 const NOTIFICATION_OPEN_DEDUPE_WINDOW_MS = 10_000;
+const PUSH_NOTIFICATION_PROMPT_SEEN_KEY = '@push_notifications_prompt_seen_v1';
 
 let hasConfiguredForegroundNotificationPresentation = false;
+let hasShownPushNotificationPrompt = false;
 const handledNotificationOpenKeys = new Map<string, number>();
 
 type NotificationData = Record<string, unknown>;
@@ -74,7 +78,7 @@ function ensureForegroundNotificationPresentation() {
 
   Notifications.setNotificationHandler({
     handleNotification: async () => {
-      const shouldShow = store$.preferences.notificationsEnabled.get() ?? true;
+      const shouldShow = store$.preferences.notificationsEnabled.get() ?? false;
 
       return {
         shouldShowBanner: shouldShow,
@@ -415,7 +419,7 @@ async function displayAndroidForegroundNotification(
   message: FirebaseMessagingTypes.RemoteMessage,
 ) {
   if (Platform.OS !== 'android') return;
-  if (!(store$.preferences.notificationsEnabled.get() ?? true)) return;
+  if (!(store$.preferences.notificationsEnabled.get() ?? false)) return;
   ensureForegroundNotificationPresentation();
 
   const title = message.notification?.title ?? 'Finance 2049';
@@ -526,6 +530,67 @@ async function requestPushNotificationPermission() {
   });
 
   return isAuthorizedStatus(status);
+}
+
+export async function maybePromptForPushNotifications() {
+  if (hasShownPushNotificationPrompt || !isSupportedPlatform() || !hasSupabaseConfig) {
+    return;
+  }
+
+  try {
+    const onboardingComplete = await AsyncStorage.getItem(ONBOARDING_KEY);
+    if (!onboardingComplete) return;
+
+    const promptSeen = await AsyncStorage.getItem(PUSH_NOTIFICATION_PROMPT_SEEN_KEY);
+    if (promptSeen) return;
+
+    const permissionStatus = await getPushAuthorizationStatus();
+    if (permissionStatus !== AuthorizationStatus.NOT_DETERMINED) return;
+
+    if (store$.preferences.notificationsEnabled.get() ?? false) {
+      updatePreferences({ notificationsEnabled: false });
+    }
+
+    hasShownPushNotificationPrompt = true;
+
+    Alert.alert(
+      'Enable Notifications?',
+      'Get important portfolio updates and app announcements.',
+      [
+        {
+          text: 'Not Now',
+          style: 'cancel',
+          onPress: () => {
+            updatePreferences({ notificationsEnabled: false });
+            void AsyncStorage.setItem(PUSH_NOTIFICATION_PROMPT_SEEN_KEY, 'true');
+          },
+        },
+        {
+          text: 'Enable',
+          onPress: () => {
+            void AsyncStorage.setItem(PUSH_NOTIFICATION_PROMPT_SEEN_KEY, 'true');
+            void enablePushNotifications().then((result) => {
+              if (!result.enabled && result.status !== 'permission_denied') {
+                Alert.alert(
+                  'Notifications Not Enabled',
+                  result.message ?? 'Unable to enable notifications. Please try again.',
+                );
+              }
+            }).catch((error) => {
+              reportWarning('[Notifications] Prompt enable failed', error, {
+                platform: Platform.OS,
+              });
+              updatePreferences({ notificationsEnabled: false });
+            });
+          },
+        },
+      ],
+    );
+  } catch (error) {
+    reportWarning('[Notifications] Failed to show opt-in prompt', error, {
+      platform: Platform.OS,
+    });
+  }
 }
 
 async function getFcmToken() {
@@ -677,7 +742,7 @@ export async function disablePushNotifications(): Promise<PushNotificationResult
 }
 
 export async function syncPushNotificationsOnStartup(): Promise<PushNotificationResult> {
-  const notificationsEnabled = store$.preferences.notificationsEnabled.get() ?? true;
+  const notificationsEnabled = store$.preferences.notificationsEnabled.get() ?? false;
 
   if (!notificationsEnabled) {
     if (isSupportedPlatform()) {
@@ -706,8 +771,11 @@ export async function syncPushNotificationsOnStartup(): Promise<PushNotification
       if (permissionStatus !== AuthorizationStatus.NOT_DETERMINED) {
         return disablePushNotifications();
       }
+      if (notificationsEnabled) {
+        updatePreferences({ notificationsEnabled: false });
+      }
       return {
-        enabled: notificationsEnabled,
+        enabled: false,
         status: 'unregistered',
         message: 'Notification permission has not been requested.',
       };

@@ -65,6 +65,7 @@ export {
   disablePushNotifications,
   enablePushNotifications,
   hasPushNotificationPermission,
+  maybePromptForPushNotifications,
   sendTestPushNotification,
   subscribeToPushNotificationHandlers,
   syncPushNotificationsOnStartup,
