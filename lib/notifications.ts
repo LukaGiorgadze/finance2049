@@ -544,12 +544,12 @@ export async function maybePromptForPushNotifications() {
     const promptSeen = await AsyncStorage.getItem(PUSH_NOTIFICATION_PROMPT_SEEN_KEY);
     if (promptSeen) return;
 
+    if (store$.preferences.notificationsEnabled.get() ?? false) {
+      return;
+    }
+
     const permissionStatus = await getPushAuthorizationStatus();
     if (permissionStatus !== AuthorizationStatus.NOT_DETERMINED) return;
-
-    if (store$.preferences.notificationsEnabled.get() ?? false) {
-      updatePreferences({ notificationsEnabled: false });
-    }
 
     hasShownPushNotificationPrompt = true;
 
@@ -771,11 +771,8 @@ export async function syncPushNotificationsOnStartup(): Promise<PushNotification
       if (permissionStatus !== AuthorizationStatus.NOT_DETERMINED) {
         return disablePushNotifications();
       }
-      if (notificationsEnabled) {
-        updatePreferences({ notificationsEnabled: false });
-      }
       return {
-        enabled: false,
+        enabled: notificationsEnabled,
         status: 'unregistered',
         message: 'Notification permission has not been requested.',
       };
