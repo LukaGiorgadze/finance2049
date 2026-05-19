@@ -16,7 +16,7 @@ const ANDROID_FOREGROUND_CHANNEL_ID = 'default';
 const APNS_TOKEN_WAIT_ATTEMPTS = 10;
 const APNS_TOKEN_WAIT_MS = 500;
 
-let hasConfiguredAndroidForegroundNotifications = false;
+let hasConfiguredForegroundNotificationPresentation = false;
 
 export type PushNotificationStatus =
   | 'registered'
@@ -47,6 +47,26 @@ interface TestNotificationResponse {
 
 function isSupportedPlatform() {
   return Platform.OS === 'ios' || Platform.OS === 'android';
+}
+
+function ensureForegroundNotificationPresentation() {
+  if (hasConfiguredForegroundNotificationPresentation || !isSupportedPlatform()) return;
+
+  Notifications.setNotificationHandler({
+    handleNotification: async () => {
+      const shouldShow = store$.preferences.notificationsEnabled.get() ?? true;
+
+      return {
+        shouldShowBanner: shouldShow,
+        shouldShowList: shouldShow,
+        shouldPlaySound: shouldShow,
+        shouldSetBadge: false,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
+      };
+    },
+  });
+
+  hasConfiguredForegroundNotificationPresentation = true;
 }
 
 function getAndroidApiLevel() {
@@ -112,19 +132,7 @@ async function displayAndroidForegroundNotification(
 ) {
   if (Platform.OS !== 'android') return;
   if (!(store$.preferences.notificationsEnabled.get() ?? true)) return;
-
-  if (!hasConfiguredAndroidForegroundNotifications) {
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowBanner: true,
-        shouldShowList: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-        priority: Notifications.AndroidNotificationPriority.HIGH,
-      }),
-    });
-    hasConfiguredAndroidForegroundNotifications = true;
-  }
+  ensureForegroundNotificationPresentation();
 
   const title = message.notification?.title ?? 'Finance 2049';
   const body = message.notification?.body;
@@ -450,6 +458,8 @@ export function subscribeToPushNotificationHandlers() {
   if (!isSupportedPlatform()) {
     return () => {};
   }
+
+  ensureForegroundNotificationPresentation();
 
   const instance = messaging();
 
