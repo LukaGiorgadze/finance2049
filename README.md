@@ -110,12 +110,15 @@ Set these custom secrets for your deployed functions:
 ```env
 MASSIVE_API_KEY=
 OPENAI_API_KEY=
+FCM_PROJECT_ID=
+FCM_CLIENT_EMAIL=
+FCM_PRIVATE_KEY=
 ```
 
 You can set them in the Supabase dashboard or with the CLI:
 
 ```bash
-yarn supabase secrets set MASSIVE_API_KEY=your_massive_api_key OPENAI_API_KEY=your_openai_api_key
+yarn supabase secrets set MASSIVE_API_KEY=your_massive_api_key OPENAI_API_KEY=your_openai_api_key FCM_PROJECT_ID=your_firebase_project_id FCM_CLIENT_EMAIL=your_service_account_email FCM_PRIVATE_KEY="your_service_account_private_key"
 ```
 
 These built-in secrets should already exist by default, but make sure they are present:
@@ -133,7 +136,9 @@ SUPABASE_DB_URL
 yarn deploy
 ```
 
-8. Start the Expo development server:
+8. For Firebase push notifications, upload your Apple APNs authentication key in Firebase Cloud Messaging settings and make sure the Apple bundle ID and Android package match `app.json`.
+
+9. Start the Expo development server:
 
 ```bash
 npx expo start

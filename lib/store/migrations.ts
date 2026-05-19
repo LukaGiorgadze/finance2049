@@ -34,7 +34,18 @@ const migrations: Record<number, Migration> = {
         ...state.portfolio,
         holdings: migratedHoldings,
       },
-      _schema: { version: CURRENT_SCHEMA_VERSION },
+      _schema: { version: 2 },
+    };
+  },
+  // Migration from v2 to v3: Add explicit notifications opt-in preference.
+  2: (state) => {
+    return {
+      ...state,
+      preferences: {
+        ...state.preferences,
+        notificationsEnabled: false,
+      },
+      _schema: { version: 3 },
     };
   },
 };
@@ -86,6 +97,7 @@ export function getInitialState(): RootStore {
       showPortfolioValue: true,
       defaultTimeline: "1M",
       gainView: "today",
+      notificationsEnabled: false,
     },
     auth: {
       userId: null,

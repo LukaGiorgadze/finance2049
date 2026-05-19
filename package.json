@@ -10,7 +10,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "rm -rf .test-dist && tsc -p tsconfig.test.json && node tests/setup-test-dist.cjs && node --test --test-concurrency=1 .test-dist/tests/*.test.js",
-    "deploy": "supabase functions deploy massive-proxy && supabase functions deploy extract-transactions"
+    "deploy": "supabase functions deploy massive-proxy && supabase functions deploy extract-transactions && supabase functions deploy notifications"
   },
   "dependencies": {
     "@expo/metro-runtime": "~55.0.11",
@@ -23,6 +23,7 @@
     "@react-native-firebase/analytics": "^24.0.0",
     "@react-native-firebase/app": "^24.0.0",
     "@react-native-firebase/crashlytics": "^24.0.0",
+    "@react-native-firebase/messaging": "^24.0.0",
     "@react-native-firebase/perf": "^24.0.0",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",

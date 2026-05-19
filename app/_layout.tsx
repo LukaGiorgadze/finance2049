@@ -4,6 +4,7 @@ import { ThemeProvider } from '@/contexts/theme-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { TransactionTypeProvider } from '@/lib/contexts/TransactionTypeContext';
 import { initializeCrashlytics } from '@/lib/crashlytics';
+import { subscribeToPushNotificationHandlers, syncPushNotificationsOnStartup } from '@/lib/notifications';
 import { StoreProvider } from '@/lib/store/StoreProvider';
 // The published package points its root typings at missing build artifacts, but the source entry is complete.
 import * as Clarity from '@microsoft/react-native-clarity/src';
@@ -75,6 +76,12 @@ function LoadingFallback() {
 function RootLayoutContent() {
   const colorScheme = useColorScheme();
   useClarityTracking();
+
+  useEffect(() => {
+    const unsubscribe = subscribeToPushNotificationHandlers();
+    void syncPushNotificationsOnStartup();
+    return unsubscribe;
+  }, []);
 
   return (
     <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

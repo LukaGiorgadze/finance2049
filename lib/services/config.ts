@@ -14,6 +14,8 @@ export const API_CONFIG = {
   supabase: {
     extractTransactionsUrl:
       `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/extract-transactions`,
+    notificationsUrl:
+      `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/notifications`,
   },
 } as const;
 

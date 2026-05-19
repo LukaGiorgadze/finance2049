@@ -3,7 +3,15 @@ import { Colors } from '@/constants/theme';
 // import { AVAILABLE_CURRENCIES, Currency, useCurrency } from '@/contexts/currency-context';
 import { useTheme } from '@/contexts/theme-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { store$, trackSettingsAction, trackSettingsScreen } from '@/lib';
+import {
+  disablePushNotifications,
+  enablePushNotifications,
+  sendTestPushNotification,
+  store$,
+  trackSettingsAction,
+  trackSettingsScreen,
+  useNotificationsEnabled,
+} from '@/lib';
 import { reportError } from '@/lib/crashlytics';
 import { CURRENT_SCHEMA_VERSION } from '@/lib/store/types';
 import Constants from 'expo-constants';
@@ -141,7 +149,10 @@ export default function SettingsScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const [isExporting, setIsExporting] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [isUpdatingNotifications, setIsUpdatingNotifications] = useState(false);
+  const [isSendingTestNotification, setIsSendingTestNotification] = useState(false);
   const [activeModal, setActiveModal] = useState<'support' | 'about' | null>(null);
+  const notificationsEnabled = useNotificationsEnabled();
   const appVersion = Constants.expoConfig?.version ?? 'Unknown';
 
   useEffect(() => {
@@ -230,6 +241,59 @@ export default function SettingsScreen() {
       Alert.alert('Export Failed', 'Something went wrong while exporting your data.');
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleNotificationsToggle = async (enabled: boolean) => {
+    if (isUpdatingNotifications) return;
+
+    setIsUpdatingNotifications(true);
+    void trackSettingsAction({
+      action: enabled ? 'notifications_enable' : 'notifications_disable',
+    });
+
+    try {
+      const result = enabled
+        ? await enablePushNotifications()
+        : await disablePushNotifications();
+
+      if (enabled && !result.enabled) {
+        Alert.alert(
+          'Notifications Not Enabled',
+          result.message ?? 'Notification permission was not granted.',
+        );
+      }
+    } catch (error) {
+      reportError('[Notifications] Settings toggle failed', error, {
+        enabled,
+        surface: 'settings',
+      });
+      Alert.alert('Notifications Error', 'Unable to update notifications right now.');
+    } finally {
+      setIsUpdatingNotifications(false);
+    }
+  };
+
+  const handleSendTestNotification = async () => {
+    if (isSendingTestNotification) return;
+
+    setIsSendingTestNotification(true);
+    void trackSettingsAction({ action: 'notifications_test' });
+
+    try {
+      const result = await sendTestPushNotification();
+      if (result.sent > 0) {
+        Alert.alert('Test Sent', 'A test notification was sent to your registered devices.');
+      } else {
+        Alert.alert('No Active Device', 'Enable notifications again, then try sending a test.');
+      }
+    } catch (error) {
+      reportError('[Notifications] Test send failed', error, {
+        surface: 'settings',
+      });
+      Alert.alert('Test Failed', 'Unable to send a test notification right now.');
+    } finally {
+      setIsSendingTestNotification(false);
     }
   };
 
@@ -440,6 +504,48 @@ export default function SettingsScreen() {
                 />
               }
             />
+          </View>
+
+          {/* Notifications Section */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.icon }]}>NOTIFICATIONS</Text>
+
+            <SettingsCard
+              icon="bell.badge.fill"
+              title="Push Notifications"
+              subtitle={isUpdatingNotifications
+                ? 'Updating notifications...'
+                : notificationsEnabled
+                  ? 'Enabled for this device'
+                  : 'Off'}
+              rightElement={isUpdatingNotifications
+                ? <ActivityIndicator size="small" color={colors.text} />
+                : (
+                  <Switch
+                    value={notificationsEnabled}
+                    onValueChange={(value) => {
+                      void handleNotificationsToggle(value);
+                    }}
+                    trackColor={{ false: colors.cardBorder, true: colors.tint }}
+                    thumbColor={colors.textOnColor}
+                    ios_backgroundColor={colors.surfaceElevated}
+                  />
+                )
+              }
+            />
+
+            {notificationsEnabled && (
+              <SettingsCard
+                icon="paperplane.fill"
+                title="Send Test Notification"
+                subtitle="Verify delivery on this device"
+                onPress={handleSendTestNotification}
+                rightElement={isSendingTestNotification
+                  ? <ActivityIndicator size="small" color={colors.text} />
+                  : <View />
+                }
+              />
+            )}
           </View>
 
           {/* Data & Storage Section */}

@@ -17,7 +17,10 @@
     },
     "android": {
       "googleServicesFile": "./android/app/google-services.json",
-      "permissions": ["android.permission.CAMERA"],
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.POST_NOTIFICATIONS"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
@@ -55,6 +58,7 @@
       "@react-native-community/datetimepicker",
       "@react-native-firebase/app",
       "@react-native-firebase/crashlytics",
+      "@react-native-firebase/messaging",
       [
         "expo-build-properties",
         {
@@ -63,7 +67,7 @@
             "useFrameworks": "static",
             "buildReactNativeFromSource": true,
             "deploymentTarget": "15.6",
-            "forceStaticLinking": ["RNFBApp", "RNFBAuth", "RNFBFirestore"]
+            "forceStaticLinking": ["RNFBApp", "RNFBAuth", "RNFBFirestore", "RNFBMessaging"]
           }
         }
       ],
