@@ -4,8 +4,10 @@ import { ThemeProvider } from '@/contexts/theme-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { TransactionTypeProvider } from '@/lib/contexts/TransactionTypeContext';
 import { initializeCrashlytics } from '@/lib/crashlytics';
+import { syncInAppMessagingState } from '@/lib/in-app-messaging';
 import { subscribeToPushNotificationHandlers, syncPushNotificationsOnStartup } from '@/lib/notifications';
 import { StoreProvider } from '@/lib/store/StoreProvider';
+import { useInAppMessagesEnabled } from '@/lib/hooks';
 // The published package points its root typings at missing build artifacts, but the source entry is complete.
 import * as Clarity from '@microsoft/react-native-clarity/src';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
@@ -75,6 +77,8 @@ function LoadingFallback() {
 
 function RootLayoutContent() {
   const colorScheme = useColorScheme();
+  const pathname = usePathname();
+  const inAppMessagesEnabled = useInAppMessagesEnabled();
   useClarityTracking();
 
   useEffect(() => {
@@ -82,6 +86,10 @@ function RootLayoutContent() {
     void syncPushNotificationsOnStartup();
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    void syncInAppMessagingState(pathname);
+  }, [inAppMessagesEnabled, pathname]);
 
   return (
     <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

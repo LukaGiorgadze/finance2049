@@ -37,15 +37,26 @@ const migrations: Record<number, Migration> = {
       _schema: { version: 2 },
     };
   },
-  // Migration from v2 to v3: Add explicit notifications opt-in preference.
+  // Migration from v2 to v3: Add push notifications preference enabled by default.
   2: (state) => {
     return {
       ...state,
       preferences: {
         ...state.preferences,
-        notificationsEnabled: false,
+        notificationsEnabled: true,
       },
       _schema: { version: 3 },
+    };
+  },
+  // Migration from v3 to v4: Enable Firebase In-App Messaging by default.
+  3: (state) => {
+    return {
+      ...state,
+      preferences: {
+        ...state.preferences,
+        inAppMessagesEnabled: true,
+      },
+      _schema: { version: 4 },
     };
   },
 };
@@ -97,7 +108,8 @@ export function getInitialState(): RootStore {
       showPortfolioValue: true,
       defaultTimeline: "1M",
       gainView: "today",
-      notificationsEnabled: false,
+      notificationsEnabled: true,
+      inAppMessagesEnabled: true,
     },
     auth: {
       userId: null,

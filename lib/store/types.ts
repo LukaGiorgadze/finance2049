@@ -110,6 +110,7 @@ export interface UserPreferences {
   defaultTimeline: TimelineType;
   gainView: GainViewType;
   notificationsEnabled: boolean;
+  inAppMessagesEnabled: boolean;
 }
 
 // ============================================================================
@@ -156,4 +157,4 @@ export interface RootStore {
 // Schema Version
 // ============================================================================
 
-export const CURRENT_SCHEMA_VERSION = 3;
+export const CURRENT_SCHEMA_VERSION = 4;

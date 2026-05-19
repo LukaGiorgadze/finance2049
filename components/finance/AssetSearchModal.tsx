@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { trackSearchAction } from '@/lib';
+import { trackSearchAction, useInAppMessageSuppression } from '@/lib';
 import { reportWarning } from '@/lib/crashlytics';
 import { marketDataService } from '@/lib/services/marketDataService';
 import type { TickerSearchResult } from '@/lib/services/types';
@@ -32,6 +32,8 @@ interface AssetSearchModalProps {
 }
 
 export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsContext }: AssetSearchModalProps) {
+  useInAppMessageSuppression(visible);
+
   const [searchText, setSearchText] = useState('');
   const [results, setResults] = useState<TickerSearchResult[]>([]);
   const [searching, setSearching] = useState(false);

@@ -11,6 +11,8 @@ import { ensureSession, getAccessToken, hasSupabaseConfig } from './supabase';
 import { store$, updatePreferences } from './store';
 
 const ANDROID_POST_NOTIFICATIONS_PERMISSION = 'android.permission.POST_NOTIFICATIONS';
+const APNS_TOKEN_WAIT_ATTEMPTS = 10;
+const APNS_TOKEN_WAIT_MS = 500;
 
 export type PushNotificationStatus =
   | 'registered'
@@ -60,6 +62,32 @@ function isAuthorizedStatus(status: FirebaseMessagingTypes.AuthorizationStatus) 
 
 function getAppVersion() {
   return Constants.nativeAppVersion ?? Constants.expoConfig?.version;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getEnableFailureMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (message.includes('APNs token')) {
+    return 'iOS has not returned a push token yet. Check Push Notifications capability, use a supported device, then try again.';
+  }
+
+  if (message.includes('Failed to checkin before token registration')) {
+    return 'Firebase could not create a device token. Check network/Firebase setup, then try again.';
+  }
+
+  return 'Unable to enable notifications. Please try again.';
+}
+
+function isUnregisteredForRemoteMessagesError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes('[messaging/unregistered]') ||
+    message.includes('must be registered for remote messages')
+  );
 }
 
 function getMessageTarget(message: FirebaseMessagingTypes.RemoteMessage) {
@@ -164,8 +192,21 @@ async function getFcmToken() {
 
   await instance.setAutoInitEnabled(true);
 
-  if (Platform.OS === 'ios' && !instance.isDeviceRegisteredForRemoteMessages) {
-    await instance.registerDeviceForRemoteMessages();
+  if (Platform.OS === 'ios') {
+    if (!instance.isDeviceRegisteredForRemoteMessages) {
+      await instance.registerDeviceForRemoteMessages();
+    }
+
+    for (let attempt = 0; attempt < APNS_TOKEN_WAIT_ATTEMPTS; attempt++) {
+      const apnsToken = await instance.getAPNSToken();
+      if (apnsToken) break;
+
+      if (attempt === APNS_TOKEN_WAIT_ATTEMPTS - 1) {
+        throw new Error('APNs token was not available before FCM token registration.');
+      }
+
+      await sleep(APNS_TOKEN_WAIT_MS);
+    }
   }
 
   return instance.getToken();
@@ -198,6 +239,8 @@ export async function enablePushNotifications(): Promise<PushNotificationResult>
     };
   }
 
+  let fcmToken: string | null = null;
+
   try {
     const hasPermission = await requestPushNotificationPermission();
 
@@ -212,7 +255,7 @@ export async function enablePushNotifications(): Promise<PushNotificationResult>
       };
     }
 
-    const fcmToken = await getFcmToken();
+    fcmToken = await getFcmToken();
     await registerToken(fcmToken);
     updatePreferences({ notificationsEnabled: true });
     void trackNotificationAction({ action: 'registered', target: Platform.OS });
@@ -223,7 +266,9 @@ export async function enablePushNotifications(): Promise<PushNotificationResult>
       platform: Platform.OS,
     });
     try {
-      await messaging().deleteToken();
+      if (fcmToken) {
+        await messaging().deleteToken();
+      }
       await messaging().setAutoInitEnabled(false);
     } catch (cleanupError) {
       reportWarning('[Notifications] Failed to clean up after enable failure', cleanupError, {
@@ -234,7 +279,7 @@ export async function enablePushNotifications(): Promise<PushNotificationResult>
     return {
       enabled: false,
       status: 'error',
-      message: 'Unable to enable notifications. Please try again.',
+      message: getEnableFailureMessage(error),
     };
   }
 }
@@ -246,24 +291,31 @@ export async function disablePushNotifications(): Promise<PushNotificationResult
   }
 
   const instance = messaging();
+  let fcmToken: string | null = null;
 
-  try {
-    const fcmToken = await instance.getToken();
-    if (fcmToken && hasSupabaseConfig) {
-      await unregisterToken(fcmToken);
+  if (Platform.OS !== 'ios' || instance.isDeviceRegisteredForRemoteMessages) {
+    try {
+      fcmToken = await instance.getToken();
+      if (fcmToken && hasSupabaseConfig) {
+        await unregisterToken(fcmToken);
+      }
+    } catch (error) {
+      if (!isUnregisteredForRemoteMessagesError(error)) {
+        reportWarning('[Notifications] Failed to unregister FCM token', error, {
+          platform: Platform.OS,
+        });
+      }
     }
-  } catch (error) {
-    reportWarning('[Notifications] Failed to unregister FCM token', error, {
-      platform: Platform.OS,
-    });
   }
 
-  try {
-    await instance.deleteToken();
-  } catch (error) {
-    reportWarning('[Notifications] Failed to delete local FCM token', error, {
-      platform: Platform.OS,
-    });
+  if (fcmToken) {
+    try {
+      await instance.deleteToken();
+    } catch (error) {
+      reportWarning('[Notifications] Failed to delete local FCM token', error, {
+        platform: Platform.OS,
+      });
+    }
   }
 
   try {
@@ -284,7 +336,7 @@ export async function disablePushNotifications(): Promise<PushNotificationResult
 }
 
 export async function syncPushNotificationsOnStartup(): Promise<PushNotificationResult> {
-  const notificationsEnabled = store$.preferences.notificationsEnabled.get() ?? false;
+  const notificationsEnabled = store$.preferences.notificationsEnabled.get() ?? true;
 
   if (!notificationsEnabled) {
     if (isSupportedPlatform()) {
@@ -309,7 +361,7 @@ export async function syncPushNotificationsOnStartup(): Promise<PushNotification
   try {
     const hasPermission = await hasPushNotificationPermission();
     if (!hasPermission) {
-      await disablePushNotifications();
+      await messaging().setAutoInitEnabled(false);
       return {
         enabled: false,
         status: 'permission_revoked',

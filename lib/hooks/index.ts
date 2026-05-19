@@ -14,6 +14,7 @@ export {
   useShowPortfolioValue,
   useDefaultTimeline,
   useGainView,
+  useInAppMessagesEnabled,
   useNotificationsEnabled,
   setGainView,
   usePortfolioValue,

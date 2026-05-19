@@ -362,6 +362,8 @@ export async function trackSettingsAction(params: {
     | "notifications_enable"
     | "notifications_disable"
     | "notifications_test"
+    | "in_app_messages_enable"
+    | "in_app_messages_disable"
     | "backup_export"
     | "backup_restore"
     | "open_storage"
@@ -371,6 +373,16 @@ export async function trackSettingsAction(params: {
   target?: string;
 }) {
   await logEvent("settings_action", {
+    action: params.action,
+    target: params.target,
+  });
+}
+
+export async function trackInAppMessagingAction(params: {
+  action: "enabled" | "disabled" | "triggered";
+  target?: string;
+}) {
+  await logEvent("in_app_messaging_action", {
     action: params.action,
     target: params.target,
   });

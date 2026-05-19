@@ -32,7 +32,7 @@ export {
   // UI-ready hooks (transformed data)
   usePortfolioSummary, usePortfolioValue,
   // Portfolio price refresh
-  useNotificationsEnabled, useRefreshPortfolioPrices, useShowPortfolioValue,
+  useInAppMessagesEnabled, useNotificationsEnabled, useRefreshPortfolioPrices, useShowPortfolioValue,
   // Market data hooks
   useTickerData, useTransactions,
   useTransactionsBySymbol,
@@ -69,6 +69,13 @@ export {
   subscribeToPushNotificationHandlers,
   syncPushNotificationsOnStartup,
 } from './notifications';
+export {
+  setInAppMessagesEnabled,
+  shouldSuppressInAppMessages,
+  syncInAppMessagingState,
+  triggerInAppMessage,
+  useInAppMessageSuppression,
+} from './in-app-messaging';
 
 export type {
   HistoricalBarsParams, IndexSnapshot, MarketDataProvider, NewsArticle,
@@ -83,6 +90,7 @@ export {
   trackHomeScreen,
   trackImportAction,
   trackImportScreen,
+  trackInAppMessagingAction,
   trackNotificationAction,
   trackNewsAction,
   trackNewsScreen,

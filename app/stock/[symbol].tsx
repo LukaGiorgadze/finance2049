@@ -22,6 +22,7 @@ import {
   mapApiTypeToAssetType,
   trackStockAction,
   trackStockScreen,
+  useInAppMessageSuppression,
   useTickerData,
   useTransactionsBySymbol,
   useUIHolding
@@ -90,6 +91,7 @@ export default function StockDetailScreen() {
   const [showMenu, setShowMenu] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  useInAppMessageSuppression(showMenu);
 
   const tickerSymbol = symbol as string;
 

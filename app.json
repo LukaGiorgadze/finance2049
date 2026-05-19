@@ -11,8 +11,14 @@
       "googleServicesFile": "./ios/GoogleService-Info.plist",
       "supportsTablet": false,
       "bundleIdentifier": "com.lomsa.finance2049",
+      "entitlements": {
+        "aps-environment": "development"
+      },
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -67,7 +73,7 @@
             "useFrameworks": "static",
             "buildReactNativeFromSource": true,
             "deploymentTarget": "15.6",
-            "forceStaticLinking": ["RNFBApp", "RNFBAuth", "RNFBFirestore", "RNFBMessaging"]
+            "forceStaticLinking": ["RNFBApp", "RNFBAuth", "RNFBFirestore", "RNFBMessaging", "RNFBInAppMessaging"]
           }
         }
       ],

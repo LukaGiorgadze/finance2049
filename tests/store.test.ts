@@ -451,10 +451,16 @@ test('selectors, market prices, and preferences work together', () => {
   ]);
   assert.equal(selectMarketPrice('AAA')?.price, 42);
 
-  updatePreferences({ defaultCurrency: 'EUR', gainView: 'total', notificationsEnabled: true });
+  updatePreferences({
+    defaultCurrency: 'EUR',
+    gainView: 'total',
+    notificationsEnabled: true,
+    inAppMessagesEnabled: false,
+  });
   assert.equal(store$.preferences.defaultCurrency.get(), 'EUR');
   assert.equal(store$.preferences.gainView.get(), 'total');
   assert.equal(store$.preferences.notificationsEnabled.get(), true);
+  assert.equal(store$.preferences.inAppMessagesEnabled.get(), false);
   toggleShowPortfolioValue();
   assert.equal(store$.preferences.showPortfolioValue.get(), false);
 });
@@ -568,7 +574,8 @@ test('reloadStoreFromStorage reloads persisted portfolio and preferences, and mi
 
   assert.equal(migrated._schema.version, CURRENT_SCHEMA_VERSION);
   assert.equal(migrated.portfolio.holdings.OLD.totalCommissions, 0);
-  assert.equal(migrated.preferences.notificationsEnabled, false);
+  assert.equal(migrated.preferences.notificationsEnabled, true);
+  assert.equal(migrated.preferences.inAppMessagesEnabled, true);
 });
 
 test('validateTransactionDeletion and deleteTransaction handle missing ids safely', () => {
