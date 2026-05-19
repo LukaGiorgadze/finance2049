@@ -148,9 +148,6 @@ Set these production secrets in Supabase:
 ```env
 MASSIVE_API_KEY=
 OPENAI_API_KEY=
-FCM_PROJECT_ID=
-FCM_CLIENT_EMAIL=
-FCM_PRIVATE_KEY=
 ```
 
 Dashboard path:
@@ -162,10 +159,8 @@ Supabase Dashboard -> Edge Functions -> Secrets
 Or set them with the CLI:
 
 ```bash
-yarn supabase secrets set MASSIVE_API_KEY=your_massive_api_key OPENAI_API_KEY=your_openai_api_key FCM_PROJECT_ID=your_firebase_project_id FCM_CLIENT_EMAIL=your_service_account_email FCM_PRIVATE_KEY="your_service_account_private_key"
+yarn supabase secrets set MASSIVE_API_KEY=your_massive_api_key OPENAI_API_KEY=your_openai_api_key
 ```
-
-The Firebase values come from a Google Cloud service account that can send FCM HTTP v1 messages.
 
 These built-in Supabase secrets should already exist:
 
@@ -258,16 +253,13 @@ If you build iOS directly from Xcode after adding native dependencies, run:
 cd ios && pod install
 ```
 
-### 8. Test Push Notifications
+### 8. Push Notifications
 
 In the app:
 
 ```text
 Settings -> Notifications -> Push Notifications
-Settings -> Notifications -> Send Test Notification
 ```
-
-The test notification deep-links to Portfolio.
 
 Supported FCM data payload examples:
 
@@ -354,9 +346,8 @@ If iOS push registration fails with an APNs token error:
 - Confirm Firebase has the APNs auth key uploaded.
 - Rebuild the app after changing native capabilities.
 
-If Android says the notification was sent but nothing appears:
+If Android push delivery is missing:
 
 - Confirm notification permission is allowed in Android system settings.
-- Background the app and test again.
 - Check `adb logcat` for `RNFirebaseMsgReceiver`.
 - Make sure you rebuilt after changing native notification dependencies.

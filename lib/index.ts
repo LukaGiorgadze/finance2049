@@ -66,7 +66,6 @@ export {
   enablePushNotifications,
   hasPushNotificationPermission,
   maybePromptForPushNotifications,
-  sendTestPushNotification,
   subscribeToPushNotificationHandlers,
   syncPushNotificationsOnStartup,
 } from './notifications';

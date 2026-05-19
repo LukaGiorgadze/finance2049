@@ -24,6 +24,7 @@ const PUSH_NOTIFICATION_PROMPT_SEEN_KEY = '@push_notifications_prompt_seen_v1';
 
 let hasConfiguredForegroundNotificationPresentation = false;
 let hasShownPushNotificationPrompt = false;
+let isCheckingPushNotificationPrompt = false;
 const handledNotificationOpenKeys = new Map<string, number>();
 
 type NotificationData = Record<string, unknown>;
@@ -61,12 +62,6 @@ interface NotificationDevicePayload {
   fcmToken: string;
   platform: 'ios' | 'android';
   appVersion?: string;
-}
-
-interface TestNotificationResponse {
-  sent: number;
-  failed: number;
-  disabledTokens: number;
 }
 
 interface PushAuthorizationState {
@@ -472,7 +467,7 @@ async function getAuthHeaders() {
 }
 
 async function postNotifications<TResponse>(
-  route: 'register' | 'unregister' | 'test',
+  route: 'register' | 'unregister',
   body: object,
 ): Promise<TResponse> {
   if (!hasSupabaseConfig) {
@@ -601,9 +596,16 @@ function shouldUseAndroidSystemNotificationPrompt(authorizationState: PushAuthor
 }
 
 export async function maybePromptForPushNotifications() {
-  if (hasShownPushNotificationPrompt || !isSupportedPlatform() || !hasSupabaseConfig) {
+  if (
+    hasShownPushNotificationPrompt ||
+    isCheckingPushNotificationPrompt ||
+    !isSupportedPlatform() ||
+    !hasSupabaseConfig
+  ) {
     return;
   }
+
+  isCheckingPushNotificationPrompt = true;
 
   try {
     const onboardingComplete = await AsyncStorage.getItem(ONBOARDING_KEY);
@@ -670,6 +672,8 @@ export async function maybePromptForPushNotifications() {
     reportWarning('[Notifications] Failed to show opt-in prompt', error, {
       platform: Platform.OS,
     });
+  } finally {
+    isCheckingPushNotificationPrompt = false;
   }
 }
 
@@ -710,6 +714,10 @@ async function registerToken(fcmToken: string) {
 
 async function unregisterToken(fcmToken: string) {
   await postNotifications('unregister', { fcmToken });
+}
+
+async function unregisterActiveTokens() {
+  await postNotifications('unregister', {});
 }
 
 export async function enablePushNotifications(): Promise<PushNotificationResult> {
@@ -778,12 +786,14 @@ export async function disablePushNotifications(): Promise<PushNotificationResult
 
   const instance = messaging();
   let fcmToken: string | null = null;
+  let didUnregisterServerSide = false;
 
   if (Platform.OS !== 'ios' || instance.isDeviceRegisteredForRemoteMessages) {
     try {
       fcmToken = await instance.getToken();
       if (fcmToken && hasSupabaseConfig) {
         await unregisterToken(fcmToken);
+        didUnregisterServerSide = true;
       }
     } catch (error) {
       if (!isUnregisteredForRemoteMessagesError(error)) {
@@ -791,6 +801,16 @@ export async function disablePushNotifications(): Promise<PushNotificationResult
           platform: Platform.OS,
         });
       }
+    }
+  }
+
+  if (!didUnregisterServerSide && hasSupabaseConfig) {
+    try {
+      await unregisterActiveTokens();
+    } catch (error) {
+      reportWarning('[Notifications] Failed to unregister active FCM tokens', error, {
+        platform: Platform.OS,
+      });
     }
   }
 
@@ -871,16 +891,6 @@ export async function syncPushNotificationsOnStartup(): Promise<PushNotification
       message: 'Notification sync failed.',
     };
   }
-}
-
-export async function sendTestPushNotification(): Promise<TestNotificationResponse> {
-  const response = await postNotifications<TestNotificationResponse>('test', {});
-  void trackNotificationAction({
-    action: 'test_send',
-    target: `${response.sent}`,
-    source: response.failed > 0 ? 'partial_failure' : 'settings',
-  });
-  return response;
 }
 
 export function subscribeToPushNotificationHandlers() {

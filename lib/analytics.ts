@@ -361,7 +361,6 @@ export async function trackSettingsAction(params: {
     | "theme_change"
     | "notifications_enable"
     | "notifications_disable"
-    | "notifications_test"
     | "in_app_messages_enable"
     | "in_app_messages_disable"
     | "backup_export"
@@ -397,8 +396,7 @@ export async function trackNotificationAction(params: {
     | "foreground_received"
     | "opened"
     | "initial_open"
-    | "deep_link_opened"
-    | "test_send";
+    | "deep_link_opened";
   target?: string;
   source?: string;
 }) {

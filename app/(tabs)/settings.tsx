@@ -6,7 +6,6 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   disablePushNotifications,
   enablePushNotifications,
-  sendTestPushNotification,
   setInAppMessagesEnabled,
   store$,
   trackSettingsAction,
@@ -156,7 +155,6 @@ export default function SettingsScreen() {
   const [isExporting, setIsExporting] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [isUpdatingNotifications, setIsUpdatingNotifications] = useState(false);
-  const [isSendingTestNotification, setIsSendingTestNotification] = useState(false);
   const [isUpdatingInAppMessages, setIsUpdatingInAppMessages] = useState(false);
   const [activeModal, setActiveModal] = useState<'support' | 'about' | null>(null);
   const notificationsEnabled = useNotificationsEnabled();
@@ -310,29 +308,6 @@ export default function SettingsScreen() {
       Alert.alert('Messages Error', 'Unable to update in-app messages right now.');
     } finally {
       setIsUpdatingInAppMessages(false);
-    }
-  };
-
-  const handleSendTestNotification = async () => {
-    if (isSendingTestNotification) return;
-
-    setIsSendingTestNotification(true);
-    void trackSettingsAction({ action: 'notifications_test' });
-
-    try {
-      const result = await sendTestPushNotification();
-      if (result.sent > 0) {
-        Alert.alert('Test Sent', 'A test notification was sent to your registered devices.');
-      } else {
-        Alert.alert('No Active Device', 'Enable notifications again, then try sending a test.');
-      }
-    } catch (error) {
-      reportError('[Notifications] Test send failed', error, {
-        surface: 'settings',
-      });
-      Alert.alert('Test Failed', 'Unable to send a test notification right now.');
-    } finally {
-      setIsSendingTestNotification(false);
     }
   };
 
@@ -633,19 +608,6 @@ export default function SettingsScreen() {
                 )
               }
             />
-
-            {notificationsEnabled && (
-              <SettingsCard
-                icon="paperplane.fill"
-                title="Send Test Notification"
-                subtitle="Verify delivery on this device"
-                onPress={handleSendTestNotification}
-                rightElement={isSendingTestNotification
-                  ? <ActivityIndicator size="small" color={colors.text} />
-                  : <View />
-                }
-              />
-            )}
           </View>
 
           {/* About Section */}
