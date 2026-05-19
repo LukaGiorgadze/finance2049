@@ -3186,6 +3186,11 @@ babel-preset-jest@^29.6.3:
     babel-plugin-jest-hoist "^29.6.3"
     babel-preset-current-node-syntax "^1.0.0"
 
+badgin@^1.1.5:
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/badgin/-/badgin-1.2.3.tgz#994b5f519827d7d5422224825b2c8faea2bc43ad"
+  integrity sha512-NQGA7LcfCpSzIbGRbkgjgdWkjy7HI+Th5VLxTJfW5EeaAf3fnS+xWQaQOCYiny+q6QSvxqoSO04vCx+4u++EJw==
+
 balanced-match@^1.0.0:
   version "1.0.2"
   resolved "https://registry.npmjs.org/balanced-match/-/balanced-match-1.0.2.tgz"
@@ -4277,6 +4282,11 @@ event-target-shim@^5.0.0:
   resolved "https://registry.npmjs.org/event-target-shim/-/event-target-shim-5.0.1.tgz"
   integrity sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==
 
+expo-application@~55.0.15:
+  version "55.0.15"
+  resolved "https://registry.yarnpkg.com/expo-application/-/expo-application-55.0.15.tgz#5ae5484baa94c69a6eda92757c8e76be035a628d"
+  integrity sha512-eWf5OGrat1r/TYr0daL684C6pJYiN2k30NmcISsD9fbtZLfA6Sbo/JebfYzP3OjO/T/i8j/9Pf3ePqUYPLfZnw==
+
 expo-asset@~55.0.17:
   version "55.0.17"
   resolved "https://registry.yarnpkg.com/expo-asset/-/expo-asset-55.0.17.tgz#750a27685ea118417473f4f293c5a35116b572d4"
@@ -4437,6 +4447,17 @@ expo-modules-core@55.0.25:
   integrity sha512-yXpfg7aHLbuqoXocK34Vua6Aey5SCyqLygAsXAMbul9P8vfBjLpaOPiTJ5cLVF7Drfq8ownqVJO6qpGEtZ6GOw==
   dependencies:
     invariant "^2.2.4"
+
+expo-notifications@~55.0.23:
+  version "55.0.23"
+  resolved "https://registry.yarnpkg.com/expo-notifications/-/expo-notifications-55.0.23.tgz#bef07ca66f7c559110765e3c3673cdc5d395f2c5"
+  integrity sha512-oWEsBZSedRFu+ErcJaIev7QQhCE/gTRO6KURAkFpMflMgI3yjT4O/qixXh4tHmEk5zfoOpR2u79AzvVcchfwww==
+  dependencies:
+    "@expo/image-utils" "^0.8.14"
+    abort-controller "^3.0.0"
+    badgin "^1.1.5"
+    expo-application "~55.0.15"
+    expo-constants "~55.0.16"
 
 expo-router@~55.0.14:
   version "55.0.14"

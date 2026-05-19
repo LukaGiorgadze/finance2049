@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import * as Notifications from 'expo-notifications';
 import messaging, {
   AuthorizationStatus,
   type FirebaseMessagingTypes,
@@ -11,8 +12,11 @@ import { ensureSession, getAccessToken, hasSupabaseConfig } from './supabase';
 import { store$, updatePreferences } from './store';
 
 const ANDROID_POST_NOTIFICATIONS_PERMISSION = 'android.permission.POST_NOTIFICATIONS';
+const ANDROID_FOREGROUND_CHANNEL_ID = 'default';
 const APNS_TOKEN_WAIT_ATTEMPTS = 10;
 const APNS_TOKEN_WAIT_MS = 500;
+
+let hasConfiguredAndroidForegroundNotifications = false;
 
 export type PushNotificationStatus =
   | 'registered'
@@ -103,6 +107,45 @@ function getMessageTarget(message: FirebaseMessagingTypes.RemoteMessage) {
   return typeof candidate === 'string' ? candidate : undefined;
 }
 
+async function displayAndroidForegroundNotification(
+  message: FirebaseMessagingTypes.RemoteMessage,
+) {
+  if (Platform.OS !== 'android') return;
+  if (!(store$.preferences.notificationsEnabled.get() ?? true)) return;
+
+  if (!hasConfiguredAndroidForegroundNotifications) {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
+      }),
+    });
+    hasConfiguredAndroidForegroundNotifications = true;
+  }
+
+  const title = message.notification?.title ?? 'Finance 2049';
+  const body = message.notification?.body;
+
+  await Notifications.setNotificationChannelAsync(ANDROID_FOREGROUND_CHANNEL_ID, {
+    name: 'Notifications',
+    importance: Notifications.AndroidImportance.HIGH,
+  });
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title,
+      body,
+      data: message.data as Record<string, unknown> | undefined,
+      sound: 'default',
+      priority: Notifications.AndroidNotificationPriority.HIGH,
+    },
+    trigger: { channelId: ANDROID_FOREGROUND_CHANNEL_ID },
+  });
+}
+
 async function getAuthHeaders() {
   await ensureSession();
   const accessToken = await getAccessToken();
@@ -161,14 +204,20 @@ async function requestAndroidNotificationPermission() {
 }
 
 export async function hasPushNotificationPermission() {
-  if (!isSupportedPlatform()) return false;
+  const status = await getPushAuthorizationStatus();
+  return isAuthorizedStatus(status);
+}
+
+async function getPushAuthorizationStatus(): Promise<FirebaseMessagingTypes.AuthorizationStatus> {
+  if (!isSupportedPlatform()) return AuthorizationStatus.DENIED;
 
   if (Platform.OS === 'android') {
-    return hasAndroidNotificationPermission();
+    return (await hasAndroidNotificationPermission())
+      ? AuthorizationStatus.AUTHORIZED
+      : AuthorizationStatus.DENIED;
   }
 
-  const status = await messaging().hasPermission();
-  return isAuthorizedStatus(status);
+  return messaging().hasPermission();
 }
 
 async function requestPushNotificationPermission() {
@@ -359,13 +408,16 @@ export async function syncPushNotificationsOnStartup(): Promise<PushNotification
   }
 
   try {
-    const hasPermission = await hasPushNotificationPermission();
-    if (!hasPermission) {
+    const permissionStatus = await getPushAuthorizationStatus();
+    if (!isAuthorizedStatus(permissionStatus)) {
       await messaging().setAutoInitEnabled(false);
+      if (permissionStatus !== AuthorizationStatus.NOT_DETERMINED) {
+        return disablePushNotifications();
+      }
       return {
-        enabled: false,
-        status: 'permission_revoked',
-        message: 'Notification permission is no longer granted.',
+        enabled: notificationsEnabled,
+        status: 'unregistered',
+        message: 'Notification permission has not been requested.',
       };
     }
 
@@ -400,6 +452,19 @@ export function subscribeToPushNotificationHandlers() {
   }
 
   const instance = messaging();
+
+  const unsubscribeForeground = instance.onMessage((message) => {
+    void displayAndroidForegroundNotification(message).catch((error) => {
+      reportWarning('[Notifications] Failed to display foreground notification', error, {
+        platform: Platform.OS,
+      });
+    });
+    void trackNotificationAction({
+      action: 'foreground_received',
+      target: getMessageTarget(message),
+      source: message.from,
+    });
+  });
 
   const unsubscribeOpened = instance.onNotificationOpenedApp((message) => {
     void trackNotificationAction({
@@ -439,6 +504,7 @@ export function subscribeToPushNotificationHandlers() {
   });
 
   return () => {
+    unsubscribeForeground();
     unsubscribeOpened();
     unsubscribeTokenRefresh();
   };

@@ -394,6 +394,7 @@ export async function trackNotificationAction(params: {
     | "registered"
     | "unregistered"
     | "token_refresh"
+    | "foreground_received"
     | "opened"
     | "initial_open"
     | "test_send";

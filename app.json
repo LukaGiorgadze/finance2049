@@ -11,9 +11,6 @@
       "googleServicesFile": "./ios/GoogleService-Info.plist",
       "supportsTablet": false,
       "bundleIdentifier": "com.lomsa.finance2049",
-      "entitlements": {
-        "aps-environment": "development"
-      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
