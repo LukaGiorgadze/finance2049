@@ -4,7 +4,14 @@ import { ThemeProvider } from '@/contexts/theme-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { TransactionTypeProvider } from '@/lib/contexts/TransactionTypeContext';
 import { initializeCrashlytics } from '@/lib/crashlytics';
+import { logFirebaseInstallationId, syncInAppMessagingState } from '@/lib/in-app-messaging';
+import {
+  maybePromptForPushNotifications,
+  subscribeToPushNotificationHandlers,
+  syncPushNotificationsOnStartup,
+} from '@/lib/notifications';
 import { StoreProvider } from '@/lib/store/StoreProvider';
+import { useInAppMessagesEnabled } from '@/lib/hooks';
 // The published package points its root typings at missing build artifacts, but the source entry is complete.
 import * as Clarity from '@microsoft/react-native-clarity/src';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
@@ -74,7 +81,34 @@ function LoadingFallback() {
 
 function RootLayoutContent() {
   const colorScheme = useColorScheme();
+  const pathname = usePathname();
+  const inAppMessagesEnabled = useInAppMessagesEnabled();
   useClarityTracking();
+
+  useEffect(() => {
+    void logFirebaseInstallationId();
+    const unsubscribe = subscribeToPushNotificationHandlers();
+    void syncPushNotificationsOnStartup();
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (pathname.startsWith('/onboarding') || pathname.startsWith('/import') || pathname === '/modal') {
+      return;
+    }
+
+    const promptTimer = setTimeout(() => {
+      void maybePromptForPushNotifications();
+    }, 1000);
+
+    return () => {
+      clearTimeout(promptTimer);
+    };
+  }, [pathname]);
+
+  useEffect(() => {
+    void syncInAppMessagingState(pathname);
+  }, [inAppMessagesEnabled, pathname]);
 
   return (
     <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
@@ -87,6 +121,7 @@ function RootLayoutContent() {
         <Stack.Screen name="news/[id]" />
         <Stack.Screen name="news/index" />
         <Stack.Screen name="storage" />
+        <Stack.Screen name="developer" />
         <Stack.Screen name="import-transactions" />
         <Stack.Screen name="import-confirm" />
       </Stack>

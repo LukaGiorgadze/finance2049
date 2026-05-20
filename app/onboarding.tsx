@@ -17,6 +17,7 @@ import {
   trackOnboardingStepViewed,
   trackOnboardingThemeSelected,
 } from '@/lib/analytics';
+import { maybePromptForPushNotifications } from '@/lib/notifications';
 import { ensureSession } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -471,6 +472,11 @@ export default function OnboardingScreen() {
     await ensureSession();
     router.replace('/(tabs)');
     if (pendingImportRef.current) router.push('/import-transactions');
+    if (!pendingImportRef.current) {
+      setTimeout(() => {
+        void maybePromptForPushNotifications();
+      }, 1000);
+    }
   }, [discoverySource, step, themeMode]);
 
   useEffect(() => {

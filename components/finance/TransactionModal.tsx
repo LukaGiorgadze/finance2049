@@ -1,7 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { trackTransactionsAction } from '@/lib';
+import { trackTransactionsAction, useInAppMessageSuppression } from '@/lib';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
@@ -21,6 +21,8 @@ interface TransactionModalProps {
 }
 
 export function TransactionModal({ visible, onClose, initialSymbol, initialName, initialType, initialAssetType, onSubmit, analyticsContext = 'transaction_modal' }: TransactionModalProps) {
+  useInAppMessageSuppression(visible);
+
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const colors = isDark ? Colors.dark : Colors.light;

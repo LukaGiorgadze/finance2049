@@ -116,6 +116,20 @@ export function useGainView() {
 }
 
 /**
+ * Get push notifications opt-in preference
+ */
+export function useNotificationsEnabled(): boolean {
+  return useSelector(() => store$.preferences.notificationsEnabled.get() ?? false);
+}
+
+/**
+ * Get Firebase In-App Messaging opt-in preference
+ */
+export function useInAppMessagesEnabled(): boolean {
+  return useSelector(() => store$.preferences.inAppMessagesEnabled.get() ?? true);
+}
+
+/**
  * Set gain view preference
  */
 export function setGainView(value: 'today' | 'total') {

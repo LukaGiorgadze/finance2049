@@ -3,14 +3,24 @@ import { Colors } from '@/constants/theme';
 // import { AVAILABLE_CURRENCIES, Currency, useCurrency } from '@/contexts/currency-context';
 import { useTheme } from '@/contexts/theme-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { store$, trackSettingsAction, trackSettingsScreen } from '@/lib';
+import {
+  disablePushNotifications,
+  enablePushNotifications,
+  setInAppMessagesEnabled,
+  store$,
+  trackSettingsAction,
+  trackSettingsScreen,
+  useInAppMessageSuppression,
+  useInAppMessagesEnabled,
+  useNotificationsEnabled,
+} from '@/lib';
 import { reportError } from '@/lib/crashlytics';
 import { CURRENT_SCHEMA_VERSION } from '@/lib/store/types';
 import Constants from 'expo-constants';
 import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
@@ -18,6 +28,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const MODAL_FADE_DURATION = 140;
 const MODAL_CLOSE_DURATION = 110;
+const DEVELOPER_UNLOCK_TAP_COUNT = 5;
+const DEVELOPER_UNLOCK_WINDOW_MS = 2500;
 
 function InfoModal({
   visible,
@@ -32,6 +44,8 @@ function InfoModal({
   colors: typeof Colors.light;
   isDarkMode: boolean;
 }) {
+  useInAppMessageSuppression(visible);
+
   const [isMounted, setIsMounted] = useState(visible);
   const opacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
   const cardScale = useRef(new Animated.Value(visible ? 1 : 0.96)).current;
@@ -134,6 +148,7 @@ export default function SettingsScreen() {
   const WEBSITE_URL = 'https://finance2049.com';
   const colorScheme = useColorScheme();
   const { setThemeMode } = useTheme();
+  const pathname = usePathname();
   // const { currency, setCurrency } = useCurrency();
   // const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
   const isDarkMode = colorScheme === 'dark';
@@ -141,7 +156,13 @@ export default function SettingsScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const [isExporting, setIsExporting] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [isUpdatingNotifications, setIsUpdatingNotifications] = useState(false);
+  const [isUpdatingInAppMessages, setIsUpdatingInAppMessages] = useState(false);
   const [activeModal, setActiveModal] = useState<'support' | 'about' | null>(null);
+  const [isDeveloperUnlocked, setIsDeveloperUnlocked] = useState(false);
+  const developerTapTimestamps = useRef<number[]>([]);
+  const notificationsEnabled = useNotificationsEnabled();
+  const inAppMessagesEnabled = useInAppMessagesEnabled();
   const appVersion = Constants.expoConfig?.version ?? 'Unknown';
 
   useEffect(() => {
@@ -231,6 +252,83 @@ export default function SettingsScreen() {
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const handleNotificationsToggle = async (enabled: boolean) => {
+    if (isUpdatingNotifications) return;
+
+    setIsUpdatingNotifications(true);
+    void trackSettingsAction({
+      action: enabled ? 'notifications_enable' : 'notifications_disable',
+    });
+
+    try {
+      const result = enabled
+        ? await enablePushNotifications()
+        : await disablePushNotifications();
+
+      if (enabled && !result.enabled) {
+        const message = result.message ?? 'Notification permission was not granted.';
+        const actions = result.status === 'permission_denied'
+          ? [
+            { text: 'Cancel', style: 'cancel' as const },
+            {
+              text: 'Open Settings',
+              onPress: () => {
+                void Linking.openSettings();
+              },
+            },
+          ]
+          : [{ text: 'OK' }];
+
+        Alert.alert('Notifications Not Enabled', message, actions);
+      }
+    } catch (error) {
+      reportError('[Notifications] Settings toggle failed', error, {
+        enabled,
+        surface: 'settings',
+      });
+      Alert.alert('Notifications Error', 'Unable to update notifications right now.');
+    } finally {
+      setIsUpdatingNotifications(false);
+    }
+  };
+
+  const handleInAppMessagesToggle = async (enabled: boolean) => {
+    if (isUpdatingInAppMessages) return;
+
+    setIsUpdatingInAppMessages(true);
+    void trackSettingsAction({
+      action: enabled ? 'in_app_messages_enable' : 'in_app_messages_disable',
+    });
+
+    try {
+      await setInAppMessagesEnabled(enabled, pathname);
+    } catch (error) {
+      reportError('[InAppMessaging] Settings toggle failed', error, {
+        enabled,
+        surface: 'settings',
+      });
+      Alert.alert('Messages Error', 'Unable to update in-app messages right now.');
+    } finally {
+      setIsUpdatingInAppMessages(false);
+    }
+  };
+
+  const handleDeveloperUnlockTap = () => {
+    if (isDeveloperUnlocked) return;
+
+    const now = Date.now();
+    const recentTaps = [...developerTapTimestamps.current, now]
+      .filter((timestamp) => now - timestamp <= DEVELOPER_UNLOCK_WINDOW_MS);
+
+    if (recentTaps.length >= DEVELOPER_UNLOCK_TAP_COUNT) {
+      developerTapTimestamps.current = [];
+      setIsDeveloperUnlocked(true);
+      return;
+    }
+
+    developerTapTimestamps.current = recentTaps;
   };
 
   const handleRestoreData = async () => {
@@ -352,8 +450,8 @@ export default function SettingsScreen() {
           <IconSymbol name={icon} size={22} color={iconBg ? colors.textOnColor : colors.tint} />
         </View>
         <View style={styles.textContainer}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>{title}</Text>
-          {subtitle && <Text style={[styles.cardSubtitle, { color: colors.icon }]}>{subtitle}</Text>}
+          <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>{title}</Text>
+          <Text style={[styles.cardSubtitle, { color: colors.icon }]} numberOfLines={2}>{subtitle ?? ''}</Text>
         </View>
       </View>
       {rightElement ?? <IconSymbol name="chevron.right" size={18} color={colors.icon} />}
@@ -402,7 +500,11 @@ export default function SettingsScreen() {
             opacity: headerOpacity,
           }
         ]}>
-          <View style={styles.avatarContainer}>
+          <View
+            style={styles.avatarContainer}
+            onStartShouldSetResponder={() => true}
+            onResponderRelease={handleDeveloperUnlockTap}
+          >
             <View style={[styles.avatarCircle, {
               backgroundColor: isDarkMode ? colors.greenTintBgSettings : colors.surfaceTint,
             }]}>
@@ -479,6 +581,59 @@ export default function SettingsScreen() {
             />
           </View>
 
+          {/* Notifications Section */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.icon }]}>NOTIFICATIONS</Text>
+
+            <SettingsCard
+              icon="bell.badge.fill"
+              title="Push Notifications"
+              subtitle={isUpdatingNotifications
+                ? 'Updating notifications...'
+                : notificationsEnabled
+                  ? 'Enabled when permission is granted'
+                  : 'Off'}
+              rightElement={isUpdatingNotifications
+                ? <ActivityIndicator size="small" color={colors.text} />
+                : (
+                  <Switch
+                    value={notificationsEnabled}
+                    onValueChange={(value) => {
+                      void handleNotificationsToggle(value);
+                    }}
+                    trackColor={{ false: colors.cardBorder, true: colors.tint }}
+                    thumbColor={colors.textOnColor}
+                    ios_backgroundColor={colors.surfaceElevated}
+                  />
+                )
+              }
+            />
+
+            <SettingsCard
+              icon="megaphone.fill"
+              title="In-App Messages"
+              subtitle={isUpdatingInAppMessages
+                ? 'Updating messages...'
+                : inAppMessagesEnabled
+                  ? 'Feature announcements and release notes'
+                  : 'Off'}
+              rightElement={isUpdatingInAppMessages
+                ? <ActivityIndicator size="small" color={colors.text} />
+                : (
+                  <Switch
+                    value={inAppMessagesEnabled}
+                    onValueChange={(value) => {
+                      void handleInAppMessagesToggle(value);
+                    }}
+                    trackColor={{ false: colors.cardBorder, true: colors.tint }}
+                    thumbColor={colors.textOnColor}
+                    ios_backgroundColor={colors.surfaceElevated}
+                  />
+                )
+              }
+            />
+          </View>
+
           {/* About Section */}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.icon }]}>ABOUT</Text>
@@ -504,6 +659,17 @@ export default function SettingsScreen() {
               }}
               rightElement={<View />}
             />
+
+            {isDeveloperUnlocked && (
+              <SettingsCard
+                icon="chevron.left.forwardslash.chevron.right"
+                title="Developer"
+                subtitle="Firebase IDs, tokens, and diagnostics"
+                onPress={() => {
+                  router.push('/developer');
+                }}
+              />
+            )}
           </View>
 
           <View style={styles.footer}>
@@ -734,6 +900,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    minHeight: 80,
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 16,
@@ -757,6 +924,7 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
+    justifyContent: 'center',
   },
   cardTitle: {
     fontSize: 16,
@@ -767,6 +935,7 @@ const styles = StyleSheet.create({
   cardSubtitle: {
     fontSize: 13,
     fontWeight: '500',
+    lineHeight: 17,
   },
   footer: {
     alignItems: 'center',

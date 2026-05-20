@@ -2,7 +2,7 @@ import { ImportButton } from '@/components/ui/import-button';
 import { Input } from '@/components/ui/input';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { formatLocalDateISO, maybePromptForAppReview, trackTransactionsAction } from '@/lib';
+import { formatLocalDateISO, maybePromptForAppReview, trackTransactionsAction, useInAppMessageSuppression } from '@/lib';
 import { useTransactionType } from '@/lib/contexts/TransactionTypeContext';
 import { APP_CACHE_KEY } from '@/lib/hooks/useRefreshPortfolioPrices';
 import { useHolding } from '@/lib/hooks/useStore';
@@ -68,6 +68,7 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
   const [quantity, setQuantity] = useState('');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  useInAppMessageSuppression(showDatePicker);
   const [price, setPrice] = useState('');
   const [priceLoading, setPriceLoading] = useState(false);
   const [commission, setCommission] = useState('');

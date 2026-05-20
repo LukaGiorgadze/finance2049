@@ -2,7 +2,7 @@ import { ThemedText } from '@/components/themed-text';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { deleteTransaction, formatCurrency, formatDate, formatPercent, formatShares, getValueColor, trackPositionDetailAction, UITransaction, useUITransactionsBySymbol, validateTransactionDeletion } from '@/lib';
+import { deleteTransaction, formatCurrency, formatDate, formatPercent, formatShares, getValueColor, trackPositionDetailAction, UITransaction, useInAppMessageSuppression, useUITransactionsBySymbol, validateTransactionDeletion } from '@/lib';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef } from 'react';
 import { Alert, FlatList, Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -49,6 +49,8 @@ interface LotsAndHistoryModalProps {
 }
 
 export function LotsAndHistoryModal({ visible, onClose, type, lots = [], symbol, holding, analyticsContext = 'portfolio' }: LotsAndHistoryModalProps) {
+  useInAppMessageSuppression(visible);
+
   // Get transactions from store
   const transactions = useUITransactionsBySymbol(symbol);
   const colorScheme = useColorScheme();

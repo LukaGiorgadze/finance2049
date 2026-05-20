@@ -33,6 +33,7 @@ const MAPPING = {
   'checkmark.circle.fill': 'check-circle',
   'dollarsign.circle.fill': 'attach-money',
   'bell.badge.fill': 'notifications',
+  'megaphone.fill': 'campaign',
   'chart.bar.fill': 'bar-chart',
   'chart.pie.fill': 'pie-chart',
   'chart.line.uptrend.xyaxis': 'trending-up',

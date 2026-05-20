@@ -1,0 +1,14 @@
+{
+  "react-native": {
+    "in_app_messaging_auto_collection_enabled": true,
+    "messaging_auto_init_enabled": false,
+    "messaging_ios_auto_register_for_remote_messages": true,
+    "messaging_ios_foreground_presentation_options": [
+      "badge",
+      "sound",
+      "list",
+      "banner"
+    ],
+    "messaging_android_notification_delegation_enabled": false
+  }
+}

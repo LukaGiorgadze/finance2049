@@ -3,7 +3,7 @@ import { ThemedView } from '@/components/themed-view';
 import { SectionTitle } from '@/components/ui/section-title';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { trackHomeAction } from '@/lib';
+import { trackHomeAction, useInAppMessageSuppression } from '@/lib';
 import { useMarketStatus } from '@/lib/hooks/useMarketStatus';
 import type { MarketHoliday } from '@/lib/services/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +16,7 @@ export function MarketStatus() {
   const isDark = colorScheme === 'dark';
   const colors = isDark ? Colors.dark : Colors.light;
   const [visible, setVisible] = useState(false);
+  useInAppMessageSuppression(visible);
 
   // Don't render if loading or market is open
   if (loading || !status) return null;

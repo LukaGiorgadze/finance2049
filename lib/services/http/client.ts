@@ -4,7 +4,8 @@ import {
   getPerformance,
   type FirebasePerformanceTypes,
 } from "@react-native-firebase/perf";
-import axios, {
+import {
+  create,
   AxiosHeaders,
   isAxiosError,
   type AxiosResponseHeaders,
@@ -38,7 +39,7 @@ declare module "axios" {
   }
 }
 
-export const httpClient = axios.create({
+export const httpClient = create({
   timeout: 400_000,
 });
 
