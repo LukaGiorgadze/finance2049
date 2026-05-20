@@ -4,7 +4,7 @@ import { ThemeProvider } from '@/contexts/theme-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { TransactionTypeProvider } from '@/lib/contexts/TransactionTypeContext';
 import { initializeCrashlytics } from '@/lib/crashlytics';
-import { syncInAppMessagingState } from '@/lib/in-app-messaging';
+import { logFirebaseInstallationId, syncInAppMessagingState } from '@/lib/in-app-messaging';
 import {
   maybePromptForPushNotifications,
   subscribeToPushNotificationHandlers,
@@ -86,6 +86,7 @@ function RootLayoutContent() {
   useClarityTracking();
 
   useEffect(() => {
+    void logFirebaseInstallationId();
     const unsubscribe = subscribeToPushNotificationHandlers();
     void syncPushNotificationsOnStartup();
     return unsubscribe;

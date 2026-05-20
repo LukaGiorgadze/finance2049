@@ -2125,6 +2125,11 @@
   resolved "https://registry.yarnpkg.com/@react-native-firebase/in-app-messaging/-/in-app-messaging-24.0.0.tgz#4b40be54967b7768ec5ab92febab093cd57b6735"
   integrity sha512-s1Qt4q11NhXeV9NhlaHVqexWIOCv2sez3FYY4DNJMxb1zsGBykGLR4+M8vYHPlaUsDidPHd3tPfM5EbyRK6x0Q==
 
+"@react-native-firebase/installations@^24.0.0":
+  version "24.0.0"
+  resolved "https://registry.yarnpkg.com/@react-native-firebase/installations/-/installations-24.0.0.tgz#52b499dd648c8ee8156d5990a257b261f1514f32"
+  integrity sha512-s5I3F66ZIeBn4TErwh/0hTeq1YAQpXb7Y1GMOMug68bxxEkINxpJqbI/7a9C1G8SCxGyoIQckohsADN4oaxs6Q==
+
 "@react-native-firebase/messaging@^24.0.0":
   version "24.0.0"
   resolved "https://registry.yarnpkg.com/@react-native-firebase/messaging/-/messaging-24.0.0.tgz#185cd1d9f343fd6a2f077de05def34977fe63103"

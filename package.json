@@ -24,6 +24,7 @@
     "@react-native-firebase/app": "^24.0.0",
     "@react-native-firebase/crashlytics": "^24.0.0",
     "@react-native-firebase/in-app-messaging": "^24.0.0",
+    "@react-native-firebase/installations": "^24.0.0",
     "@react-native-firebase/messaging": "^24.0.0",
     "@react-native-firebase/perf": "^24.0.0",
     "@react-navigation/bottom-tabs": "^7.4.0",

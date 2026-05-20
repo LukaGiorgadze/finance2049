@@ -70,7 +70,7 @@
             "useFrameworks": "static",
             "buildReactNativeFromSource": true,
             "deploymentTarget": "15.6",
-            "forceStaticLinking": ["RNFBApp", "RNFBAuth", "RNFBFirestore", "RNFBMessaging", "RNFBInAppMessaging"]
+            "forceStaticLinking": ["RNFBApp", "RNFBAuth", "RNFBFirestore", "RNFBMessaging", "RNFBInAppMessaging", "RNFBInstallations"]
           }
         }
       ],

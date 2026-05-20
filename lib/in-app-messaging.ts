@@ -1,4 +1,5 @@
 import inAppMessaging from '@react-native-firebase/in-app-messaging';
+import installations from '@react-native-firebase/installations';
 import { usePathname } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
@@ -14,6 +15,7 @@ const SUPPRESSED_ROUTE_PREFIXES = [
 ];
 
 let transientSuppressionCount = 0;
+let hasLoggedInstallationId = false;
 
 type SyncOptions = {
   throwOnError?: boolean;
@@ -56,6 +58,22 @@ export async function syncInAppMessagingState(pathname?: string | null, options:
     if (options.throwOnError) {
       throw error;
     }
+  }
+}
+
+export async function logFirebaseInstallationId() {
+  if (!__DEV__ || !isSupportedPlatform() || hasLoggedInstallationId) {
+    return;
+  }
+
+  hasLoggedInstallationId = true;
+
+  try {
+    const installationId = await installations().getId();
+    console.info(`[F2049_FIREBASE_INSTALLATION_ID] ${installationId}`);
+  } catch (error) {
+    hasLoggedInstallationId = false;
+    reportWarning('[FirebaseInstallations] Failed to get installation ID', error);
   }
 }
 
