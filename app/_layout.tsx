@@ -121,6 +121,7 @@ function RootLayoutContent() {
         <Stack.Screen name="news/[id]" />
         <Stack.Screen name="news/index" />
         <Stack.Screen name="storage" />
+        <Stack.Screen name="developer" />
         <Stack.Screen name="import-transactions" />
         <Stack.Screen name="import-confirm" />
       </Stack>

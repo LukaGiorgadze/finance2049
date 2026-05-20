@@ -28,6 +28,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const MODAL_FADE_DURATION = 140;
 const MODAL_CLOSE_DURATION = 110;
+const DEVELOPER_UNLOCK_TAP_COUNT = 5;
+const DEVELOPER_UNLOCK_WINDOW_MS = 2500;
 
 function InfoModal({
   visible,
@@ -157,6 +159,8 @@ export default function SettingsScreen() {
   const [isUpdatingNotifications, setIsUpdatingNotifications] = useState(false);
   const [isUpdatingInAppMessages, setIsUpdatingInAppMessages] = useState(false);
   const [activeModal, setActiveModal] = useState<'support' | 'about' | null>(null);
+  const [isDeveloperUnlocked, setIsDeveloperUnlocked] = useState(false);
+  const developerTapTimestamps = useRef<number[]>([]);
   const notificationsEnabled = useNotificationsEnabled();
   const inAppMessagesEnabled = useInAppMessagesEnabled();
   const appVersion = Constants.expoConfig?.version ?? 'Unknown';
@@ -309,6 +313,22 @@ export default function SettingsScreen() {
     } finally {
       setIsUpdatingInAppMessages(false);
     }
+  };
+
+  const handleDeveloperUnlockTap = () => {
+    if (isDeveloperUnlocked) return;
+
+    const now = Date.now();
+    const recentTaps = [...developerTapTimestamps.current, now]
+      .filter((timestamp) => now - timestamp <= DEVELOPER_UNLOCK_WINDOW_MS);
+
+    if (recentTaps.length >= DEVELOPER_UNLOCK_TAP_COUNT) {
+      developerTapTimestamps.current = [];
+      setIsDeveloperUnlocked(true);
+      return;
+    }
+
+    developerTapTimestamps.current = recentTaps;
   };
 
   const handleRestoreData = async () => {
@@ -480,7 +500,11 @@ export default function SettingsScreen() {
             opacity: headerOpacity,
           }
         ]}>
-          <View style={styles.avatarContainer}>
+          <View
+            style={styles.avatarContainer}
+            onStartShouldSetResponder={() => true}
+            onResponderRelease={handleDeveloperUnlockTap}
+          >
             <View style={[styles.avatarCircle, {
               backgroundColor: isDarkMode ? colors.greenTintBgSettings : colors.surfaceTint,
             }]}>
@@ -635,6 +659,17 @@ export default function SettingsScreen() {
               }}
               rightElement={<View />}
             />
+
+            {isDeveloperUnlocked && (
+              <SettingsCard
+                icon="chevron.left.forwardslash.chevron.right"
+                title="Developer"
+                subtitle="Firebase IDs, tokens, and diagnostics"
+                onPress={() => {
+                  router.push('/developer');
+                }}
+              />
+            )}
           </View>
 
           <View style={styles.footer}>
@@ -889,6 +924,7 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
+    justifyContent: 'center',
   },
   cardTitle: {
     fontSize: 16,
@@ -900,7 +936,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     lineHeight: 17,
-    minHeight: 34,
   },
   footer: {
     alignItems: 'center',
