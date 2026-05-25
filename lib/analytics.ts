@@ -359,6 +359,10 @@ export async function trackSettingsScreen() {
 export async function trackSettingsAction(params: {
   action:
     | "theme_change"
+    | "notifications_enable"
+    | "notifications_disable"
+    | "in_app_messages_enable"
+    | "in_app_messages_disable"
     | "backup_export"
     | "backup_restore"
     | "open_storage"
@@ -370,6 +374,36 @@ export async function trackSettingsAction(params: {
   await logEvent("settings_action", {
     action: params.action,
     target: params.target,
+  });
+}
+
+export async function trackInAppMessagingAction(params: {
+  action: "enabled" | "disabled" | "triggered";
+  target?: string;
+}) {
+  await logEvent("in_app_messaging_action", {
+    action: params.action,
+    target: params.target,
+  });
+}
+
+export async function trackNotificationAction(params: {
+  action:
+    | "permission_denied"
+    | "registered"
+    | "unregistered"
+    | "token_refresh"
+    | "foreground_received"
+    | "opened"
+    | "initial_open"
+    | "deep_link_opened";
+  target?: string;
+  source?: string;
+}) {
+  await logEvent("notification_action", {
+    action: params.action,
+    target: params.target,
+    source: params.source,
   });
 }
 

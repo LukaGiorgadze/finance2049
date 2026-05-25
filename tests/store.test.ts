@@ -451,9 +451,16 @@ test('selectors, market prices, and preferences work together', () => {
   ]);
   assert.equal(selectMarketPrice('AAA')?.price, 42);
 
-  updatePreferences({ defaultCurrency: 'EUR', gainView: 'total' });
+  updatePreferences({
+    defaultCurrency: 'EUR',
+    gainView: 'total',
+    notificationsEnabled: true,
+    inAppMessagesEnabled: false,
+  });
   assert.equal(store$.preferences.defaultCurrency.get(), 'EUR');
   assert.equal(store$.preferences.gainView.get(), 'total');
+  assert.equal(store$.preferences.notificationsEnabled.get(), true);
+  assert.equal(store$.preferences.inAppMessagesEnabled.get(), false);
   toggleShowPortfolioValue();
   assert.equal(store$.preferences.showPortfolioValue.get(), false);
 });
@@ -567,6 +574,30 @@ test('reloadStoreFromStorage reloads persisted portfolio and preferences, and mi
 
   assert.equal(migrated._schema.version, CURRENT_SCHEMA_VERSION);
   assert.equal(migrated.portfolio.holdings.OLD.totalCommissions, 0);
+  assert.equal(migrated.preferences.notificationsEnabled, false);
+  assert.equal(migrated.preferences.inAppMessagesEnabled, true);
+});
+
+test('migrateState preserves notification preferences when persisted schema metadata is missing', () => {
+  const latestPersistedState = getInitialState();
+  delete (latestPersistedState as any)._schema;
+  latestPersistedState.preferences.notificationsEnabled = true;
+  latestPersistedState.preferences.inAppMessagesEnabled = false;
+
+  const latestMigrated = migrateState(latestPersistedState);
+  assert.equal(latestMigrated._schema.version, CURRENT_SCHEMA_VERSION);
+  assert.equal(latestMigrated.preferences.notificationsEnabled, true);
+  assert.equal(latestMigrated.preferences.inAppMessagesEnabled, false);
+
+  const v3PersistedState = getInitialState() as any;
+  delete v3PersistedState._schema;
+  delete v3PersistedState.preferences.inAppMessagesEnabled;
+  v3PersistedState.preferences.notificationsEnabled = true;
+
+  const v3Migrated = migrateState(v3PersistedState);
+  assert.equal(v3Migrated._schema.version, CURRENT_SCHEMA_VERSION);
+  assert.equal(v3Migrated.preferences.notificationsEnabled, true);
+  assert.equal(v3Migrated.preferences.inAppMessagesEnabled, true);
 });
 
 test('validateTransactionDeletion and deleteTransaction handle missing ids safely', () => {

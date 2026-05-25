@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { ImportedTxExtractionMode } from '@/lib/import/extraction-mode';
-import { trackImportAction, trackImportScreen } from '@/lib';
+import { trackImportAction, trackImportScreen, useInAppMessageSuppression } from '@/lib';
 import { reportError, reportWarning } from '@/lib/crashlytics';
 import { importSession, type FailedFileInfo, type ImportFileInfo } from '@/lib/import-session';
 import { extractTransactions } from '@/lib/services/providers/supabase/client';
@@ -50,6 +50,7 @@ export default function ImportTransactionsScreen() {
   const [processingCompleted, setProcessingCompleted] = useState(0);
   const [isPreparingFiles, setIsPreparingFiles] = useState(false);
   const [showSourceSheet, setShowSourceSheet] = useState(false);
+  useInAppMessageSuppression(showSourceSheet);
 
   const bg = colors.surface;
 

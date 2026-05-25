@@ -1,7 +1,7 @@
 import { AssetSearchModal } from '@/components/finance/AssetSearchModal';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
-import { formatCurrency, trackImportAction } from '@/lib';
+import { formatCurrency, trackImportAction, useInAppMessageSuppression } from '@/lib';
 import type { FailedFileInfo, ImportFileInfo } from '@/lib/import-session';
 import type { TickerSearchResult } from '@/lib/services/types';
 import type { Holding, MarketPrice } from '@/lib/store/types';
@@ -322,6 +322,7 @@ function TxSubRow({
   colors: typeof Colors.light;
 }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
+  useInAppMessageSuppression(showDatePicker);
   const inputBg = isDark ? colors.cardBorder : colors.cardBackground;
   const parsedDate = tx.date ? parseLocalDate(tx.date) : new Date();
   const isSkipped = tx.isDuplicate && tx.skipDuplicate;

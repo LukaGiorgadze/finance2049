@@ -9,6 +9,7 @@ import {
   getValueColor,
   MASKED,
   trackPositionDetailAction,
+  useInAppMessageSuppression,
   useShowPortfolioValue,
   useUIHolding,
   useUITransactionsBySymbol,
@@ -33,6 +34,8 @@ interface Props {
 }
 
 export function TickerAnalyticsModal({ visible, onClose, ticker }: Props) {
+  useInAppMessageSuppression(visible);
+
   const [historyVisible, setHistoryVisible] = useState(false);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';

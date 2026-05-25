@@ -109,6 +109,8 @@ export interface UserPreferences {
   showPortfolioValue: boolean;
   defaultTimeline: TimelineType;
   gainView: GainViewType;
+  notificationsEnabled: boolean;
+  inAppMessagesEnabled: boolean;
 }
 
 // ============================================================================
@@ -155,4 +157,4 @@ export interface RootStore {
 // Schema Version
 // ============================================================================
 
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 4;
