@@ -13,6 +13,7 @@ import {
 import { StoreProvider } from '@/lib/store/StoreProvider';
 import { useInAppMessagesEnabled } from '@/lib/hooks';
 // The published package points its root typings at missing build artifacts, but the source entry is complete.
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import * as Clarity from '@microsoft/react-native-clarity/src';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack, usePathname } from 'expo-router';
@@ -137,7 +138,9 @@ export default function RootLayout() {
         <CurrencyProvider>
           <StoreProvider fallback={<LoadingFallback />}>
             <TransactionTypeProvider>
-              <RootLayoutContent />
+              <BottomSheetModalProvider>
+                <RootLayoutContent />
+              </BottomSheetModalProvider>
             </TransactionTypeProvider>
           </StoreProvider>
         </CurrencyProvider>

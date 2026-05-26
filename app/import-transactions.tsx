@@ -1,5 +1,6 @@
 import type { ImportedGroup, ImportedTx, TxType } from '@/components/import/types';
 import { UploadStep, type QueuedFile } from '@/components/import/UploadStep';
+import { AppBottomSheetModal } from '@/components/ui/app-bottom-sheet';
 import { PageHeader } from '@/components/ui/page-header';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -9,6 +10,7 @@ import { reportError, reportWarning } from '@/lib/crashlytics';
 import { importSession, type FailedFileInfo, type ImportFileInfo } from '@/lib/import-session';
 import { extractTransactions } from '@/lib/services/providers/supabase/client';
 import { getSupabase } from '@/lib/supabase';
+import { BottomSheetView } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
 import { decode } from 'base64-arraybuffer';
 import * as DocumentPicker from 'expo-document-picker';
@@ -16,11 +18,9 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
-  Modal,
-  Pressable,
   StatusBar,
   StyleSheet,
   Text,
@@ -50,6 +50,7 @@ export default function ImportTransactionsScreen() {
   const [processingCompleted, setProcessingCompleted] = useState(0);
   const [isPreparingFiles, setIsPreparingFiles] = useState(false);
   const [showSourceSheet, setShowSourceSheet] = useState(false);
+  const pendingSourceRef = useRef<PickSource | null>(null);
   useInAppMessageSuppression(showSourceSheet);
 
   const bg = colors.surface;
@@ -289,15 +290,12 @@ export default function ImportTransactionsScreen() {
   };
 
   const handleBrowse = () => {
+    pendingSourceRef.current = null;
     void trackImportAction({ action: 'open_source_sheet', step: 'upload' });
     setShowSourceSheet(true);
   };
 
-  const handlePickSource = async (source: PickSource) => {
-    void trackImportAction({ action: 'pick_source', target: source, step: 'upload' });
-    setShowSourceSheet(false);
-    await new Promise<void>(resolve => setTimeout(resolve, 100));
-
+  const launchPickSource = async (source: PickSource) => {
     if (source === 'camera') {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
@@ -399,6 +397,21 @@ export default function ImportTransactionsScreen() {
     }
   };
 
+  const handlePickSource = (source: PickSource) => {
+    void trackImportAction({ action: 'pick_source', target: source, step: 'upload' });
+    pendingSourceRef.current = source;
+    setShowSourceSheet(false);
+  };
+
+  const handleSourceSheetDismiss = () => {
+    setShowSourceSheet(false);
+    const source = pendingSourceRef.current;
+    pendingSourceRef.current = null;
+    if (source) {
+      void launchPickSource(source);
+    }
+  };
+
   return (
     <View style={[s.page, { backgroundColor: bg }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
@@ -432,18 +445,32 @@ export default function ImportTransactionsScreen() {
         onConfirmUpload={processAllFiles}
       />
 
-      {/* Source picker bottom sheet */}
-      <Modal visible={showSourceSheet} transparent animationType="none">
-        <Pressable style={[s.overlay, { backgroundColor: colors.overlay }]} onPress={() => {
-          void trackImportAction({ action: 'close_source_sheet', step: 'upload' });
-          setShowSourceSheet(false);
-        }}>
-          <Pressable
-            style={[s.sheet, { backgroundColor: colors.cardBackground, paddingBottom: Math.max(insets.bottom, 8) + 16 }]}
-            onPress={e => e.stopPropagation()}
-          >
-            <View style={[s.handle, { backgroundColor: colors.iconMuted }]} />
-            <Text style={[s.sheetTitle, { color: colors.text }]}>Choose Source</Text>
+      <AppBottomSheetModal
+        visible={showSourceSheet}
+        onDismiss={handleSourceSheetDismiss}
+        backgroundColor={colors.surface}
+        backdropColor={colors.overlay}
+        backdropOpacity={1}
+        handleIndicatorColor={colors.iconMuted}
+      >
+        <BottomSheetView style={[s.sheet, { paddingBottom: Math.max(insets.bottom, 12) + 12 }]}>
+          <View style={s.sheetHeader}>
+            <Text style={[s.sheetTitle, { color: colors.text }]}>Choose source</Text>
+            <TouchableOpacity
+              style={[s.closeButton, { backgroundColor: colors.cardBackground }]}
+              onPress={() => {
+                void trackImportAction({ action: 'close_source_sheet', step: 'upload' });
+                setShowSourceSheet(false);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Close source picker"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="close" size={18} color={colors.icon} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={[s.optionsList, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder }]}>
             {SOURCE_OPTIONS.map((opt, i) => (
               <TouchableOpacity
                 key={opt.id}
@@ -454,25 +481,27 @@ export default function ImportTransactionsScreen() {
                 <View style={[s.optIcon, { backgroundColor: opt.color + '22' }]}>
                   <Ionicons name={opt.icon as any} size={22} color={opt.color} />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={s.optText}>
                   <Text style={[s.optTitle, { color: colors.text }]}>{opt.title}</Text>
                   <Text style={[s.optSub, { color: colors.icon }]}>{opt.sub}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={14} color={colors.icon} />
+                <Ionicons name="chevron-forward" size={16} color={colors.icon} />
               </TouchableOpacity>
             ))}
-            <TouchableOpacity
-              style={[s.cancel, { borderTopColor: colors.cardBorder }]}
-              onPress={() => {
-                void trackImportAction({ action: 'close_source_sheet', step: 'upload' });
-                setShowSourceSheet(false);
-              }}
-            >
-              <Text style={[s.cancelText, { color: colors.icon }]}>Cancel</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
+          </View>
+
+          <TouchableOpacity
+            style={[s.cancelButton, { backgroundColor: colors.cardBackground }]}
+            onPress={() => {
+              void trackImportAction({ action: 'close_source_sheet', step: 'upload' });
+              setShowSourceSheet(false);
+            }}
+            activeOpacity={0.75}
+          >
+            <Text style={[s.cancelText, { color: colors.text }]}>Cancel</Text>
+          </TouchableOpacity>
+        </BottomSheetView>
+      </AppBottomSheetModal>
     </View>
   );
 }
@@ -482,14 +511,22 @@ const s = StyleSheet.create({
   backBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
 
   // Source picker
-  overlay: { flex: 1, justifyContent: 'flex-end' },
-  sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 12 },
-  handle: { width: 36, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
-  sheetTitle: { fontSize: 13, fontWeight: '600', letterSpacing: 0.1, paddingHorizontal: 20, marginBottom: 8, opacity: 0.5 },
-  option: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, gap: 14 },
+  sheet: { paddingTop: 6, paddingHorizontal: 16 },
+  sheetHeader: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  sheetTitle: { fontSize: 20, fontWeight: '700', letterSpacing: 0, paddingLeft: 4 },
+  closeButton: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  optionsList: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, overflow: 'hidden' },
+  option: { flexDirection: 'row', alignItems: 'center', minHeight: 72, paddingVertical: 12, paddingHorizontal: 14, gap: 12 },
   optIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  optTitle: { fontSize: 16, fontWeight: '600', marginBottom: 2 },
-  optSub: { fontSize: 12 },
-  cancel: { marginTop: 8, borderTopWidth: StyleSheet.hairlineWidth, paddingVertical: 16, alignItems: 'center' },
-  cancelText: { fontSize: 16, fontWeight: '500' },
+  optText: { flex: 1, minWidth: 0 },
+  optTitle: { fontSize: 16, fontWeight: '700', marginBottom: 2, letterSpacing: 0 },
+  optSub: { fontSize: 13, lineHeight: 18 },
+  cancelButton: { marginTop: 12, borderRadius: 16, minHeight: 52, alignItems: 'center', justifyContent: 'center' },
+  cancelText: { fontSize: 16, fontWeight: '600' },
 });
