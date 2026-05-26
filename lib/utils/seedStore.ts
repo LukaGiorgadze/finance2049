@@ -15,7 +15,8 @@ import { store$ } from '../store';
  */
 export function hasStoreData(): boolean {
   const holdings = store$.portfolio.holdings.get();
-  return Object.keys(holdings || {}).length > 0;
+  const theses = store$.why.theses.get();
+  return Object.keys(holdings || {}).length > 0 || (theses || []).length > 0;
 }
 
 /**
@@ -33,6 +34,7 @@ export function hasMarketPrices(): boolean {
 export function clearPortfolio() {
   store$.portfolio.holdings.set({});
   store$.portfolio.transactions.set([]);
+  store$.why.theses.set([]);
   console.debug('[Store] Portfolio cleared');
 }
 
@@ -44,6 +46,7 @@ export async function clearDatabase() {
   // Clear the observable store
   store$.portfolio.holdings.set({});
   store$.portfolio.transactions.set([]);
+  store$.why.theses.set([]);
   store$.market.prices.set({});
   store$.market.lastUpdated.set(null);
 

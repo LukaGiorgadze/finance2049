@@ -123,7 +123,7 @@ async function checkAndApplySplits(): Promise<void> {
       const splits = await marketDataService.getStockSplits(holding.symbol);
       if (splits.length === 0) continue;
 
-      const transactions = store$.portfolio.transactions.get();
+      const transactions = store$.portfolio.transactions.get() ?? [];
 
       // Get existing split transaction API IDs for this symbol
       const existingSplitIds = new Set(

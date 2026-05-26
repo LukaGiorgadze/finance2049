@@ -44,16 +44,25 @@ export default function PortfolioScreen() {
           <PageHeader
             title="Portfolio"
             rightElement={
-              <TouchableOpacity
-                onPress={() => {
-                  void trackPortfolioAction({ action: 'search_open' });
-                  setSearchVisible(true);
-                }}
-                style={[styles.searchButton]}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons name="search" size={20} color={colors.icon} />
-              </TouchableOpacity>
+              <View style={styles.headerActions}>
+                <TouchableOpacity
+                  onPress={() => router.push('/why' as never)}
+                  style={styles.searchButton}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="journal-outline" size={21} color={colors.icon} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    void trackPortfolioAction({ action: 'search_open' });
+                    setSearchVisible(true);
+                  }}
+                  style={[styles.searchButton]}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="search" size={20} color={colors.icon} />
+                </TouchableOpacity>
+              </View>
             }
           />
 
@@ -109,6 +118,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   scrollView: {
     flex: 1,

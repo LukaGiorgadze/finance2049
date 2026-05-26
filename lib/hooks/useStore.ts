@@ -12,8 +12,11 @@ import {
   selectTransactions,
   selectTransactionsBySymbol,
   selectMarketPrice,
+  selectWhyTheses,
+  selectDueWhyTheses,
+  getActiveThesisBySymbol,
 } from '../store';
-import type { Holding, Transaction, MarketPrice } from '../store/types';
+import type { Holding, InvestmentThesis, Transaction, MarketPrice } from '../store/types';
 
 // ============================================================================
 // Portfolio Hooks
@@ -37,7 +40,7 @@ export function useHolding(symbol: string): Holding | undefined {
  * Get holdings count
  */
 export function useHoldingsCount(): number {
-  return useSelector(() => Object.keys(store$.portfolio.holdings.get()).length);
+  return useSelector(() => Object.keys(store$.portfolio.holdings.get() ?? {}).length);
 }
 
 // ============================================================================
@@ -62,7 +65,7 @@ export function useTransactionsBySymbol(symbol: string): Transaction[] {
  * Get transaction count
  */
 export function useTransactionsCount(): number {
-  return useSelector(() => store$.portfolio.transactions.get().length);
+  return useSelector(() => (store$.portfolio.transactions.get() ?? []).length);
 }
 
 // ============================================================================
@@ -80,7 +83,7 @@ export function useMarketPrice(symbol: string): MarketPrice | undefined {
  * Get all market prices
  */
 export function useMarketPrices(): Record<string, MarketPrice> {
-  return useSelector(() => store$.market.prices.get());
+  return useSelector(() => store$.market.prices.get() ?? {});
 }
 
 /**
@@ -88,6 +91,22 @@ export function useMarketPrices(): Record<string, MarketPrice> {
  */
 export function useMarketLastUpdated(): string | null {
   return useSelector(() => store$.market.lastUpdated.get());
+}
+
+// ============================================================================
+// WHY Hooks
+// ============================================================================
+
+export function useWhyTheses(): InvestmentThesis[] {
+  return useSelector(() => selectWhyTheses());
+}
+
+export function useDueWhyTheses(): InvestmentThesis[] {
+  return useSelector(() => selectDueWhyTheses());
+}
+
+export function useActiveThesis(symbol: string): InvestmentThesis | undefined {
+  return useSelector(() => getActiveThesisBySymbol(symbol));
 }
 
 // ============================================================================
@@ -146,7 +165,7 @@ export function setGainView(value: 'today' | 'total') {
 export function usePortfolioValue(): number {
   return useSelector(() => {
     const holdings = selectAllHoldings();
-    const prices = store$.market.prices.get();
+    const prices = store$.market.prices.get() ?? {};
 
     return holdings.reduce((total, holding) => {
       const price = prices[holding.symbol]?.price ?? holding.avgCost;
@@ -173,7 +192,7 @@ export function usePortfolioCostBasis(): number {
 export function usePortfolioGain(): { amount: number; percent: number } {
   return useSelector(() => {
     const holdings = selectAllHoldings();
-    const prices = store$.market.prices.get();
+    const prices = store$.market.prices.get() ?? {};
 
     let totalValue = 0;
     let totalCost = 0;

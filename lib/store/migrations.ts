@@ -21,6 +21,7 @@ function inferSchemaVersion(state: any) {
   const preferences = state?.preferences ?? {};
   if (hasBoolean(preferences.inAppMessagesEnabled)) return 4;
   if (hasBoolean(preferences.notificationsEnabled)) return 3;
+  if (Array.isArray(state?.why?.theses)) return 5;
 
   const holdings = Object.values(state?.portfolio?.holdings ?? {});
   if (
@@ -86,6 +87,16 @@ const migrations: Record<number, Migration> = {
       _schema: { version: 4 },
     };
   },
+  // Migration from v4 to v5: Add local-first WHY investment theses.
+  4: (state) => {
+    return {
+      ...state,
+      why: {
+        theses: Array.isArray(state.why?.theses) ? state.why.theses : [],
+      },
+      _schema: { version: 5 },
+    };
+  },
 };
 
 /**
@@ -96,6 +107,7 @@ export function migrateState(state: any): RootStore {
     return getInitialState();
   }
 
+  const initialState = getInitialState();
   let currentVersion = inferSchemaVersion(state);
   let migratedState = { ...state };
 
@@ -111,6 +123,30 @@ export function migrateState(state: any): RootStore {
   }
 
   // Ensure schema version is set
+  migratedState.portfolio = {
+    holdings: migratedState.portfolio?.holdings ?? initialState.portfolio.holdings,
+    transactions: Array.isArray(migratedState.portfolio?.transactions)
+      ? migratedState.portfolio.transactions
+      : initialState.portfolio.transactions,
+  };
+  migratedState.market = {
+    prices: migratedState.market?.prices ?? initialState.market.prices,
+    indices: Array.isArray(migratedState.market?.indices)
+      ? migratedState.market.indices
+      : initialState.market.indices,
+    lastUpdated: migratedState.market?.lastUpdated ?? initialState.market.lastUpdated,
+  };
+  migratedState.preferences = {
+    ...initialState.preferences,
+    ...(migratedState.preferences ?? {}),
+  };
+  migratedState.why = {
+    theses: Array.isArray(migratedState.why?.theses) ? migratedState.why.theses : [],
+  };
+  migratedState.auth = {
+    ...initialState.auth,
+    ...(migratedState.auth ?? {}),
+  };
   migratedState._schema = { version: CURRENT_SCHEMA_VERSION };
 
   return migratedState as RootStore;
@@ -137,6 +173,9 @@ export function getInitialState(): RootStore {
       gainView: "today",
       notificationsEnabled: false,
       inAppMessagesEnabled: true,
+    },
+    why: {
+      theses: [],
     },
     auth: {
       userId: null,

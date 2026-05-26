@@ -79,18 +79,25 @@ const typesModule = require('../lib/store/types');
 
 const {
   addTransaction,
+  addExitReview,
+  addThesisReview,
   applySplit,
   clearStore,
+  createOrUpdateActiveThesis,
   deleteHolding,
   deleteTransaction,
+  getActiveThesisBySymbol,
+  getThesisChecklistStatus,
   initializeStore,
   recalculatePortfolio,
   reloadStoreFromStorage,
   selectAllHoldings,
+  selectDueWhyTheses,
   selectHolding,
   selectMarketPrice,
   selectTransactions,
   selectTransactionsBySymbol,
+  selectWhyTheses,
   store$,
   toggleShowPortfolioValue,
   updateMarketPrices,
@@ -576,6 +583,7 @@ test('reloadStoreFromStorage reloads persisted portfolio and preferences, and mi
   assert.equal(migrated.portfolio.holdings.OLD.totalCommissions, 0);
   assert.equal(migrated.preferences.notificationsEnabled, false);
   assert.equal(migrated.preferences.inAppMessagesEnabled, true);
+  assert.deepEqual(migrated.why.theses, []);
 });
 
 test('migrateState preserves notification preferences when persisted schema metadata is missing', () => {
@@ -588,6 +596,7 @@ test('migrateState preserves notification preferences when persisted schema meta
   assert.equal(latestMigrated._schema.version, CURRENT_SCHEMA_VERSION);
   assert.equal(latestMigrated.preferences.notificationsEnabled, true);
   assert.equal(latestMigrated.preferences.inAppMessagesEnabled, false);
+  assert.deepEqual(latestMigrated.why.theses, []);
 
   const v3PersistedState = getInitialState() as any;
   delete v3PersistedState._schema;
@@ -598,6 +607,127 @@ test('migrateState preserves notification preferences when persisted schema meta
   assert.equal(v3Migrated._schema.version, CURRENT_SCHEMA_VERSION);
   assert.equal(v3Migrated.preferences.notificationsEnabled, true);
   assert.equal(v3Migrated.preferences.inAppMessagesEnabled, true);
+  assert.deepEqual(v3Migrated.why.theses, []);
+});
+
+test('migrateState normalizes missing nested collections in latest persisted state', () => {
+  const migrated = migrateState({
+    _schema: { version: CURRENT_SCHEMA_VERSION },
+    portfolio: {
+      holdings: {},
+    },
+    market: {},
+    preferences: {},
+    why: {},
+  });
+
+  assert.deepEqual(migrated.portfolio.transactions, []);
+  assert.deepEqual(migrated.portfolio.holdings, {});
+  assert.deepEqual(migrated.market.prices, {});
+  assert.deepEqual(migrated.market.indices, []);
+  assert.equal(migrated.market.lastUpdated, null);
+  assert.deepEqual(migrated.why.theses, []);
+  assert.equal(migrated.preferences.defaultCurrency, 'USD');
+  assert.equal(migrated.preferences.notificationsEnabled, false);
+});
+
+test('WHY theses keep one active thesis per symbol while preserving closed history', () => {
+  const first = createOrUpdateActiveThesis({
+    symbol: 'why',
+    assetName: 'Why Co',
+    assetType: 'CS',
+    why: 'Original thesis',
+    invalidation: 'Original invalidation',
+    reviewDate: '2026-06-01',
+    notifyOnReview: false,
+  });
+
+  const second = createOrUpdateActiveThesis({
+    symbol: 'WHY',
+    assetName: 'Why Co',
+    assetType: 'CS',
+    why: 'Updated thesis',
+    invalidation: 'Updated invalidation',
+    reviewDate: '2026-07-01',
+    notifyOnReview: false,
+  });
+
+  assert.equal(first.id, second.id);
+  assert.equal(getActiveThesisBySymbol('why')?.why, 'Updated thesis');
+  assert.equal(selectWhyTheses().filter((thesis: any) => thesis.symbol === 'WHY').length, 1);
+
+  addExitReview(second.id, {
+    whatHappened: 'Exited',
+    whatWasRight: 'Risk was visible',
+    whatWasWrong: 'Timing',
+    lesson: 'Define exit earlier',
+    transactionId: 'sell-1',
+  });
+
+  const third = createOrUpdateActiveThesis({
+    symbol: 'WHY',
+    why: 'New active thesis',
+    invalidation: 'New invalidation',
+    reviewDate: '2026-08-01',
+    notifyOnReview: false,
+  });
+
+  const theses = selectWhyTheses().filter((thesis: any) => thesis.symbol === 'WHY');
+  assert.equal(theses.length, 2);
+  assert.equal(theses.filter((thesis: any) => thesis.status === 'active').length, 1);
+  assert.equal(theses.filter((thesis: any) => thesis.status === 'closed').length, 1);
+  assert.notEqual(third.id, second.id);
+});
+
+test('WHY due selector, review append, and exit review update thesis state', () => {
+  const thesis = createOrUpdateActiveThesis({
+    symbol: 'DUE',
+    why: 'Due thesis',
+    invalidation: 'Breaks below assumptions',
+    reviewDate: '2026-05-01',
+    notifyOnReview: true,
+    reviewNotificationId: 'notification-1',
+    linkedTransactionIds: ['buy-1'],
+  });
+
+  assert.equal(selectDueWhyTheses(new Date('2026-05-26T12:00:00.000Z')).length, 1);
+  assert.equal(getThesisChecklistStatus(thesis, new Date('2026-05-26T12:00:00.000Z')), 'Review due');
+
+  const reviewed = addThesisReview(thesis.id, {
+    result: 'partly_changed',
+    note: 'Margins changed, thesis still partly valid',
+    nextReviewDate: '2026-06-30',
+    notifyOnReview: false,
+  });
+
+  assert.equal(reviewed?.reviews.length, 1);
+  assert.equal(reviewed?.reviews[0].result, 'partly_changed');
+  assert.equal(reviewed?.reviewDate, '2026-06-30');
+  assert.equal(reviewed?.notifyOnReview, false);
+  assert.equal(selectDueWhyTheses(new Date('2026-05-26T12:00:00.000Z')).length, 0);
+  assert.equal(getThesisChecklistStatus(reviewed, new Date('2026-05-26T12:00:00.000Z')), 'Partly changed');
+
+  const invalidated = addThesisReview(thesis.id, {
+    result: 'invalidated',
+    note: 'Core assumption failed',
+    nextReviewDate: '2026-07-31',
+    notifyOnReview: false,
+  });
+
+  assert.equal(getThesisChecklistStatus(invalidated, new Date('2026-05-26T12:00:00.000Z')), 'Broken');
+
+  const closed = addExitReview(thesis.id, {
+    whatHappened: 'Sold after thesis changed',
+    whatWasRight: 'Risk was identified',
+    whatWasWrong: 'Review was late',
+    lesson: 'Review earlier when assumptions move',
+    transactionId: 'sell-1',
+  });
+
+  assert.equal(closed?.status, 'closed');
+  assert.equal(closed?.exitReview?.transactionId, 'sell-1');
+  assert.equal(closed?.notifyOnReview, false);
+  assert.equal(getThesisChecklistStatus(closed), 'Lesson added');
 });
 
 test('validateTransactionDeletion and deleteTransaction handle missing ids safely', () => {

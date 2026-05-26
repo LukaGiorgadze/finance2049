@@ -42,7 +42,7 @@ export function PortfolioSummary() {
     const shares = parseFloat(data.quantity) || 0;
     const price = parseFloat(data.price) || 0;
     try {
-      addTransaction({
+      return addTransaction({
         type: data.type,
         symbol: data.symbol,
         shares,
@@ -51,7 +51,6 @@ export function PortfolioSummary() {
         commission: parseFloat(data.commission) || 0,
         date: formatLocalDateISO(data.date),
       }, data.assetType ?? '', data.name ?? '');
-      return true;
     } catch (e) {
       Alert.alert('Transaction Failed', e instanceof Error ? e.message : 'Failed to record transaction.');
       return false;

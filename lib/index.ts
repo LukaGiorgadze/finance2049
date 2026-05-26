@@ -6,17 +6,23 @@
 
 // Store
 export {
-  addTransaction, applySplit, clearStore, deleteHolding, deleteTransaction, initializeStore, recalculatePortfolio, reloadStoreFromStorage,
+  addExitReview, addThesisReview, addTransaction, applySplit, archiveThesis, clearStore, closeThesis, createOrUpdateActiveThesis, deleteHolding, deleteTransaction, getActiveThesisBySymbol, getThesisById, getThesisChecklistStatus, initializeStore, recalculatePortfolio, reloadStoreFromStorage,
   selectAllHoldings,
   selectHolding, selectMarketPrice, selectTransactions,
-  selectTransactionsBySymbol, store$, toggleShowPortfolioValue, updateMarketPrices,
+  selectTransactionsBySymbol, selectDueWhyTheses, selectWhyTheses, store$, toggleShowPortfolioValue, updateMarketPrices,
   updatePreferences, validateTransactionDeletion
 } from './store';
 
 export type {
   Holding,
   HoldingLot,
-  MarketPrice, Transaction
+  InvestmentThesis,
+  MarketPrice,
+  ThesisExitReview,
+  ThesisReview,
+  ThesisReviewResult,
+  ThesisStatus,
+  Transaction
 } from './store';
 
 export { StoreProvider, useStoreReady } from './store/StoreProvider';
@@ -24,7 +30,7 @@ export { StoreProvider, useStoreReady } from './store/StoreProvider';
 // Hooks
 export {
   formatChartLabel, formatEmployeeCount, formatMarketCap, setGainView, useAssetAllocation, useDefaultTimeline,
-  useGainView, useHolding,
+  useActiveThesis, useDueWhyTheses, useGainView, useHolding,
   // Store hooks (raw data)
   useHoldings, useHoldingsCount, useMarketLastUpdated, useMarketPrice,
   useMarketPrices, usePortfolioCostBasis,
@@ -38,6 +44,7 @@ export {
   useTransactionsBySymbol,
   useTransactionsCount, useUIHolding, useUIHoldings, useUITransactions,
   useUITransactionsBySymbol,
+  useWhyTheses,
   // Analytics
   useInvestmentAnalytics,
 } from './hooks';
@@ -69,6 +76,11 @@ export {
   subscribeToPushNotificationHandlers,
   syncPushNotificationsOnStartup,
 } from './notifications';
+export {
+  cancelWhyReviewNotification,
+  scheduleWhyReviewNotification,
+} from './whyNotifications';
+export type { WhyNotificationResult } from './whyNotifications';
 export {
   setInAppMessagesEnabled,
   shouldSuppressInAppMessages,

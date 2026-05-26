@@ -15,8 +15,12 @@ import type {
   AssetType,
   Holding,
   HoldingLot,
+  InvestmentThesis,
   MarketPrice,
   RootStore,
+  ThesisExitReview,
+  ThesisReview,
+  ThesisReviewResult,
   Transaction,
 } from './types';
 
@@ -91,7 +95,7 @@ export const initializeStore = async (): Promise<void> => {
  * Get all transactions sorted by date (newest first)
  */
 export const selectTransactions = () => {
-  return [...store$.portfolio.transactions.get()].sort((a, b) =>
+  return [...(store$.portfolio.transactions.get() ?? [])].sort((a, b) =>
     new Date(b.date).getTime() - new Date(a.date).getTime()
     || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
@@ -101,7 +105,7 @@ export const selectTransactions = () => {
  * Get transactions for a specific symbol
  */
 export const selectTransactionsBySymbol = (symbol: string) => {
-  return store$.portfolio.transactions.get()
+  return (store$.portfolio.transactions.get() ?? [])
     .filter((t) => t.symbol === symbol)
     .sort((a, b) =>
       new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -133,6 +137,37 @@ export const selectMarketPrice = (symbol: string) => {
   return store$.market.prices[symbol].get();
 };
 
+/**
+ * Get all WHY theses sorted by most recently updated first.
+ */
+export const selectWhyTheses = () => {
+  return [...(store$.why.theses.get() ?? [])].sort((a, b) =>
+    new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+};
+
+/**
+ * Get the active thesis for a symbol, if one exists.
+ */
+export const getActiveThesisBySymbol = (symbol: string) => {
+  const normalized = symbol.toUpperCase().trim();
+  return (store$.why.theses.get() ?? []).find(
+    (thesis) => thesis.symbol === normalized && thesis.status === 'active',
+  );
+};
+
+export const getThesisById = (id: string) => {
+  return (store$.why.theses.get() ?? []).find((thesis) => thesis.id === id);
+};
+
+export const selectDueWhyTheses = (date = new Date()) => {
+  const today = formatDateKey(date);
+  return selectWhyTheses().filter(
+    (thesis) => thesis.status === 'active' && !!thesis.reviewDate && thesis.reviewDate <= today,
+  );
+};
+
 // ============================================================================
 // Actions
 // ============================================================================
@@ -143,7 +178,7 @@ export const selectMarketPrice = (symbol: string) => {
  * avoid it and use .set() with the key omitted instead.
  */
 const removeHoldingKey = (symbol: string) => {
-  const all = store$.portfolio.holdings.get();
+  const all = store$.portfolio.holdings.get() ?? {};
   const { [symbol]: _, ...rest } = all;
   store$.portfolio.holdings.set(rest as typeof all);
 };
@@ -153,6 +188,22 @@ const removeHoldingKey = (symbol: string) => {
  */
 const generateId = () => {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+};
+
+const formatDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const updateThesisAtIndex = (index: number, thesis: InvestmentThesis) => {
+  const theses = store$.why.theses.get() ?? [];
+  store$.why.theses.set([
+    ...theses.slice(0, index),
+    thesis,
+    ...theses.slice(index + 1),
+  ]);
 };
 
 /**
@@ -391,6 +442,184 @@ export const updatePreferences = (
   store$.preferences.set({ ...current, ...preferences });
 };
 
+export interface CreateOrUpdateActiveThesisInput {
+  id?: string;
+  symbol: string;
+  assetName?: string;
+  assetType?: AssetType;
+  why: string;
+  invalidation: string;
+  reviewDate: string;
+  notifyOnReview: boolean;
+  reviewNotificationId?: string;
+  assumptions?: string;
+  risks?: string;
+  watchItems?: string;
+  linkedTransactionIds?: string[];
+}
+
+export const createOrUpdateActiveThesis = (input: CreateOrUpdateActiveThesisInput) => {
+  const now = new Date().toISOString();
+  const symbol = input.symbol.toUpperCase().trim();
+  const theses = store$.why.theses.get() ?? [];
+  const existingIndex = input.id
+    ? theses.findIndex((thesis) => thesis.id === input.id)
+    : theses.findIndex((thesis) => thesis.symbol === symbol && thesis.status === 'active');
+  const existing = existingIndex >= 0 ? theses[existingIndex] : undefined;
+  const linkedTransactionIds = Array.from(new Set([
+    ...(existing?.linkedTransactionIds ?? []),
+    ...(input.linkedTransactionIds ?? []),
+  ].filter(Boolean)));
+
+  const thesis: InvestmentThesis = {
+    id: existing?.id ?? generateId(),
+    symbol,
+    assetName: input.assetName ?? existing?.assetName,
+    assetType: input.assetType ?? existing?.assetType,
+    why: input.why.trim(),
+    invalidation: input.invalidation.trim(),
+    reviewDate: input.reviewDate,
+    notifyOnReview: input.notifyOnReview,
+    reviewNotificationId: input.reviewNotificationId,
+    assumptions: input.assumptions?.trim() || undefined,
+    risks: input.risks?.trim() || undefined,
+    watchItems: input.watchItems?.trim() || undefined,
+    linkedTransactionIds,
+    status: 'active',
+    reviews: existing?.reviews ?? [],
+    exitReview: existing?.exitReview,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+    closedAt: undefined,
+  };
+
+  if (existingIndex >= 0) {
+    updateThesisAtIndex(existingIndex, thesis);
+  } else {
+    store$.why.theses.push(thesis);
+  }
+
+  return thesis;
+};
+
+export const addThesisReview = (
+  thesisId: string,
+  review: {
+    result: ThesisReviewResult;
+    note: string;
+    nextReviewDate?: string;
+    notifyOnReview?: boolean;
+    reviewNotificationId?: string;
+  },
+) => {
+  const theses = store$.why.theses.get() ?? [];
+  const index = theses.findIndex((thesis) => thesis.id === thesisId);
+  if (index < 0) return null;
+
+  const now = new Date().toISOString();
+  const current = theses[index];
+  const newReview: ThesisReview = {
+    id: generateId(),
+    result: review.result,
+    note: review.note.trim(),
+    createdAt: now,
+    nextReviewDate: review.nextReviewDate,
+  };
+  const updated: InvestmentThesis = {
+    ...current,
+    reviews: [...current.reviews, newReview],
+    reviewDate: review.nextReviewDate ?? current.reviewDate,
+    notifyOnReview: review.notifyOnReview ?? current.notifyOnReview,
+    reviewNotificationId: review.reviewNotificationId,
+    updatedAt: now,
+  };
+
+  updateThesisAtIndex(index, updated);
+  return updated;
+};
+
+export const closeThesis = (thesisId: string) => {
+  const theses = store$.why.theses.get() ?? [];
+  const index = theses.findIndex((thesis) => thesis.id === thesisId);
+  if (index < 0) return null;
+
+  const now = new Date().toISOString();
+  const updated: InvestmentThesis = {
+    ...theses[index],
+    status: 'closed',
+    notifyOnReview: false,
+    reviewNotificationId: undefined,
+    updatedAt: now,
+    closedAt: theses[index].closedAt ?? now,
+  };
+  updateThesisAtIndex(index, updated);
+  return updated;
+};
+
+export const archiveThesis = (thesisId: string) => {
+  const theses = store$.why.theses.get() ?? [];
+  const index = theses.findIndex((thesis) => thesis.id === thesisId);
+  if (index < 0) return null;
+
+  const now = new Date().toISOString();
+  const updated: InvestmentThesis = {
+    ...theses[index],
+    status: 'archived',
+    notifyOnReview: false,
+    reviewNotificationId: undefined,
+    updatedAt: now,
+  };
+  updateThesisAtIndex(index, updated);
+  return updated;
+};
+
+export const addExitReview = (
+  thesisId: string,
+  exitReview: Omit<ThesisExitReview, 'createdAt'>,
+) => {
+  const theses = store$.why.theses.get() ?? [];
+  const index = theses.findIndex((thesis) => thesis.id === thesisId);
+  if (index < 0) return null;
+
+  const now = new Date().toISOString();
+  const updated: InvestmentThesis = {
+    ...theses[index],
+    exitReview: {
+      ...exitReview,
+      whatHappened: exitReview.whatHappened.trim(),
+      whatWasRight: exitReview.whatWasRight.trim(),
+      whatWasWrong: exitReview.whatWasWrong.trim(),
+      lesson: exitReview.lesson.trim(),
+      createdAt: now,
+    },
+    status: 'closed',
+    notifyOnReview: false,
+    reviewNotificationId: undefined,
+    updatedAt: now,
+    closedAt: theses[index].closedAt ?? now,
+  };
+
+  updateThesisAtIndex(index, updated);
+  return updated;
+};
+
+export const getThesisChecklistStatus = (thesis?: InvestmentThesis | null, date = new Date()) => {
+  if (!thesis) return 'No WHY written yet';
+  if (!thesis.why.trim()) return 'Needs thesis';
+  if (!thesis.invalidation.trim()) return 'Needs invalidation condition';
+  if (!thesis.reviewDate) return 'Needs review date';
+  if (thesis.status === 'active' && thesis.reviewDate <= formatDateKey(date)) return 'Review due';
+  if (thesis.status === 'closed') return thesis.exitReview ? 'Lesson added' : 'Closed';
+  if (thesis.status === 'archived') return 'Archived';
+
+  const latestReview = thesis.reviews[thesis.reviews.length - 1];
+  if (latestReview?.result === 'invalidated') return 'Broken';
+  if (latestReview?.result === 'partly_changed') return 'Partly changed';
+  if (latestReview?.result === 'still_valid') return 'Still true';
+
+  return 'Ready for review';
+};
+
 /**
  * Toggle show portfolio value preference
  */
@@ -405,7 +634,7 @@ export const toggleShowPortfolioValue = () => {
  * message string describing the inconsistency.
  */
 export const validateTransactionDeletion = (transactionId: string): string | null => {
-  const transactions = store$.portfolio.transactions.get();
+  const transactions = store$.portfolio.transactions.get() ?? [];
   const transaction = transactions.find((t) => t.id === transactionId);
   if (!transaction) return 'Transaction not found.';
 
@@ -489,7 +718,7 @@ export const validateTransactionDeletion = (transactionId: string): string | nul
  * @throws Error if removing this transaction would make a later sell invalid.
  */
 export const deleteTransaction = (transactionId: string) => {
-  const transactions = store$.portfolio.transactions.get();
+  const transactions = store$.portfolio.transactions.get() ?? [];
   const transaction = transactions.find((t) => t.id === transactionId);
 
   if (!transaction) {
@@ -514,7 +743,7 @@ export const deleteTransaction = (transactionId: string) => {
  * out-of-order entry or imports.
  */
 export const recalculatePortfolio = () => {
-  const transactions = store$.portfolio.transactions.get();
+  const transactions = store$.portfolio.transactions.get() ?? [];
   if (transactions.length === 0) {
     store$.portfolio.holdings.set({});
     return;
@@ -602,7 +831,7 @@ export const applySplit = (
   splitApiId: string,
 ) => {
   // Guard: never apply the same split twice
-  const alreadyApplied = store$.portfolio.transactions.get().some(
+  const alreadyApplied = (store$.portfolio.transactions.get() ?? []).some(
     (t) => t.type === 'split' && t.splitApiId === splitApiId,
   );
   if (alreadyApplied) {
@@ -650,7 +879,7 @@ export const applySplit = (
  * This is a hard wipe — no per-transaction reversal needed.
  */
 export const deleteHolding = (symbol: string) => {
-  const transactions = store$.portfolio.transactions.get();
+  const transactions = store$.portfolio.transactions.get() ?? [];
   const filteredTransactions = transactions.filter((t) => t.symbol !== symbol);
   store$.portfolio.transactions.set(filteredTransactions);
   removeHoldingKey(symbol);
@@ -675,6 +904,7 @@ export const reloadStoreFromStorage = async (): Promise<void> => {
     const migrated = migrateState(parsed);
     store$.portfolio.set(migrated.portfolio);
     store$.preferences.set(migrated.preferences);
+    store$.why.set(migrated.why);
   } catch (e) {
     reportWarning('[reloadStoreFromStorage] Failed to reload from storage', e);
   }
@@ -684,4 +914,15 @@ export const reloadStoreFromStorage = async (): Promise<void> => {
 // Export Types
 // ============================================================================
 
-export type { Holding, HoldingLot, MarketPrice, Transaction, TransactionType } from './types';
+export type {
+  Holding,
+  HoldingLot,
+  InvestmentThesis,
+  MarketPrice,
+  ThesisExitReview,
+  ThesisReview,
+  ThesisReviewResult,
+  ThesisStatus,
+  Transaction,
+  TransactionType,
+} from './types';

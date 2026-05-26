@@ -74,7 +74,7 @@ export function PortfolioHoldingsList() {
     const symbol = data.symbol.toUpperCase().trim();
     const total = shares * price + commission;
     try {
-      addTransaction({
+      return addTransaction({
         symbol,
         type: data.type,
         shares,
@@ -83,7 +83,6 @@ export function PortfolioHoldingsList() {
         date: formatLocalDateISO(data.date),
         commission,
       }, data.assetType as string, data.name);
-      return true;
     } catch (e) {
       Alert.alert('Transaction Failed', e instanceof Error ? e.message : 'Failed to record transaction.');
       return false;

@@ -203,8 +203,9 @@ export default function SettingsScreen() {
     try {
       const holdings = store$.portfolio.holdings.get();
       const transactions = store$.portfolio.transactions.get();
+      const theses = store$.why.theses.get();
 
-      const hasData = Object.keys(holdings || {}).length > 0 || (transactions || []).length > 0;
+      const hasData = Object.keys(holdings || {}).length > 0 || (transactions || []).length > 0 || (theses || []).length > 0;
       if (!hasData) {
         Alert.alert('Nothing to Export', 'Add some investments or transactions first.');
         return;
@@ -223,6 +224,7 @@ export default function SettingsScreen() {
           lastUpdated: store$.market.lastUpdated.get(),
         },
         preferences: store$.preferences.get(),
+        why: store$.why.get(),
       };
 
       const json = JSON.stringify(data, null, 2);
@@ -245,7 +247,7 @@ export default function SettingsScreen() {
     } catch (error) {
       reportError('[Export] Failed to export data', error, {
         holdingsCount: Object.keys(store$.portfolio.holdings.get() || {}).length,
-        transactionCount: store$.portfolio.transactions.get().length,
+        transactionCount: (store$.portfolio.transactions.get() ?? []).length,
         surface: 'settings',
       });
       Alert.alert('Export Failed', 'Something went wrong while exporting your data.');
@@ -376,6 +378,9 @@ export default function SettingsScreen() {
             onPress: () => {
               store$.portfolio.holdings.set(data.portfolio.holdings);
               store$.portfolio.transactions.set(data.portfolio.transactions);
+              store$.why.set({
+                theses: Array.isArray(data.why?.theses) ? data.why.theses : [],
+              });
 
               if (data.market) {
                 if (data.market.prices) store$.market.prices.set(data.market.prices);
