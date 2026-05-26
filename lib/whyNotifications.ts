@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { reportWarning } from './crashlytics';
+import type { InvestmentThesis } from './store/types';
 
 const WHY_REVIEW_CHANNEL_ID = 'why-reviews';
 const REVIEW_HOUR = 9;
@@ -16,6 +17,12 @@ function isSupportedPlatform() {
   return Platform.OS === 'ios' || Platform.OS === 'android';
 }
 
+function isFutureReviewDate(reviewDate: string) {
+  const [year, month, day] = reviewDate.split('-').map(Number);
+  const scheduled = new Date(year, (month ?? 1) - 1, day ?? 1, REVIEW_HOUR, REVIEW_MINUTE, 0, 0);
+  return scheduled.getTime() > Date.now();
+}
+
 function getReviewDateTime(reviewDate: string) {
   const [year, month, day] = reviewDate.split('-').map(Number);
   const scheduled = new Date(year, (month ?? 1) - 1, day ?? 1, REVIEW_HOUR, REVIEW_MINUTE, 0, 0);
@@ -28,9 +35,10 @@ function getReviewDateTime(reviewDate: string) {
   return scheduled;
 }
 
-async function ensureWhyNotificationPermission() {
+async function ensureWhyNotificationPermission(requestPermission = true) {
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) return true;
+  if (!requestPermission) return false;
 
   const requested = await Notifications.requestPermissionsAsync();
   return requested.granted;
@@ -57,11 +65,44 @@ export async function cancelWhyReviewNotification(notificationId?: string) {
   }
 }
 
+function isWhyReviewNotification(request: Notifications.NotificationRequest) {
+  const data = request.content.data ?? {};
+  const type = typeof data.type === 'string' ? data.type : undefined;
+  const route = typeof data.route === 'string' ? data.route : undefined;
+
+  return type === 'why_review' || route?.startsWith('/why/review');
+}
+
+export async function cancelAllWhyReviewNotifications(notificationIds: Array<string | undefined> = []) {
+  if (!isSupportedPlatform()) return;
+
+  const uniqueIds = [...new Set(notificationIds.filter((id): id is string => !!id))];
+
+  for (const notificationId of uniqueIds) {
+    await cancelWhyReviewNotification(notificationId);
+  }
+
+  try {
+    const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
+
+    await Promise.all(
+      scheduledNotifications
+        .filter((request) => !uniqueIds.includes(request.identifier) && isWhyReviewNotification(request))
+        .map((request) => Notifications.cancelScheduledNotificationAsync(request.identifier)),
+    );
+  } catch (error) {
+    reportWarning('[WHY] Failed to cancel scheduled review notifications', error, {
+      notificationCount: uniqueIds.length,
+    });
+  }
+}
+
 export async function scheduleWhyReviewNotification(params: {
   thesisId: string;
   symbol: string;
   reviewDate: string;
   previousNotificationId?: string;
+  requestPermission?: boolean;
 }): Promise<WhyNotificationResult> {
   if (!isSupportedPlatform()) {
     return {
@@ -70,7 +111,7 @@ export async function scheduleWhyReviewNotification(params: {
     };
   }
 
-  const granted = await ensureWhyNotificationPermission();
+  const granted = await ensureWhyNotificationPermission(params.requestPermission ?? true);
   if (!granted) {
     return {
       enabled: false,
@@ -113,4 +154,49 @@ export async function scheduleWhyReviewNotification(params: {
       message: 'Unable to schedule review notification.',
     };
   }
+}
+
+export async function restoreWhyReviewNotifications(theses: InvestmentThesis[]) {
+  const normalizedTheses: InvestmentThesis[] = theses.map((thesis) => ({
+    ...thesis,
+    notifyOnReview: false,
+    reviewNotificationId: undefined,
+  }));
+
+  const restorableTheses = theses.filter(
+    (thesis) => thesis.status === 'active' && thesis.notifyOnReview && isFutureReviewDate(thesis.reviewDate),
+  );
+
+  if (!restorableTheses.length || !isSupportedPlatform()) {
+    return {
+      theses: normalizedTheses,
+      scheduledCount: 0,
+    };
+  }
+
+  const restoredById = new Map(normalizedTheses.map((thesis) => [thesis.id, thesis]));
+  let scheduledCount = 0;
+
+  for (const thesis of restorableTheses) {
+    const result = await scheduleWhyReviewNotification({
+      thesisId: thesis.id,
+      symbol: thesis.symbol,
+      reviewDate: thesis.reviewDate,
+      requestPermission: false,
+    });
+
+    if (result.enabled) {
+      restoredById.set(thesis.id, {
+        ...thesis,
+        notifyOnReview: true,
+        reviewNotificationId: result.notificationId,
+      });
+      scheduledCount += 1;
+    }
+  }
+
+  return {
+    theses: normalizedTheses.map((thesis) => restoredById.get(thesis.id) ?? thesis),
+    scheduledCount,
+  };
 }

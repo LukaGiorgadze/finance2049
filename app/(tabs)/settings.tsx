@@ -4,8 +4,10 @@ import { Colors } from '@/constants/theme';
 import { useTheme } from '@/contexts/theme-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
+  cancelAllWhyReviewNotifications,
   disablePushNotifications,
   enablePushNotifications,
+  restoreWhyReviewNotifications,
   setInAppMessagesEnabled,
   store$,
   trackSettingsAction,
@@ -14,8 +16,8 @@ import {
   useInAppMessagesEnabled,
   useNotificationsEnabled,
 } from '@/lib';
-import { reportError } from '@/lib/crashlytics';
-import { CURRENT_SCHEMA_VERSION } from '@/lib/store/types';
+import { reportError, reportWarning } from '@/lib/crashlytics';
+import { CURRENT_SCHEMA_VERSION, type InvestmentThesis } from '@/lib/store/types';
 import Constants from 'expo-constants';
 import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
@@ -375,24 +377,49 @@ export default function SettingsScreen() {
           {
             text: 'Restore',
             style: 'destructive',
-            onPress: () => {
-              store$.portfolio.holdings.set(data.portfolio.holdings);
-              store$.portfolio.transactions.set(data.portfolio.transactions);
-              store$.why.set({
-                theses: Array.isArray(data.why?.theses) ? data.why.theses : [],
-              });
+            onPress: async () => {
+              try {
+                const existingNotificationIds = (store$.why.theses.get() ?? [])
+                  .map((thesis) => thesis.reviewNotificationId);
+                const importedTheses = (Array.isArray(data.why?.theses) ? data.why.theses : []) as InvestmentThesis[];
+                const restoredThesesWithoutNotificationState = importedTheses.map((thesis) => ({
+                  ...thesis,
+                  notifyOnReview: false,
+                  reviewNotificationId: undefined,
+                }));
 
-              if (data.market) {
-                if (data.market.prices) store$.market.prices.set(data.market.prices);
-                if (data.market.indices) store$.market.indices.set(data.market.indices);
-                if (data.market.lastUpdated) store$.market.lastUpdated.set(data.market.lastUpdated);
+                store$.portfolio.holdings.set(data.portfolio.holdings);
+                store$.portfolio.transactions.set(data.portfolio.transactions);
+                store$.why.set({ theses: restoredThesesWithoutNotificationState });
+
+                if (data.market) {
+                  if (data.market.prices) store$.market.prices.set(data.market.prices);
+                  if (data.market.indices) store$.market.indices.set(data.market.indices);
+                  if (data.market.lastUpdated) store$.market.lastUpdated.set(data.market.lastUpdated);
+                }
+
+                if (data.preferences) {
+                  store$.preferences.set(data.preferences);
+                }
+
+                try {
+                  await cancelAllWhyReviewNotifications(existingNotificationIds);
+                  const restoredWhy = await restoreWhyReviewNotifications(importedTheses);
+                  store$.why.set({ theses: restoredWhy.theses });
+                } catch (notificationError) {
+                  reportWarning('[Restore] Failed to restore thesis notifications', notificationError, {
+                    surface: 'settings',
+                    thesisCount: importedTheses.length,
+                  });
+                }
+
+                Alert.alert('Restored', 'Your data has been restored from backup.');
+              } catch (error) {
+                reportError('[Restore] Failed to apply restored data', error, {
+                  surface: 'settings',
+                });
+                Alert.alert('Restore Failed', 'The backup was read, but could not be applied.');
               }
-
-              if (data.preferences) {
-                store$.preferences.set(data.preferences);
-              }
-
-              Alert.alert('Restored', 'Your data has been restored from backup.');
             },
           },
         ]

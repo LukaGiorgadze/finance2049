@@ -77,7 +77,9 @@ export {
   syncPushNotificationsOnStartup,
 } from './notifications';
 export {
+  cancelAllWhyReviewNotifications,
   cancelWhyReviewNotification,
+  restoreWhyReviewNotifications,
   scheduleWhyReviewNotification,
 } from './whyNotifications';
 export type { WhyNotificationResult } from './whyNotifications';
