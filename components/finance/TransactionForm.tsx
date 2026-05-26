@@ -1,4 +1,5 @@
 import { ImportButton } from '@/components/ui/import-button';
+import { AppBottomSheetModal } from '@/components/ui/app-bottom-sheet';
 import { Input } from '@/components/ui/input';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -11,11 +12,12 @@ import type { TickerSearchResult } from '@/lib/services/types';
 import type { AssetType } from '@/lib/store/types';
 import { mapApiTypeToAssetType } from '@/lib/utils/assetLookup';
 import { Ionicons } from '@expo/vector-icons';
+import { BottomSheetView } from '@gorhom/bottom-sheet';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AssetSearchModal } from './AssetSearchModal';
 
 type TransactionType = 'buy' | 'sell';
@@ -32,9 +34,10 @@ interface TransactionFormProps {
   /**
    * Called when the user taps "Import". If omitted the form navigates to
    * /import-transactions directly. Pass a custom handler when the form lives
-   * inside a Modal so the caller can dismiss the modal first.
+   * inside a sheet so the caller can dismiss the sheet first.
    */
   onImportPress?: () => void;
+  useBottomSheetTextInputs?: boolean;
   analyticsContext?: string;
 }
 
@@ -49,7 +52,7 @@ export interface TransactionData {
   assetType?: AssetType;
 }
 
-export function TransactionForm({ initialSymbol = '', initialType = 'buy', initialAssetType, initialName, onSubmit, onCancel, onDone, onImportPress, analyticsContext = 'transaction_form' }: TransactionFormProps) {
+export function TransactionForm({ initialSymbol = '', initialType = 'buy', initialAssetType, initialName, onSubmit, onCancel, onDone, onImportPress, useBottomSheetTextInputs = false, analyticsContext = 'transaction_form' }: TransactionFormProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const colors = Colors[colorScheme ?? 'light'];
@@ -386,7 +389,7 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
           </TouchableOpacity>
         </View>
 
-        {/* Android: native dialog; iOS: shown inside Modal below */}
+        {/* Android: native dialog; iOS: shown inside the bottom sheet below */}
         {showDatePicker && Platform.OS === 'android' && (
           <DateTimePicker
             value={date}
@@ -397,42 +400,40 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
           />
         )}
 
-        {/* iOS: date picker in a modal popup */}
+        {/* iOS: date picker in a bottom sheet */}
         {Platform.OS === 'ios' && (
-          <Modal
+          <AppBottomSheetModal
             visible={showDatePicker}
-            transparent
-            animationType="none"
+            onDismiss={() => setShowDatePicker(false)}
+            backgroundColor={colors.cardBackground}
+            backdropColor={colors.overlay}
+            backdropOpacity={1}
+            handleIndicatorColor={colors.iconMuted}
           >
-            <Pressable
-              style={[styles.datePickerOverlay, { backgroundColor: colors.overlay }]}
-              onPress={() => setShowDatePicker(false)}
-            >
-              <Pressable style={[styles.datePickerSheet, { backgroundColor: colors.cardBackground }]} onPress={(e) => e.stopPropagation()}>
-                <View style={styles.datePickerHeader}>
-                  <TouchableOpacity onPress={() => setShowDatePicker(false)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-                    <Text style={[styles.datePickerDone, { color: colors.blue }]}>Done</Text>
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.datePickerSpinnerWrapper}>
-                  <DateTimePicker
-                    value={date}
-                    mode="date"
-                    display="spinner"
-                    maximumDate={maxDate}
-                    onChange={(event, selectedDate) => {
-                      if (selectedDate) {
-                        const todayStr = formatLocalDateISO(new Date());
-                        const selectedStr = formatLocalDateISO(selectedDate);
-                        setDate(selectedStr > todayStr ? new Date() : selectedDate);
-                      }
-                    }}
-                    themeVariant={isDark ? 'dark' : 'light'}
-                  />
-                </View>
-              </Pressable>
-            </Pressable>
-          </Modal>
+            <BottomSheetView style={styles.datePickerSheet}>
+              <View style={styles.datePickerHeader}>
+                <TouchableOpacity onPress={() => setShowDatePicker(false)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                  <Text style={[styles.datePickerDone, { color: colors.blue }]}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.datePickerSpinnerWrapper}>
+                <DateTimePicker
+                  value={date}
+                  mode="date"
+                  display="spinner"
+                  maximumDate={maxDate}
+                  onChange={(event, selectedDate) => {
+                    if (selectedDate) {
+                      const todayStr = formatLocalDateISO(new Date());
+                      const selectedStr = formatLocalDateISO(selectedDate);
+                      setDate(selectedStr > todayStr ? new Date() : selectedDate);
+                    }
+                  }}
+                  themeVariant={isDark ? 'dark' : 'light'}
+                />
+              </View>
+            </BottomSheetView>
+          </AppBottomSheetModal>
         )}
 
         {/* Price */}
@@ -448,6 +449,7 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
           onFocus={() => setShowDatePicker(false)}
           rightAccessory={priceLoading ? <ActivityIndicator size="small" color={colors.icon} style={styles.priceLoader} /> : undefined}
           editable={!priceLoading}
+          useBottomSheetTextInput={useBottomSheetTextInputs}
         />
 
         {/* Quantity / Amount */}
@@ -494,6 +496,7 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
               <Text style={[styles.allButtonText, { color: colors.icon }]}>All</Text>
             </TouchableOpacity>
           ) : undefined}
+          useBottomSheetTextInput={useBottomSheetTextInputs}
         />
 
         {/* Commission (Optional) */}
@@ -507,6 +510,7 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
           keyboardType="decimal-pad"
           showClearButton={false}
           onFocus={() => setShowDatePicker(false)}
+          useBottomSheetTextInput={useBottomSheetTextInputs}
         />
 
         {/* Action Buttons */}
@@ -616,13 +620,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '500',
   },
-  datePickerOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
   datePickerSheet: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
     paddingBottom: 34,
   },
   datePickerHeader: {

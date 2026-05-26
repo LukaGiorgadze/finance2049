@@ -3,6 +3,8 @@ import { StyleSheet, View, Text, TextInput, TouchableOpacity, TextInputProps, Pl
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
+import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
+import type { TextInput as GestureHandlerTextInput } from 'react-native-gesture-handler';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -12,6 +14,7 @@ interface InputProps extends TextInputProps {
   showClearButton?: boolean;
   containerStyle?: ViewStyle;
   rightAccessory?: React.ReactNode;
+  useBottomSheetTextInput?: boolean;
 }
 
 export const Input = React.forwardRef<TextInput, InputProps>(function Input({
@@ -23,13 +26,29 @@ export const Input = React.forwardRef<TextInput, InputProps>(function Input({
   value,
   containerStyle,
   rightAccessory,
+  useBottomSheetTextInput = false,
   ...textInputProps
 }: InputProps, forwardedRef) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInput | GestureHandlerTextInput | null>(null);
 
-  const setInputRef = useCallback((node: TextInput | null) => {
+  const setInputRef = useCallback((node: TextInput | GestureHandlerTextInput | null | undefined) => {
+    const inputNode = node ?? null;
+    inputRef.current = inputNode;
+
+    const forwardedNode = inputNode as TextInput | null;
+    if (typeof forwardedRef === 'function') {
+      forwardedRef(forwardedNode);
+      return;
+    }
+
+    if (forwardedRef) {
+      forwardedRef.current = forwardedNode;
+    }
+  }, [forwardedRef]);
+
+  const setNativeInputRef = useCallback((node: TextInput | null) => {
     inputRef.current = node;
 
     if (typeof forwardedRef === 'function') {
@@ -73,13 +92,23 @@ export const Input = React.forwardRef<TextInput, InputProps>(function Input({
             style={styles.icon}
           />
         )}
-        <TextInput
-          ref={setInputRef}
-          style={[styles.input, { color: colors.text }]}
-          placeholderTextColor={colors.icon}
-          value={value}
-          {...textInputProps}
-        />
+        {useBottomSheetTextInput ? (
+          <BottomSheetTextInput
+            ref={setInputRef}
+            style={[styles.input, { color: colors.text }]}
+            placeholderTextColor={colors.icon}
+            value={value}
+            {...textInputProps}
+          />
+        ) : (
+          <TextInput
+            ref={setNativeInputRef}
+            style={[styles.input, { color: colors.text }]}
+            placeholderTextColor={colors.icon}
+            value={value}
+            {...textInputProps}
+          />
+        )}
         {showClearButton && value && value.length > 0 && (
           <TouchableOpacity onPress={onClear}>
             <Ionicons name="close-circle" size={20} color={colors.icon} />

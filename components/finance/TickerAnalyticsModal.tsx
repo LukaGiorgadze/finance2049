@@ -1,4 +1,5 @@
 import { ThemedText } from '@/components/themed-text';
+import { AppBottomSheetModal } from '@/components/ui/app-bottom-sheet';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -16,9 +17,9 @@ import {
 } from '@/lib';
 import type { TickerStat } from '@/lib/hooks/useAnalytics';
 import { Ionicons } from '@expo/vector-icons';
+import { BottomSheetView } from '@gorhom/bottom-sheet';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Modal,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -83,15 +84,20 @@ export function TickerAnalyticsModal({ visible, onClose, ticker }: Props) {
   const textColor = colors.text;
 
   return (
-    <Modal
+    <AppBottomSheetModal
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
+      onDismiss={onClose}
+      snapPoints={['96%']}
+      enableDynamicSizing={false}
+      enableContentPanningGesture={false}
+      backgroundColor={colors.surface}
+      backdropColor={colors.overlayStrong}
+      handleIndicatorColor={colors.iconMuted}
+      topInset={insets.top}
     >
-      <View style={[styles.container, { backgroundColor: colors.surface }]}>
+      <BottomSheetView style={[styles.container, { backgroundColor: colors.surface }]}>
         {/* ── Header ── */}
-        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.header}>
           <View style={styles.headerContent}>
             <ThemedText style={styles.headerTitle}>{ticker.symbol}</ThemedText>
             <View style={styles.headerSubtitleRow}>
@@ -307,8 +313,8 @@ export function TickerAnalyticsModal({ visible, onClose, ticker }: Props) {
           symbol={symbol}
           analyticsContext="statistics"
         />
-      </View>
-    </Modal>
+      </BottomSheetView>
+    </AppBottomSheetModal>
   );
 }
 
@@ -357,6 +363,7 @@ const styles = StyleSheet.create({
 
   header: {
     paddingHorizontal: 20,
+    paddingTop: 8,
     paddingBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',

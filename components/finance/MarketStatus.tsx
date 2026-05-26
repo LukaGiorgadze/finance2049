@@ -1,5 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AppBottomSheetModal } from '@/components/ui/app-bottom-sheet';
 import { SectionTitle } from '@/components/ui/section-title';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -7,14 +8,17 @@ import { trackHomeAction, useInAppMessageSuppression } from '@/lib';
 import { useMarketStatus } from '@/lib/hooks/useMarketStatus';
 import type { MarketHoliday } from '@/lib/services/types';
 import { Ionicons } from '@expo/vector-icons';
+import { BottomSheetView } from '@gorhom/bottom-sheet';
 import { useMemo, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export function MarketStatus() {
   const { status, holidays, loading } = useMarketStatus();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const colors = isDark ? Colors.dark : Colors.light;
+  const insets = useSafeAreaInsets();
   const [visible, setVisible] = useState(false);
   useInAppMessageSuppression(visible);
 
@@ -99,13 +103,18 @@ export function MarketStatus() {
         </TouchableOpacity>
       </ThemedView>
 
-      <Modal
+      <AppBottomSheetModal
         visible={visible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setVisible(false)}
+        onDismiss={() => setVisible(false)}
+        snapPoints={['70%']}
+        enableDynamicSizing={false}
+        enableContentPanningGesture={false}
+        backgroundColor={colors.background}
+        backdropColor={colors.overlayStrong}
+        handleIndicatorColor={colors.iconMuted}
+        topInset={insets.top}
       >
-        <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+        <BottomSheetView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
@@ -123,7 +132,7 @@ export function MarketStatus() {
           </View>
 
           <ScrollView
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
             showsVerticalScrollIndicator={false}
           >
             {/* Exchanges */}
@@ -148,8 +157,8 @@ export function MarketStatus() {
               <HolidaysSection holidays={holidays} colors={colors} />
             )}
           </ScrollView>
-        </View>
-      </Modal>
+        </BottomSheetView>
+      </AppBottomSheetModal>
     </>
   );
 }

@@ -1,11 +1,13 @@
 import { ThemedText } from '@/components/themed-text';
+import { AppBottomSheetModal } from '@/components/ui/app-bottom-sheet';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { trackTransactionsAction, useInAppMessageSuppression } from '@/lib';
 import { Ionicons } from '@expo/vector-icons';
+import { BottomSheetView } from '@gorhom/bottom-sheet';
 import { router } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
-import { Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TransactionData, TransactionForm } from './TransactionForm';
 
@@ -51,15 +53,23 @@ export function TransactionModal({ visible, onClose, initialSymbol, initialName,
   };
 
   return (
-    <Modal
+    <AppBottomSheetModal
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
+      onDismiss={onClose}
+      snapPoints={['96%']}
+      enableDynamicSizing={false}
+      enableContentPanningGesture={false}
+      backgroundColor={colors.surface}
+      backdropColor={colors.overlayStrong}
+      handleIndicatorColor={colors.iconMuted}
+      topInset={insets.top}
+      keyboardBehavior="extend"
+      keyboardBlurBehavior="restore"
+      android_keyboardInputMode="adjustResize"
     >
-      <View style={[styles.container, { backgroundColor: colors.surface }]}>
+      <BottomSheetView style={[styles.container, { backgroundColor: colors.surface }]}>
         {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.header}>
           <View style={styles.headerContent}>
             <ThemedText style={styles.headerTitle}>Record Transaction</ThemedText>
           </View>
@@ -92,10 +102,11 @@ export function TransactionModal({ visible, onClose, initialSymbol, initialName,
             onClose();
             setTimeout(() => router.push('/import-transactions'), 350);
           }}
+          useBottomSheetTextInputs
           analyticsContext={analyticsContext}
         />
-      </View>
-    </Modal>
+      </BottomSheetView>
+    </AppBottomSheetModal>
   );
 }
 
@@ -105,6 +116,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
+    paddingTop: 8,
     paddingBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',

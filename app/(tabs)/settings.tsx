@@ -776,7 +776,6 @@ export default function SettingsScreen() {
       <Modal
         visible={currencyModalVisible}
         animationType="slide"
-        presentationStyle="pageSheet"
         onRequestClose={() => setCurrencyModalVisible(false)}
       >
         <View style={[styles.modalContainer, { backgroundColor: colors.surface }]}>

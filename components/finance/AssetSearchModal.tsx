@@ -1,4 +1,5 @@
 import { ThemedText } from '@/components/themed-text';
+import { AppBottomSheetModal } from '@/components/ui/app-bottom-sheet';
 import { Input } from '@/components/ui/input';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
@@ -8,14 +9,13 @@ import { reportWarning } from '@/lib/crashlytics';
 import { marketDataService } from '@/lib/services/marketDataService';
 import type { TickerSearchResult } from '@/lib/services/types';
 import { getTickerTypeInfo } from '@/lib/utils/assetLookup';
+import { BottomSheetView } from '@gorhom/bottom-sheet';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Keyboard,
-  Modal,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -84,6 +84,12 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
       clearTimeout(focusTimeoutRef.current);
     }
   }, []);
+
+  useEffect(() => {
+    if (visible) {
+      focusSearchInput();
+    }
+  }, [focusSearchInput, visible]);
 
   useEffect(() => {
     if (!analyticsContext) {
@@ -197,125 +203,126 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
   };
 
   return (
-    <Modal
+    <AppBottomSheetModal
       visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={handleClose}
-      onShow={Platform.OS === 'android' ? focusSearchInput : undefined}
-      statusBarTranslucent
+      onDismiss={handleClose}
+      snapPoints={['94%']}
+      enableDynamicSizing={false}
+      enableContentPanningGesture={false}
+      backgroundColor={colors.surface}
+      backdropColor={colors.overlayStrong}
+      backdropOpacity={1}
+      handleIndicatorColor={colors.iconMuted}
+      keyboardBehavior="extend"
+      keyboardBlurBehavior="restore"
+      android_keyboardInputMode="adjustResize"
     >
-      <View style={[styles.overlay, { backgroundColor: colors.overlayStrong }]}>
-        <View style={[styles.content, { backgroundColor: colors.surface }]}>
-          <View style={styles.header}>
-            <Input
-              ref={searchInputRef}
-              icon="search"
-              placeholder="Search for stocks, ETFs & more"
-              value={searchText}
-              onChangeText={setSearchText}
-              onClear={() => setSearchText('')}
-              showClearButton={true}
-              containerStyle={styles.input}
-              autoFocus={Platform.OS !== 'android'}
-            />
-            <TouchableOpacity onPress={handleClose} style={styles.cancelButton}>
-              <Text style={[styles.cancelText, { color: colors.blue }]}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            style={styles.resultsContainer}
-            showsVerticalScrollIndicator={true}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-            onScroll={handleScroll}
-            onScrollBeginDrag={dismissSearchKeyboard}
-            scrollEventThrottle={400}
-          >
-            {searching ? (
-              <View style={[styles.statusContainer, { backgroundColor: colors.cardBackground }]}>
-                <ActivityIndicator size="small" color={colors.text} />
-              </View>
-            ) : results.length > 0 ? (
-              <View style={[styles.resultsList, { backgroundColor: colors.cardBackground }]}>
-                {results.map((item, index) => {
-                  const hasBrandColor = !!BRAND_COLORS[item.symbol];
-                  const brandColor = BRAND_COLORS[item.symbol] || colors.surface;
-                  const badgeTextColor = hasBrandColor ? colors.textOnColor : colors.text;
-                  const showDivider = index !== results.length - 1;
-                  const typeInfo = getTickerTypeInfo(item.type);
-
-                  return (
-                    <TouchableOpacity
-                      key={`${item.symbol}-${index}`}
-                      style={[
-                        styles.resultRow,
-                        showDivider && {
-                          borderBottomWidth: 1,
-                          borderBottomColor: colors.cardBorder,
-                        }
-                      ]}
-                      activeOpacity={0.7}
-                      onPress={() => handleSelectAsset(item)}
-                    >
-                      <View style={styles.leftSection}>
-                        <View style={[styles.symbolBadge, { backgroundColor: brandColor }]}>
-                          <ThemedText style={[styles.symbolBadgeText, { color: badgeTextColor }]}>
-                            {item.symbol}
-                          </ThemedText>
-                        </View>
-                        <View style={styles.stockInfo}>
-                          <ThemedText style={styles.companyName} numberOfLines={1}>
-                            {item.name}
-                          </ThemedText>
-                        </View>
-                      </View>
-                      <View style={styles.rightSection}>
-                        <View style={[styles.typeBadge, { backgroundColor: typeInfo.color + '1A' }]}>
-                          <Text style={[styles.typeText, { color: typeInfo.color }]}>
-                            {typeInfo.label}
-                          </Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-
-                {/* Loading more indicator */}
-                {loadingMore && (
-                  <View style={styles.loadingMore}>
-                    <ActivityIndicator size="small" color={colors.text} />
-                  </View>
-                )}
-              </View>
-            ) : searchText.trim().length >= 2 ? (
-              <View style={[styles.statusContainer, { backgroundColor: colors.cardBackground }]}>
-                <Text style={[styles.statusText, { color: colors.icon }]}>
-                  No results found for &quot;{searchText}&quot;
-                </Text>
-              </View>
-            ) : (
-              <View style={[styles.statusContainer, { backgroundColor: colors.cardBackground }]}>
-                <Text style={[styles.statusText, { color: colors.icon }]}>
-                  Start typing to search for stocks, ETFs & more
-                </Text>
-              </View>
-            )}
-          </ScrollView>
+      <BottomSheetView style={[styles.content, { backgroundColor: colors.surface }]}>
+        <View style={styles.header}>
+          <Input
+            ref={searchInputRef}
+            icon="search"
+            placeholder="Search for stocks, ETFs & more"
+            value={searchText}
+            onChangeText={setSearchText}
+            onClear={() => setSearchText('')}
+            showClearButton={true}
+            containerStyle={styles.input}
+            useBottomSheetTextInput
+          />
+          <TouchableOpacity onPress={handleClose} style={styles.cancelButton}>
+            <Text style={[styles.cancelText, { color: colors.blue }]}>Cancel</Text>
+          </TouchableOpacity>
         </View>
-      </View>
-    </Modal>
+
+        <ScrollView
+          style={styles.resultsContainer}
+          showsVerticalScrollIndicator={true}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          onScroll={handleScroll}
+          onScrollBeginDrag={dismissSearchKeyboard}
+          scrollEventThrottle={400}
+        >
+          {searching ? (
+            <View style={[styles.statusContainer, { backgroundColor: colors.cardBackground }]}>
+              <ActivityIndicator size="small" color={colors.text} />
+            </View>
+          ) : results.length > 0 ? (
+            <View style={[styles.resultsList, { backgroundColor: colors.cardBackground }]}>
+              {results.map((item, index) => {
+                const hasBrandColor = !!BRAND_COLORS[item.symbol];
+                const brandColor = BRAND_COLORS[item.symbol] || colors.surface;
+                const badgeTextColor = hasBrandColor ? colors.textOnColor : colors.text;
+                const showDivider = index !== results.length - 1;
+                const typeInfo = getTickerTypeInfo(item.type);
+
+                return (
+                  <TouchableOpacity
+                    key={`${item.symbol}-${index}`}
+                    style={[
+                      styles.resultRow,
+                      showDivider && {
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.cardBorder,
+                      }
+                    ]}
+                    activeOpacity={0.7}
+                    onPress={() => handleSelectAsset(item)}
+                  >
+                    <View style={styles.leftSection}>
+                      <View style={[styles.symbolBadge, { backgroundColor: brandColor }]}>
+                        <ThemedText style={[styles.symbolBadgeText, { color: badgeTextColor }]}>
+                          {item.symbol}
+                        </ThemedText>
+                      </View>
+                      <View style={styles.stockInfo}>
+                        <ThemedText style={styles.companyName} numberOfLines={1}>
+                          {item.name}
+                        </ThemedText>
+                      </View>
+                    </View>
+                    <View style={styles.rightSection}>
+                      <View style={[styles.typeBadge, { backgroundColor: typeInfo.color + '1A' }]}>
+                        <Text style={[styles.typeText, { color: typeInfo.color }]}>
+                          {typeInfo.label}
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+
+              {/* Loading more indicator */}
+              {loadingMore && (
+                <View style={styles.loadingMore}>
+                  <ActivityIndicator size="small" color={colors.text} />
+                </View>
+              )}
+            </View>
+          ) : searchText.trim().length >= 2 ? (
+            <View style={[styles.statusContainer, { backgroundColor: colors.cardBackground }]}>
+              <Text style={[styles.statusText, { color: colors.icon }]}>
+                No results found for &quot;{searchText}&quot;
+              </Text>
+            </View>
+          ) : (
+            <View style={[styles.statusContainer, { backgroundColor: colors.cardBackground }]}>
+              <Text style={[styles.statusText, { color: colors.icon }]}>
+                Start typing to search for stocks, ETFs & more
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      </BottomSheetView>
+    </AppBottomSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-  },
   content: {
     flex: 1,
-    paddingTop: 60,
+    paddingTop: 8,
   },
   header: {
     flexDirection: 'row',

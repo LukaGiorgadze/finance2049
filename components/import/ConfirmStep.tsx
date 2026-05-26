@@ -1,4 +1,5 @@
 import { AssetSearchModal } from '@/components/finance/AssetSearchModal';
+import { AppBottomSheetModal } from '@/components/ui/app-bottom-sheet';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
 import { formatCurrency, trackImportAction, useInAppMessageSuppression } from '@/lib';
@@ -7,12 +8,11 @@ import type { TickerSearchResult } from '@/lib/services/types';
 import type { Holding, MarketPrice } from '@/lib/store/types';
 import { calculatePortfolioTotals, formatDate } from '@/lib/utils/calculations';
 import { Ionicons } from '@expo/vector-icons';
+import { BottomSheetView } from '@gorhom/bottom-sheet';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useState } from 'react';
 import {
-  Modal,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -459,26 +459,31 @@ function TxSubRow({
 
       {/* iOS date picker */}
       {Platform.OS === 'ios' && (
-        <Modal visible={showDatePicker} transparent animationType="none">
-          <Pressable style={[s.dateOverlay, { backgroundColor: colors.overlay }]} onPress={() => setShowDatePicker(false)}>
-            <Pressable style={[s.dateSheet, { backgroundColor: colors.cardBackground }]} onPress={e => e.stopPropagation()}>
-              <View style={s.dateSheetHeader}>
-                <TouchableOpacity onPress={() => setShowDatePicker(false)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-                  <Text style={[s.dateSheetDone, { color: colors.blue }]}>Done</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={{ alignItems: 'center' }}>
-                <DateTimePicker
-                  value={parsedDate}
-                  mode="date"
-                  display="spinner"
-                  onChange={(_, d) => { if (d) onChange({ ...tx, date: fmtDate(d) }); }}
-                  themeVariant={isDark ? 'dark' : 'light'}
-                />
-              </View>
-            </Pressable>
-          </Pressable>
-        </Modal>
+        <AppBottomSheetModal
+          visible={showDatePicker}
+          onDismiss={() => setShowDatePicker(false)}
+          backgroundColor={colors.cardBackground}
+          backdropColor={colors.overlay}
+          backdropOpacity={1}
+          handleIndicatorColor={colors.iconMuted}
+        >
+          <BottomSheetView style={s.dateSheet}>
+            <View style={s.dateSheetHeader}>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                <Text style={[s.dateSheetDone, { color: colors.blue }]}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ alignItems: 'center' }}>
+              <DateTimePicker
+                value={parsedDate}
+                mode="date"
+                display="spinner"
+                onChange={(_, d) => { if (d) onChange({ ...tx, date: fmtDate(d) }); }}
+                themeVariant={isDark ? 'dark' : 'light'}
+              />
+            </View>
+          </BottomSheetView>
+        </AppBottomSheetModal>
       )}
     </View>
   );
@@ -813,9 +818,7 @@ const s = StyleSheet.create({
   fieldLabel: { fontSize: 11, fontWeight: '600', letterSpacing: 0.2, marginBottom: 5 },
   input: { borderRadius: 9, paddingHorizontal: 10, paddingVertical: Platform.OS === 'ios' ? 9 : 6, fontSize: 14 },
 
-  // Date picker (overlay uses theme.overlay via inline style where colors available)
-  dateOverlay: { flex: 1, justifyContent: 'flex-end' },
-  dateSheet: { borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingBottom: 34 },
+  dateSheet: { paddingBottom: 34 },
   dateSheetHeader: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
   dateSheetDone: { fontSize: 17, fontWeight: '600' },
 

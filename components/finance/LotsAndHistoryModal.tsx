@@ -1,12 +1,13 @@
 import { ThemedText } from '@/components/themed-text';
+import { AppBottomSheetModal } from '@/components/ui/app-bottom-sheet';
 import { BRAND_COLORS } from '@/constants/brand-colors';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { deleteTransaction, formatCurrency, formatDate, formatPercent, formatShares, getValueColor, trackPositionDetailAction, UITransaction, useInAppMessageSuppression, useUITransactionsBySymbol, validateTransactionDeletion } from '@/lib';
 import { Ionicons } from '@expo/vector-icons';
+import { BottomSheetView } from '@gorhom/bottom-sheet';
 import React, { useEffect, useRef } from 'react';
-import { Alert, FlatList, Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Alert, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Swipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -394,16 +395,20 @@ export function LotsAndHistoryModal({ visible, onClose, type, lots = [], symbol,
   };
 
   return (
-    <Modal
+    <AppBottomSheetModal
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
+      onDismiss={onClose}
+      snapPoints={['96%']}
+      enableDynamicSizing={false}
+      enableContentPanningGesture={false}
+      backgroundColor={colors.surface}
+      backdropColor={colors.overlayStrong}
+      handleIndicatorColor={colors.iconMuted}
+      topInset={insets.top}
     >
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <View style={[styles.container, { backgroundColor: colors.surface }]}>
+      <BottomSheetView style={[styles.container, { backgroundColor: colors.surface }]}>
         {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.header}>
           <View style={styles.headerContent}>
             <ThemedText style={styles.headerTitle}>
               {type === 'lots' ? 'Lots' : 'Transaction History'}
@@ -494,9 +499,8 @@ export function LotsAndHistoryModal({ visible, onClose, type, lots = [], symbol,
             initialNumToRender={20}
           />
         )}
-        </View>
-      </GestureHandlerRootView>
-    </Modal>
+        </BottomSheetView>
+    </AppBottomSheetModal>
   );
 }
 
@@ -506,6 +510,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
+    paddingTop: 8,
     paddingBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
