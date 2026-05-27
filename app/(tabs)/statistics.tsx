@@ -337,6 +337,14 @@ function filterRealizedGains(gains: RealizedGain[], range: PnLRange): RealizedGa
   return gains.filter((g) => g.dateKey >= cutoffKey);
 }
 
+function getAvailablePnLRanges(gains: RealizedGain[]): PnLRange[] {
+  return PNL_RANGES.filter((range) => filterRealizedGains(gains, range).length > 0);
+}
+
+function getDefaultPnLRange(gains: RealizedGain[]): PnLRange {
+  return getAvailablePnLRanges(gains)[0] ?? 'All';
+}
+
 const RealizedPnLChart = memo(function RealizedPnLChart({
   realizedGains,
   isDark,
@@ -345,7 +353,11 @@ const RealizedPnLChart = memo(function RealizedPnLChart({
   isDark: boolean;
 }) {
   const colors = isDark ? Colors.dark : Colors.light;
-  const [pnlRange, setPnlRange] = useState<PnLRange>('1M');
+  const defaultPnlRange = useMemo(
+    () => getDefaultPnLRange(realizedGains),
+    [realizedGains],
+  );
+  const [pnlRange, setPnlRange] = useState<PnLRange>(() => defaultPnlRange);
 
   const filteredGains = useMemo(
     () => filterRealizedGains(realizedGains, pnlRange),
@@ -411,6 +423,10 @@ const RealizedPnLChart = memo(function RealizedPnLChart({
   useEffect(() => {
     setTooltipData(null);
   }, [pnlRange]);
+
+  useEffect(() => {
+    setPnlRange(defaultPnlRange);
+  }, [defaultPnlRange]);
 
   if (Platform.OS === 'web' || realizedGains.length === 0) return null;
 

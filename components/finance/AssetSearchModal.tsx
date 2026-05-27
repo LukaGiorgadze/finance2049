@@ -9,26 +9,40 @@ import { reportWarning } from '@/lib/crashlytics';
 import { marketDataService } from '@/lib/services/marketDataService';
 import type { TickerSearchResult } from '@/lib/services/types';
 import { getTickerTypeInfo } from '@/lib/utils/assetLookup';
-import { BottomSheetView } from '@gorhom/bottom-sheet';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Keyboard,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface AssetSearchModalProps {
   visible: boolean;
   onClose: () => void;
   onSelectAsset: (asset: TickerSearchResult) => void;
   analyticsContext?: string;
+}
+
+const getSearchResultKey = (item: TickerSearchResult) => (
+  `${item.symbol}:${item.market ?? ''}:${item.type ?? ''}`.toUpperCase()
+);
+
+function dedupeSearchResults(items: TickerSearchResult[]) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = getSearchResultKey(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsContext }: AssetSearchModalProps) {
@@ -41,11 +55,14 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
   const nextUrlRef = useRef<string | undefined>(undefined);
   const searchInputRef = useRef<TextInput>(null);
   const hasFocusedOnOpenRef = useRef(false);
+  const loadingMoreRef = useRef(false);
+  const resultKeysRef = useRef<Set<string>>(new Set());
   const visibleRef = useRef(visible);
   const searchRequestIdRef = useRef(0);
   const wasVisibleRef = useRef(false);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const insets = useSafeAreaInsets();
 
   const dismissSearchKeyboard = useCallback(() => {
     searchInputRef.current?.blur();
@@ -70,6 +87,8 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
       setResults([]);
       setSearching(false);
       setLoadingMore(false);
+      loadingMoreRef.current = false;
+      resultKeysRef.current.clear();
       nextUrlRef.current = undefined;
     }
   }, [dismissSearchKeyboard, visible]);
@@ -104,6 +123,7 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
 
     if (query.length < 2) {
       setResults([]);
+      resultKeysRef.current.clear();
       nextUrlRef.current = undefined;
       setSearching(false);
       return;
@@ -121,7 +141,9 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
         if (!isActive || requestId !== searchRequestIdRef.current) {
           return;
         }
-        setResults(response.results);
+        const uniqueResults = dedupeSearchResults(response.results);
+        resultKeysRef.current = new Set(uniqueResults.map(getSearchResultKey));
+        setResults(uniqueResults);
         nextUrlRef.current = response.nextUrl;
       } catch (err) {
         if (!isActive || requestId !== searchRequestIdRef.current) {
@@ -131,6 +153,7 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
           query,
         });
         setResults([]);
+        resultKeysRef.current.clear();
         nextUrlRef.current = undefined;
       } finally {
         if (!isActive || requestId !== searchRequestIdRef.current) {
@@ -150,33 +173,47 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
   // Load more results via cursor pagination
   const handleLoadMore = useCallback(async () => {
     const nextUrl = nextUrlRef.current;
-    if (!nextUrl || loadingMore) return;
+    if (!nextUrl || loadingMoreRef.current) return;
 
+    const requestId = searchRequestIdRef.current;
+    loadingMoreRef.current = true;
     setLoadingMore(true);
     if (analyticsContext) {
       void trackSearchAction({ context: analyticsContext, action: 'load_more' });
     }
     try {
       const response = await marketDataService.searchTickers('', nextUrl);
-      setResults(prev => [...prev, ...response.results]);
-      nextUrlRef.current = response.nextUrl;
+      if (requestId !== searchRequestIdRef.current) {
+        return;
+      }
+      const uniqueResults = response.results.filter((item) => {
+        const key = getSearchResultKey(item);
+        if (resultKeysRef.current.has(key)) return false;
+        resultKeysRef.current.add(key);
+        return true;
+      });
+      setResults(prev => [...prev, ...uniqueResults]);
+      nextUrlRef.current = response.nextUrl && (response.nextUrl !== nextUrl || uniqueResults.length > 0)
+        ? response.nextUrl
+        : undefined;
     } catch (err) {
       reportWarning('[AssetSearchModal] Load more failed', err, {
         nextUrl,
       });
     } finally {
+      loadingMoreRef.current = false;
       setLoadingMore(false);
     }
-  }, [analyticsContext, loadingMore]);
+  }, [analyticsContext]);
 
   // Trigger load-more when scrolled near the bottom
   const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
     const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
-    if (distanceFromBottom < 200 && nextUrlRef.current && !loadingMore) {
+    if (distanceFromBottom < 200 && nextUrlRef.current && !loadingMoreRef.current) {
       handleLoadMore();
     }
-  }, [loadingMore, handleLoadMore]);
+  }, [handleLoadMore]);
 
   const handleSelectAsset = (asset: TickerSearchResult) => {
     dismissSearchKeyboard();
@@ -198,7 +235,6 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
       onChange={handleSheetChange}
       snapPoints={['94%']}
       enableDynamicSizing={false}
-      enableContentPanningGesture={false}
       backgroundColor={colors.surface}
       backdropColor={colors.overlayStrong}
       backdropOpacity={1}
@@ -207,33 +243,32 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
       keyboardBlurBehavior="restore"
       android_keyboardInputMode="adjustResize"
     >
-      <BottomSheetView style={[styles.content, { backgroundColor: colors.surface }]}>
-        <View style={styles.header}>
-          <Input
-            ref={searchInputRef}
-            icon="search"
-            placeholder="Search for stocks, ETFs & more"
-            value={searchText}
-            onChangeText={setSearchText}
-            onClear={() => setSearchText('')}
-            showClearButton={true}
-            containerStyle={styles.input}
-            useBottomSheetTextInput
-          />
-          <TouchableOpacity onPress={handleClose} style={styles.cancelButton}>
-            <Text style={[styles.cancelText, { color: colors.blue }]}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
+        <Input
+          ref={searchInputRef}
+          icon="search"
+          placeholder="Search for stocks, ETFs & more"
+          value={searchText}
+          onChangeText={setSearchText}
+          onClear={() => setSearchText('')}
+          showClearButton={true}
+          containerStyle={styles.input}
+          useBottomSheetTextInput
+        />
+        <TouchableOpacity onPress={handleClose} style={styles.cancelButton}>
+          <Text style={[styles.cancelText, { color: colors.blue }]}>Cancel</Text>
+        </TouchableOpacity>
+      </View>
 
-        <ScrollView
-          style={styles.resultsContainer}
-          showsVerticalScrollIndicator={true}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-          onScroll={handleScroll}
-          onScrollBeginDrag={dismissSearchKeyboard}
-          scrollEventThrottle={400}
-        >
+      <BottomSheetScrollView
+        style={[styles.resultsContainer, { backgroundColor: colors.surface }]}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) }}
+        showsVerticalScrollIndicator={true}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        onScroll={handleScroll}
+        onScrollBeginDrag={dismissSearchKeyboard}
+      >
           {searching ? (
             <View style={[styles.statusContainer, { backgroundColor: colors.cardBackground }]}>
               <ActivityIndicator size="small" color={colors.text} />
@@ -303,21 +338,17 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
               </Text>
             </View>
           )}
-        </ScrollView>
-      </BottomSheetView>
+      </BottomSheetScrollView>
     </AppBottomSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    flex: 1,
-    paddingTop: 8,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
+    paddingTop: 8,
     paddingBottom: 12,
     gap: 12,
   },
