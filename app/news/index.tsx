@@ -10,7 +10,7 @@ import { reportError } from '@/lib/crashlytics';
 import { marketDataService } from '@/lib/services/marketDataService';
 import type { NewsArticle } from '@/lib/services/types';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -41,13 +41,18 @@ export default function NewsScreen() {
   const isDark = colorScheme === 'dark';
   const colors = isDark ? Colors.dark : Colors.light;
   const textColor = colors.text;
+  const params = useLocalSearchParams<{ ticker?: string; name?: string }>();
+  const routeTicker = params.ticker?.trim().toUpperCase();
+  const routeName = params.name?.trim() || routeTicker;
 
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [sentimentFilter, setSentimentFilter] = useState<SentimentFilter>('all');
-  const [selectedTicker, setSelectedTicker] = useState<{ symbol: string; name: string } | null>(null);
+  const [selectedTicker, setSelectedTicker] = useState<{ symbol: string; name: string } | null>(() => (
+    routeTicker ? { symbol: routeTicker, name: routeName ?? routeTicker } : null
+  ));
   const [searchVisible, setSearchVisible] = useState(false);
   const nextUrlRef = useRef<string | undefined>(undefined);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -55,6 +60,16 @@ export default function NewsScreen() {
   useEffect(() => {
     void trackNewsScreen({});
   }, []);
+
+  useEffect(() => {
+    if (!routeTicker) return;
+
+    setSelectedTicker((prev) => {
+      const next = { symbol: routeTicker, name: routeName ?? routeTicker };
+      if (prev?.symbol === next.symbol && prev.name === next.name) return prev;
+      return next;
+    });
+  }, [routeName, routeTicker]);
 
   const fetchNews = useCallback(async (reset = true) => {
     try {

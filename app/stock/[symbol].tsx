@@ -1,4 +1,5 @@
 import { AssetSearchModal } from '@/components/finance/AssetSearchModal';
+import { NewsFeed } from '@/components/finance/NewsFeed';
 import { StockChart } from '@/components/finance/StockChart';
 import { StockHoldingsHistory } from '@/components/finance/StockHoldingsHistory';
 import { TransactionData } from '@/components/finance/TransactionForm';
@@ -299,7 +300,10 @@ export default function StockDetailScreen() {
             styles.scrollView,
             { backgroundColor: colors.surface }
           ]}
-          contentContainerStyle={styles.contentContainer}
+          contentContainerStyle={[
+            styles.contentContainer,
+            { paddingBottom: insets.bottom + 28 },
+          ]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -644,6 +648,15 @@ export default function StockDetailScreen() {
             </View>
           </View>
         )}
+
+        <NewsFeed
+          refreshKey={refreshKey}
+          ticker={tickerSymbol}
+          tickerName={details?.name}
+          title={`${tickerSymbol} News`}
+          source="stock_detail"
+          emptyText={`No recent ${tickerSymbol} news.`}
+        />
       </ScrollView>
       </View>
 

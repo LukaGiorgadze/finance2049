@@ -8,9 +8,9 @@ import { trackHomeAction, useInAppMessageSuppression } from '@/lib';
 import { useMarketStatus } from '@/lib/hooks/useMarketStatus';
 import type { MarketHoliday } from '@/lib/services/types';
 import { Ionicons } from '@expo/vector-icons';
-import { BottomSheetView } from '@gorhom/bottom-sheet';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export function MarketStatus() {
@@ -108,13 +108,19 @@ export function MarketStatus() {
         onDismiss={() => setVisible(false)}
         snapPoints={['70%']}
         enableDynamicSizing={false}
-        enableContentPanningGesture={false}
         backgroundColor={colors.background}
         backdropColor={colors.overlayStrong}
         handleIndicatorColor={colors.iconMuted}
         topInset={insets.top}
       >
-        <BottomSheetView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+        <BottomSheetScrollView
+          style={[styles.modalContainer, { backgroundColor: colors.background }]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: Math.max(insets.bottom, 16) },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
@@ -131,33 +137,28 @@ export function MarketStatus() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Exchanges */}
+          {/* Exchanges */}
+          <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
+            <ThemedText style={styles.sectionTitle}>Exchanges</ThemedText>
+            <StatusRow label="NASDAQ" value={formatStatus(status.exchanges.nasdaq)} color={getStatusColor(status.exchanges.nasdaq)} borderColor={colors.cardBorder} isLast={false} />
+            <StatusRow label="NYSE" value={formatStatus(status.exchanges.nyse)} color={getStatusColor(status.exchanges.nyse)} borderColor={colors.cardBorder} isLast={false} />
+            <StatusRow label="OTC" value={formatStatus(status.exchanges.otc)} color={getStatusColor(status.exchanges.otc)} borderColor={colors.cardBorder} isLast />
+          </View>
+
+          {/* Currencies */}
+          {status.currencies && (
             <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
-              <ThemedText style={styles.sectionTitle}>Exchanges</ThemedText>
-              <StatusRow label="NASDAQ" value={formatStatus(status.exchanges.nasdaq)} color={getStatusColor(status.exchanges.nasdaq)} borderColor={colors.cardBorder} isLast={false} />
-              <StatusRow label="NYSE" value={formatStatus(status.exchanges.nyse)} color={getStatusColor(status.exchanges.nyse)} borderColor={colors.cardBorder} isLast={false} />
-              <StatusRow label="OTC" value={formatStatus(status.exchanges.otc)} color={getStatusColor(status.exchanges.otc)} borderColor={colors.cardBorder} isLast />
+              <ThemedText style={styles.sectionTitle}>Currencies</ThemedText>
+              <StatusRow label="Crypto" value={formatStatus(status.currencies.crypto)} color={getStatusColor(status.currencies.crypto)} borderColor={colors.cardBorder} isLast={false} />
+              <StatusRow label="Forex" value={formatStatus(status.currencies.fx)} color={getStatusColor(status.currencies.fx)} borderColor={colors.cardBorder} isLast />
             </View>
+          )}
 
-            {/* Currencies */}
-            {status.currencies && (
-              <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
-                <ThemedText style={styles.sectionTitle}>Currencies</ThemedText>
-                <StatusRow label="Crypto" value={formatStatus(status.currencies.crypto)} color={getStatusColor(status.currencies.crypto)} borderColor={colors.cardBorder} isLast={false} />
-                <StatusRow label="Forex" value={formatStatus(status.currencies.fx)} color={getStatusColor(status.currencies.fx)} borderColor={colors.cardBorder} isLast />
-              </View>
-            )}
-
-            {/* Upcoming Holidays */}
-            {holidays.length > 0 && (
-              <HolidaysSection holidays={holidays} colors={colors} />
-            )}
-          </ScrollView>
-        </BottomSheetView>
+          {/* Upcoming Holidays */}
+          {holidays.length > 0 && (
+            <HolidaysSection holidays={holidays} colors={colors} />
+          )}
+        </BottomSheetScrollView>
       </AppBottomSheetModal>
     </>
   );
@@ -304,7 +305,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 0,
     paddingTop: 20,
     paddingBottom: 12,
   },
