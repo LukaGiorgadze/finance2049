@@ -119,6 +119,10 @@ function RootLayoutContent() {
         <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         <Stack.Screen name="stock/[symbol]" />
+        <Stack.Screen name="why/index" />
+        <Stack.Screen name="why/edit" />
+        <Stack.Screen name="why/review" />
+        <Stack.Screen name="why/exit-review" />
         <Stack.Screen name="news/[id]" />
         <Stack.Screen name="news/index" />
         <Stack.Screen name="storage" />

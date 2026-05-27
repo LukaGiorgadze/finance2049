@@ -9,13 +9,15 @@ import { APP_REVIEW_PROMPT_KEY, ONBOARDING_KEY } from '@/constants/storage-keys'
 import { APP_CACHE_KEY } from '../hooks/useRefreshPortfolioPrices';
 import { reportError } from '../crashlytics';
 import { store$ } from '../store';
+import { cancelAllWhyReviewNotifications } from '../whyNotifications';
 
 /**
  * Check if store has portfolio data
  */
 export function hasStoreData(): boolean {
   const holdings = store$.portfolio.holdings.get();
-  return Object.keys(holdings || {}).length > 0;
+  const theses = store$.why.theses.get();
+  return Object.keys(holdings || {}).length > 0 || (theses || []).length > 0;
 }
 
 /**
@@ -31,8 +33,11 @@ export function hasMarketPrices(): boolean {
  * Useful for resetting the app to a clean state
  */
 export function clearPortfolio() {
+  const notificationIds = (store$.why.theses.get() ?? []).map((thesis) => thesis.reviewNotificationId);
+  void cancelAllWhyReviewNotifications(notificationIds);
   store$.portfolio.holdings.set({});
   store$.portfolio.transactions.set([]);
+  store$.why.theses.set([]);
   console.debug('[Store] Portfolio cleared');
 }
 
@@ -41,9 +46,13 @@ export function clearPortfolio() {
  * Use this for a complete fresh start
  */
 export async function clearDatabase() {
+  const notificationIds = (store$.why.theses.get() ?? []).map((thesis) => thesis.reviewNotificationId);
+  await cancelAllWhyReviewNotifications(notificationIds);
+
   // Clear the observable store
   store$.portfolio.holdings.set({});
   store$.portfolio.transactions.set([]);
+  store$.why.theses.set([]);
   store$.market.prices.set({});
   store$.market.lastUpdated.set(null);
 

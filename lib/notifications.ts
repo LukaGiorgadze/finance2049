@@ -298,6 +298,40 @@ function routePathToDestination(
     return '/news';
   }
 
+  if (pathname === '/why' || pathname === '/why/index') {
+    return '/why' as NotificationDestination;
+  }
+
+  if (pathname === '/why/edit') {
+    return {
+      pathname: '/why/edit',
+      params: {
+        id: getSearchParamString(url.searchParams, ['id']),
+        symbol: getSearchParamString(url.searchParams, ['symbol']),
+        transactionId: getSearchParamString(url.searchParams, ['transactionId']),
+      },
+    } as unknown as NotificationDestination;
+  }
+
+  if (pathname === '/why/review') {
+    return {
+      pathname: '/why/review',
+      params: {
+        id: getSearchParamString(url.searchParams, ['id']) ?? readString(data, ['thesis_id', 'id']),
+      },
+    } as unknown as NotificationDestination;
+  }
+
+  if (pathname === '/why/exit-review') {
+    return {
+      pathname: '/why/exit-review',
+      params: {
+        id: getSearchParamString(url.searchParams, ['id']) ?? readString(data, ['thesis_id', 'id']),
+        transactionId: getSearchParamString(url.searchParams, ['transactionId']),
+      },
+    } as unknown as NotificationDestination;
+  }
+
   const stockMatch = pathname.match(/^\/stock\/([^/]+)$/);
   if (stockMatch?.[1]) {
     return getStockDestination(decodePathSegment(stockMatch[1]).toUpperCase());
@@ -333,6 +367,17 @@ function getNotificationDestination(data: NotificationData): NotificationDestina
 
   if (type === 'portfolio') {
     return '/(tabs)/portfolio';
+  }
+
+  if (type === 'why' || type === 'why_review') {
+    const id = readString(data, ['thesis_id', 'id']);
+    if (id) {
+      return {
+        pathname: '/why/review',
+        params: { id },
+      } as unknown as NotificationDestination;
+    }
+    return '/why' as NotificationDestination;
   }
 
   if (type === 'import_result' || type === 'import-result' || type === 'import_confirm') {

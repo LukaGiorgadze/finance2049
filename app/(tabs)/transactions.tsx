@@ -37,7 +37,7 @@ export default function TransactionsScreen() {
     const total = shares * price + commission;
 
     try {
-      addTransaction(
+      return addTransaction(
         {
           symbol,
           type: data.type,
@@ -50,7 +50,6 @@ export default function TransactionsScreen() {
         data.assetType ?? 'stock',
         data.name,
       );
-      return true;
     } catch (e) {
       reportError(`[Transactions] Failed to record transaction for ${symbol}`, e, {
         symbol,

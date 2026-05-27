@@ -131,6 +131,56 @@ export interface MarketState {
 export interface PreferencesState extends UserPreferences {}
 
 // ============================================================================
+// WHY - Investment thesis journal
+// ============================================================================
+
+export type ThesisStatus = 'active' | 'closed' | 'archived';
+export type ThesisReviewResult = 'still_valid' | 'partly_changed' | 'invalidated';
+
+export interface ThesisReview {
+  id: string;
+  result: ThesisReviewResult;
+  note: string;
+  createdAt: string;
+  nextReviewDate?: string;
+}
+
+export interface ThesisExitReview {
+  whatHappened: string;
+  whatWasRight: string;
+  whatWasWrong: string;
+  lesson: string;
+  transactionId?: string;
+  createdAt: string;
+}
+
+export interface InvestmentThesis {
+  id: string;
+  symbol: string;
+  assetName?: string;
+  assetType?: AssetType;
+  why: string;
+  invalidation: string;
+  reviewDate: string;
+  notifyOnReview: boolean;
+  reviewNotificationId?: string;
+  assumptions?: string;
+  risks?: string;
+  watchItems?: string;
+  linkedTransactionIds: string[];
+  status: ThesisStatus;
+  reviews: ThesisReview[];
+  exitReview?: ThesisExitReview;
+  createdAt: string;
+  updatedAt: string;
+  closedAt?: string;
+}
+
+export interface WhyState {
+  theses: InvestmentThesis[];
+}
+
+// ============================================================================
 // Auth State
 // ============================================================================
 
@@ -147,6 +197,7 @@ export interface RootStore {
   portfolio: PortfolioState;
   market: MarketState;
   preferences: PreferencesState;
+  why: WhyState;
   auth: AuthState;
   _schema: {
     version: number;
@@ -157,4 +208,4 @@ export interface RootStore {
 // Schema Version
 // ============================================================================
 
-export const CURRENT_SCHEMA_VERSION = 4;
+export const CURRENT_SCHEMA_VERSION = 5;

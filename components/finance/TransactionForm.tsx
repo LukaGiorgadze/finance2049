@@ -3,13 +3,20 @@ import { AppBottomSheetModal } from '@/components/ui/app-bottom-sheet';
 import { Input } from '@/components/ui/input';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { formatLocalDateISO, maybePromptForAppReview, trackTransactionsAction, useInAppMessageSuppression } from '@/lib';
+import {
+  formatLocalDateISO,
+  getActiveThesisBySymbol,
+  maybePromptForAppReview,
+  selectHolding,
+  trackTransactionsAction,
+  useInAppMessageSuppression,
+} from '@/lib';
 import { useTransactionType } from '@/lib/contexts/TransactionTypeContext';
 import { APP_CACHE_KEY } from '@/lib/hooks/useRefreshPortfolioPrices';
 import { useHolding } from '@/lib/hooks/useStore';
 import { marketDataService } from '@/lib/services/marketDataService';
 import type { TickerSearchResult } from '@/lib/services/types';
-import type { AssetType } from '@/lib/store/types';
+import type { AssetType, Transaction } from '@/lib/store/types';
 import { mapApiTypeToAssetType } from '@/lib/utils/assetLookup';
 import { Ionicons } from '@expo/vector-icons';
 import { BottomSheetView } from '@gorhom/bottom-sheet';
@@ -27,7 +34,7 @@ interface TransactionFormProps {
   initialName?: string;
   initialType?: TransactionType;
   initialAssetType?: AssetType;
-  onSubmit?: (data: TransactionData) => void | boolean | Promise<void | boolean>;
+  onSubmit?: (data: TransactionData) => void | boolean | Transaction | Promise<void | boolean | Transaction>;
   onCancel?: () => void;
   /** When provided, the confirmation alert includes a "Done" button that calls this after recording. */
   onDone?: () => void;
@@ -211,14 +218,16 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
       : `${label} ${sharesDisplay} shares of ${ticker.toUpperCase().trim()} at $${parsedPrice}/share.`;
 
     const submit = async () => {
+      const symbolUpper = ticker.toUpperCase().trim();
+      const activeThesisBeforeSubmit = getActiveThesisBySymbol(symbolUpper);
       void trackTransactionsAction({
         action: 'form_submit',
-        target: `${transactionType}:${ticker.toUpperCase().trim()}`,
+        target: `${transactionType}:${symbolUpper}`,
         context: analyticsContext,
       });
-      const didSubmit = await onSubmit?.({
+      const submitResult = await onSubmit?.({
         type: transactionType,
-        symbol: ticker,
+        symbol: symbolUpper,
         name: assetName || undefined,
         quantity: sharesRounded.toString(),
         date,
@@ -227,39 +236,84 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
         assetType,
       });
       await AsyncStorage.removeItem(APP_CACHE_KEY);
-      return didSubmit !== false;
+      return {
+        didSubmit: submitResult !== false,
+        transaction: submitResult && typeof submitResult === 'object' ? submitResult : undefined,
+        activeThesisBeforeSubmit,
+        remainingHolding: selectHolding(symbolUpper),
+        symbol: symbolUpper,
+      };
     };
 
     void (async () => {
-      const didSubmit = await submit();
-      if (!didSubmit) return;
+      const result = await submit();
+      if (!result.didSubmit) return;
+
+      const openWhyAfterSubmit = (route: Parameters<typeof router.push>[0]) => {
+        resetForm();
+        if (onDone) {
+          onDone();
+          setTimeout(() => router.push(route), 350);
+        } else {
+          router.push(route);
+        }
+        promptForReviewWithDelay();
+      };
+
+      const specialAction = (() => {
+        if (transactionType === 'buy' && !result.activeThesisBeforeSubmit) {
+          return {
+            text: 'Write Thesis',
+            onPress: () => openWhyAfterSubmit({
+              pathname: '/why/edit',
+              params: {
+                symbol: result.symbol,
+                assetName: assetName || undefined,
+                assetType,
+                transactionId: result.transaction?.id,
+              },
+            } as never),
+          };
+        }
+
+        const activeThesis = result.activeThesisBeforeSubmit;
+        if (transactionType === 'sell' && activeThesis && !result.remainingHolding) {
+          return {
+            text: 'Review Thesis',
+            onPress: () => openWhyAfterSubmit({
+              pathname: '/why/exit-review',
+              params: {
+                id: activeThesis.id,
+                transactionId: result.transaction?.id,
+              },
+            } as never),
+          };
+        }
+
+        return null;
+      })();
+
+      const doneAction = {
+        text: 'OK',
+        style: 'cancel' as const,
+        onPress: () => {
+          resetForm();
+          onDone?.();
+          promptForReviewWithDelay();
+        },
+      };
+
+      const anotherAction = {
+        text: 'Record Another',
+        onPress: () => {
+          resetForm();
+          promptForReviewWithDelay();
+        },
+      };
 
       Alert.alert('Transaction Recorded', message, onDone
-        ? [
-          {
-            text: 'Record Another',
-            onPress: () => {
-              resetForm();
-              promptForReviewWithDelay();
-            },
-          },
-          {
-            text: 'OK',
-            style: 'cancel',
-            onPress: () => {
-              onDone();
-              promptForReviewWithDelay();
-            },
-          },
-        ]
-        : [{
-            text: 'OK',
-            style: 'cancel',
-            onPress: () => {
-              resetForm();
-              promptForReviewWithDelay();
-            },
-          }]
+        ? [anotherAction, ...(specialAction ? [specialAction] : []), doneAction]
+        : [...(specialAction ? [specialAction] : []), doneAction]
       );
     })();
   };

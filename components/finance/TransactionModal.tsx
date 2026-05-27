@@ -10,6 +10,7 @@ import React, { useEffect, useRef } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TransactionData, TransactionForm } from './TransactionForm';
+import type { Transaction } from '@/lib/store/types';
 
 interface TransactionModalProps {
   visible: boolean;
@@ -18,7 +19,7 @@ interface TransactionModalProps {
   initialName?: string;
   initialType?: 'buy' | 'sell';
   initialAssetType?: import('@/lib/store/types').AssetType;
-  onSubmit?: (data: TransactionData) => void;
+  onSubmit?: (data: TransactionData) => void | boolean | Transaction | Promise<void | boolean | Transaction>;
   analyticsContext?: string;
 }
 
@@ -49,7 +50,7 @@ export function TransactionModal({ visible, onClose, initialSymbol, initialName,
   }, [analyticsContext, initialType, visible]);
 
   const handleSubmit = (data: TransactionData) => {
-    onSubmit?.(data);
+    return onSubmit?.(data);
   };
 
   return (

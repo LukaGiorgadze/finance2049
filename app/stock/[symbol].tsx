@@ -6,6 +6,7 @@ import { TransactionModal } from '@/components/finance/TransactionModal';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { PageHeader } from '@/components/ui/page-header';
+import { WhyCard } from '@/components/why/WhyCard';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
@@ -21,6 +22,7 @@ import {
   getValueColor,
   mapApiTypeToAssetType,
   trackStockAction,
+  useActiveThesis,
   trackStockScreen,
   useInAppMessageSuppression,
   useTickerData,
@@ -134,6 +136,7 @@ export default function StockDetailScreen() {
   // Get holding from store
   const holding = useUIHolding(tickerSymbol);
   const symbolTransactions = useTransactionsBySymbol(tickerSymbol);
+  const activeThesis = useActiveThesis(tickerSymbol);
   const hasHistory = symbolTransactions.length > 0;
 
   const handleDeleteHolding = useCallback(() => {
@@ -165,7 +168,7 @@ export default function StockDetailScreen() {
 
     const resolvedAssetType = data.assetType ?? mapApiTypeToAssetType(details?.type);
     try {
-      addTransaction({
+      return addTransaction({
         symbol: symbolUpper,
         type: data.type,
         shares,
@@ -174,7 +177,6 @@ export default function StockDetailScreen() {
         date: formatLocalDateISO(data.date),
         commission,
       }, resolvedAssetType, data.name || details?.name);
-      return true;
     } catch (e) {
       reportError(`[StockDetail] Failed to record transaction for ${symbolUpper}`, e, {
         symbol: symbolUpper,
@@ -371,6 +373,12 @@ export default function StockDetailScreen() {
           totalGainPercent={holding && holding.costBasis > 0 ? ((holding.totalValue - holding.costBasis) / holding.costBasis) * 100 : 0}
           dayChange={(holding?.shares ?? 0) * change}
           dayChangePercent={changePercent}
+        />
+
+        <WhyCard
+          symbol={tickerSymbol}
+          assetName={details?.name}
+          assetType={details?.type}
         />
 
         {/* Real-time Trade Data */}
@@ -643,6 +651,28 @@ export default function StockDetailScreen() {
       <Modal visible={showMenu} transparent animationType="none" onRequestClose={() => setShowMenu(false)}>
         <Pressable style={[styles.menuOverlay, { backgroundColor: colors.overlay }]} onPress={() => setShowMenu(false)}>
           <View style={[styles.menuDropdown, { top: insets.top + 52, backgroundColor: colors.cardBackground }]}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              activeOpacity={0.7}
+              onPress={() => {
+                setShowMenu(false);
+                router.push({
+                  pathname: '/why/edit',
+                  params: {
+                    id: activeThesis?.id,
+                    symbol: tickerSymbol,
+                    assetName: details?.name,
+                    assetType: details?.type,
+                  },
+                } as never);
+              }}
+            >
+              <Ionicons name="document-text-outline" size={18} color={textColor} />
+              <ThemedText style={styles.menuItemText}>
+                {activeThesis ? 'Open Thesis' : 'Write Thesis'}
+              </ThemedText>
+            </TouchableOpacity>
+            <View style={[styles.menuDivider, { backgroundColor: colors.divider }]} />
             <TouchableOpacity
               style={styles.menuItem}
               activeOpacity={0.7}
