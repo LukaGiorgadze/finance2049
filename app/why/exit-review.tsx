@@ -5,7 +5,9 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   addExitReview,
+  archiveThesis,
   cancelWhyReviewNotification,
+  deleteThesis,
   formatDate,
   useWhyTheses,
 } from '@/lib';
@@ -77,9 +79,10 @@ export default function ExitReviewScreen() {
   const [whatWasWrong, setWhatWasWrong] = useState(thesis?.exitReview?.whatWasWrong ?? '');
   const [lesson, setLesson] = useState(thesis?.exitReview?.lesson ?? '');
   const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   const save = async () => {
-    if (!thesis) return;
+    if (!thesis || removing) return;
     if (!whatHappened.trim()) {
       Alert.alert('Missing Summary', 'Write what happened before saving the exit review.');
       return;
@@ -104,6 +107,78 @@ export default function ExitReviewScreen() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const archiveExistingThesis = async () => {
+    if (!thesis || removing) return;
+
+    setRemoving(true);
+    Keyboard.dismiss();
+
+    try {
+      await cancelWhyReviewNotification(thesis.reviewNotificationId);
+      archiveThesis(thesis.id);
+      router.back();
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  const deleteExistingThesis = async () => {
+    if (!thesis || removing) return;
+
+    setRemoving(true);
+    Keyboard.dismiss();
+
+    try {
+      await cancelWhyReviewNotification(thesis.reviewNotificationId);
+      deleteThesis(thesis.id);
+      router.back();
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  const showThesisOptions = () => {
+    if (!thesis) return;
+
+    const actions = [
+      ...(thesis.status === 'archived'
+        ? []
+        : [{
+          text: 'Archive',
+          onPress: () => {
+            void archiveExistingThesis();
+          },
+        }]),
+      {
+        text: 'Delete Permanently',
+        style: 'destructive' as const,
+        onPress: () => {
+          Alert.alert(
+            'Delete Thesis?',
+            'This permanently deletes the thesis, review notes, and exit review.',
+            [
+              { text: 'Cancel', style: 'cancel' as const },
+              {
+                text: 'Delete',
+                style: 'destructive' as const,
+                onPress: () => {
+                  void deleteExistingThesis();
+                },
+              },
+            ],
+          );
+        },
+      },
+      { text: 'Cancel', style: 'cancel' as const },
+    ];
+
+    Alert.alert(
+      'Thesis Options',
+      'Archive keeps the record in history. Delete removes it permanently.',
+      actions,
+    );
   };
 
   if (!thesis) {
@@ -132,6 +207,16 @@ export default function ExitReviewScreen() {
         leftElement={
           <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+        }
+        rightElement={
+          <TouchableOpacity
+            onPress={showThesisOptions}
+            style={styles.headerButton}
+            disabled={removing}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="ellipsis-horizontal" size={24} color={colors.text} />
           </TouchableOpacity>
         }
       />
@@ -185,13 +270,13 @@ export default function ExitReviewScreen() {
 
       <View style={[styles.footer, { backgroundColor: colors.surface, borderColor: colors.headerAccent }]}>
         <TouchableOpacity
-          style={[styles.saveButton, { backgroundColor: colors.tint, opacity: saving ? 0.6 : 1 }]}
+          style={[styles.saveButton, { backgroundColor: colors.tint, opacity: saving || removing ? 0.6 : 1 }]}
           onPress={save}
-          disabled={saving}
+          disabled={saving || removing}
           activeOpacity={0.85}
         >
           <ThemedText style={[styles.saveButtonText, { color: colors.textOnColor }]}>
-            {saving ? 'Saving...' : 'Save Lesson'}
+            {saving ? 'Saving...' : removing ? 'Working...' : 'Save Lesson'}
           </ThemedText>
         </TouchableOpacity>
       </View>
@@ -202,6 +287,12 @@ export default function ExitReviewScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  headerButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scrollView: {
     flex: 1,

@@ -573,6 +573,15 @@ export const archiveThesis = (thesisId: string) => {
   return updated;
 };
 
+export const deleteThesis = (thesisId: string) => {
+  const theses = store$.why.theses.get() ?? [];
+  const thesis = theses.find((item) => item.id === thesisId);
+  if (!thesis) return null;
+
+  store$.why.theses.set(theses.filter((item) => item.id !== thesisId));
+  return thesis;
+};
+
 export const addExitReview = (
   thesisId: string,
   exitReview: Omit<ThesisExitReview, 'createdAt'>,
@@ -608,7 +617,9 @@ export const getThesisChecklistStatus = (thesis?: InvestmentThesis | null, date 
   if (!thesis.why.trim()) return 'Needs thesis';
   if (!thesis.invalidation.trim()) return 'Needs invalidation condition';
   if (!thesis.reviewDate) return 'Needs review date';
-  if (thesis.status === 'active' && thesis.reviewDate <= formatDateKey(date)) return 'Review due';
+  const today = formatDateKey(date);
+  if (thesis.status === 'active' && thesis.reviewDate < today) return 'Overdue';
+  if (thesis.status === 'active' && thesis.reviewDate === today) return 'Review due';
   if (thesis.status === 'closed') return thesis.exitReview ? 'Lesson added' : 'Closed';
   if (thesis.status === 'archived') return 'Archived';
 
@@ -617,7 +628,7 @@ export const getThesisChecklistStatus = (thesis?: InvestmentThesis | null, date 
   if (latestReview?.result === 'partly_changed') return 'Partly changed';
   if (latestReview?.result === 'still_valid') return 'Still true';
 
-  return 'Ready for review';
+  return 'Scheduled';
 };
 
 /**

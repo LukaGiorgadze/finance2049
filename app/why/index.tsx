@@ -18,13 +18,13 @@ function todayKey() {
 }
 
 function getStatusTone(status: string, colors: typeof Colors.light) {
+  if (status === 'Overdue' || status === 'Broken') {
+    return { backgroundColor: colors.redTintBg, color: colors.red };
+  }
   if (status === 'Review due' || status === 'Partly changed') {
     return { backgroundColor: colors.orangeBg, color: colors.orange };
   }
-  if (status === 'Broken') {
-    return { backgroundColor: colors.redTintBg, color: colors.red };
-  }
-  if (status === 'Still true' || status === 'Ready for review') {
+  if (status === 'Still true') {
     return { backgroundColor: colors.greenTintBg, color: colors.green };
   }
   return { backgroundColor: colors.cardInactiveAlt, color: colors.icon };

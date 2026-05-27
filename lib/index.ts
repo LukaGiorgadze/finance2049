@@ -6,7 +6,7 @@
 
 // Store
 export {
-  addExitReview, addThesisReview, addTransaction, applySplit, archiveThesis, clearStore, closeThesis, createOrUpdateActiveThesis, deleteHolding, deleteTransaction, getActiveThesisBySymbol, getThesisById, getThesisChecklistStatus, initializeStore, recalculatePortfolio, reloadStoreFromStorage,
+  addExitReview, addThesisReview, addTransaction, applySplit, archiveThesis, clearStore, closeThesis, createOrUpdateActiveThesis, deleteHolding, deleteThesis, deleteTransaction, getActiveThesisBySymbol, getThesisById, getThesisChecklistStatus, initializeStore, recalculatePortfolio, reloadStoreFromStorage,
   selectAllHoldings,
   selectHolding, selectMarketPrice, selectTransactions,
   selectTransactionsBySymbol, selectDueWhyTheses, selectWhyTheses, store$, toggleShowPortfolioValue, updateMarketPrices,

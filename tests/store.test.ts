@@ -81,10 +81,12 @@ const {
   addTransaction,
   addExitReview,
   addThesisReview,
+  archiveThesis,
   applySplit,
   clearStore,
   createOrUpdateActiveThesis,
   deleteHolding,
+  deleteThesis,
   deleteTransaction,
   getActiveThesisBySymbol,
   getThesisChecklistStatus,
@@ -684,7 +686,7 @@ test('WHY due selector, review append, and exit review update thesis state', () 
     symbol: 'DUE',
     why: 'Due thesis',
     invalidation: 'Breaks below assumptions',
-    reviewDate: '2026-05-01',
+    reviewDate: '2026-05-26',
     notifyOnReview: true,
     reviewNotificationId: 'notification-1',
     linkedTransactionIds: ['buy-1'],
@@ -692,6 +694,7 @@ test('WHY due selector, review append, and exit review update thesis state', () 
 
   assert.equal(selectDueWhyTheses(new Date('2026-05-26T12:00:00.000Z')).length, 1);
   assert.equal(getThesisChecklistStatus(thesis, new Date('2026-05-26T12:00:00.000Z')), 'Review due');
+  assert.equal(getThesisChecklistStatus(thesis, new Date('2026-05-27T12:00:00.000Z')), 'Overdue');
 
   const reviewed = addThesisReview(thesis.id, {
     result: 'partly_changed',
@@ -728,6 +731,52 @@ test('WHY due selector, review append, and exit review update thesis state', () 
   assert.equal(closed?.exitReview?.transactionId, 'sell-1');
   assert.equal(closed?.notifyOnReview, false);
   assert.equal(getThesisChecklistStatus(closed), 'Lesson added');
+});
+
+test('WHY checklist status distinguishes scheduled, due, and overdue dates', () => {
+  const thesis = createOrUpdateActiveThesis({
+    symbol: 'CAL',
+    why: 'Calendar thesis',
+    invalidation: 'Calendar invalidation',
+    reviewDate: '2026-06-15',
+    notifyOnReview: false,
+  });
+
+  assert.equal(getThesisChecklistStatus(thesis, new Date('2026-06-14T12:00:00.000Z')), 'Scheduled');
+  assert.equal(getThesisChecklistStatus(thesis, new Date('2026-06-15T12:00:00.000Z')), 'Review due');
+  assert.equal(getThesisChecklistStatus(thesis, new Date('2026-06-16T12:00:00.000Z')), 'Overdue');
+});
+
+test('WHY archive preserves thesis history and delete removes it permanently', () => {
+  const thesis = createOrUpdateActiveThesis({
+    symbol: 'ARC',
+    why: 'Archive thesis',
+    invalidation: 'Archive invalidation',
+    reviewDate: '2026-06-01',
+    notifyOnReview: true,
+    reviewNotificationId: 'notification-archive',
+  });
+
+  addThesisReview(thesis.id, {
+    result: 'still_valid',
+    note: 'Still intact',
+    nextReviewDate: '2026-07-01',
+    notifyOnReview: false,
+  });
+
+  const archived = archiveThesis(thesis.id);
+
+  assert.equal(archived?.status, 'archived');
+  assert.equal(archived?.reviews.length, 1);
+  assert.equal(archived?.notifyOnReview, false);
+  assert.equal(archived?.reviewNotificationId, undefined);
+  assert.equal(selectWhyTheses().some((item: any) => item.id === thesis.id), true);
+  assert.equal(getActiveThesisBySymbol('ARC'), undefined);
+
+  const deleted = deleteThesis(thesis.id);
+
+  assert.equal(deleted?.id, thesis.id);
+  assert.equal(selectWhyTheses().some((item: any) => item.id === thesis.id), false);
 });
 
 test('validateTransactionDeletion and deleteTransaction handle missing ids safely', () => {

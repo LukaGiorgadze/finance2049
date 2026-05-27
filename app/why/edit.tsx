@@ -5,8 +5,10 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
+  archiveThesis,
   cancelWhyReviewNotification,
   createOrUpdateActiveThesis,
+  deleteThesis,
   formatLocalDateISO,
   scheduleWhyReviewNotification,
   useWhyTheses,
@@ -131,6 +133,7 @@ export default function EditWhyScreen() {
   const [searchVisible, setSearchVisible] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
     if (!existing) return;
@@ -180,6 +183,7 @@ export default function EditWhyScreen() {
   };
 
   const save = async () => {
+    if (removing) return;
     const cleanSymbol = symbol.toUpperCase().trim();
     if (!cleanSymbol) {
       Alert.alert('Missing Symbol', 'Choose a stock or ETF first.');
@@ -255,6 +259,74 @@ export default function EditWhyScreen() {
     }
   };
 
+  const archiveExistingThesis = async () => {
+    if (!existing || removing) return;
+
+    setRemoving(true);
+    Keyboard.dismiss();
+
+    try {
+      await cancelWhyReviewNotification(existing.reviewNotificationId);
+      archiveThesis(existing.id);
+      router.back();
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  const deleteExistingThesis = async () => {
+    if (!existing || removing) return;
+
+    setRemoving(true);
+    Keyboard.dismiss();
+
+    try {
+      await cancelWhyReviewNotification(existing.reviewNotificationId);
+      deleteThesis(existing.id);
+      router.back();
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  const showThesisOptions = () => {
+    if (!existing) return;
+
+    Alert.alert(
+      'Thesis Options',
+      'Archive keeps the record in history. Delete removes it permanently.',
+      [
+        {
+          text: 'Archive',
+          onPress: () => {
+            void archiveExistingThesis();
+          },
+        },
+        {
+          text: 'Delete Permanently',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Delete Thesis?',
+              'This permanently deletes the thesis, review notes, and exit review.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete',
+                  style: 'destructive',
+                  onPress: () => {
+                    void deleteExistingThesis();
+                  },
+                },
+              ],
+            );
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  };
+
   const renderOptionalSection = (
     section: OptionalSection,
     title: string,
@@ -302,6 +374,18 @@ export default function EditWhyScreen() {
           <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
+        }
+        rightElement={
+          existing ? (
+            <TouchableOpacity
+              onPress={showThesisOptions}
+              style={styles.headerButton}
+              disabled={removing}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="ellipsis-horizontal" size={24} color={colors.text} />
+            </TouchableOpacity>
+          ) : undefined
         }
       />
 
@@ -432,13 +516,13 @@ export default function EditWhyScreen() {
 
       <View style={[styles.footer, { backgroundColor: colors.surface, borderColor: colors.headerAccent }]}>
         <TouchableOpacity
-          style={[styles.saveButton, { backgroundColor: colors.tint, opacity: saving ? 0.6 : 1 }]}
+          style={[styles.saveButton, { backgroundColor: colors.tint, opacity: saving || removing ? 0.6 : 1 }]}
           onPress={save}
-          disabled={saving}
+          disabled={saving || removing}
           activeOpacity={0.85}
         >
           <ThemedText style={[styles.saveButtonText, { color: colors.textOnColor }]}>
-            {saving ? 'Saving...' : 'Save Thesis'}
+            {saving ? 'Saving...' : removing ? 'Working...' : 'Save Thesis'}
           </ThemedText>
         </TouchableOpacity>
       </View>
@@ -456,6 +540,12 @@ export default function EditWhyScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  headerButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scrollView: {
     flex: 1,
@@ -496,12 +586,13 @@ const styles = StyleSheet.create({
   },
   symbolText: {
     fontSize: 16,
+    lineHeight: 18,
     fontWeight: '500',
   },
   assetName: {
     fontSize: 12,
+    lineHeight: 15,
     opacity: 0.55,
-    marginTop: 2,
   },
   presetRow: {
     flexDirection: 'row',
@@ -531,12 +622,13 @@ const styles = StyleSheet.create({
   },
   reviewDate: {
     fontSize: 16,
+    lineHeight: 18,
     fontWeight: '500',
   },
   reviewHint: {
     fontSize: 12,
+    lineHeight: 15,
     opacity: 0.5,
-    marginTop: 2,
   },
   notifyRow: {
     flexDirection: 'row',
