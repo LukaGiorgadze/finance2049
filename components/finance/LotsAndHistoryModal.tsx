@@ -5,9 +5,9 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { deleteTransaction, formatCurrency, formatDate, formatPercent, formatShares, getValueColor, trackPositionDetailAction, UITransaction, useInAppMessageSuppression, useUITransactionsBySymbol, validateTransactionDeletion } from '@/lib';
 import { Ionicons } from '@expo/vector-icons';
-import { BottomSheetView } from '@gorhom/bottom-sheet';
+import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import React, { useEffect, useRef } from 'react';
-import { Alert, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Swipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -394,120 +394,109 @@ export function LotsAndHistoryModal({ visible, onClose, type, lots = [], symbol,
     );
   };
 
+  const renderListHeader = () => (
+    <>
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <ThemedText style={styles.headerTitle}>
+            {type === 'lots' ? 'Lots' : 'Transaction History'}
+          </ThemedText>
+          <View style={styles.headerSubtitleRow}>
+            <View style={[
+              styles.symbolBadge,
+              { backgroundColor: brandColor }
+            ]}>
+              <ThemedText style={[
+                styles.symbolBadgeText,
+                { color: badgeTextColor }
+              ]}>
+                {symbol}
+              </ThemedText>
+            </View>
+            <ThemedText style={styles.headerDot}>·</ThemedText>
+            <ThemedText style={styles.headerCount}>
+              {type === 'lots' ? `${lots.length} lots` : `${transactions.length} transactions`}
+            </ThemedText>
+          </View>
+        </View>
+        <TouchableOpacity
+          onPress={onClose}
+          style={styles.closeButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="close" size={28} color={textColor} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={[
+        styles.headerAccent,
+        { backgroundColor: colors.headerAccent }
+      ]} />
+
+      {type === 'lots' && holding && (
+        <View
+          style={[
+            styles.summaryHeader,
+            {
+              backgroundColor: colors.surface,
+            },
+          ]}
+        >
+          {renderLotsHeader()}
+        </View>
+      )}
+    </>
+  );
+
   return (
     <AppBottomSheetModal
       visible={visible}
       onDismiss={onClose}
       snapPoints={['96%']}
       enableDynamicSizing={false}
-      enableContentPanningGesture={false}
       backgroundColor={colors.surface}
       backdropColor={colors.overlayStrong}
       handleIndicatorColor={colors.iconMuted}
       topInset={insets.top}
     >
-      <BottomSheetView style={[styles.container, { backgroundColor: colors.surface }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <ThemedText style={styles.headerTitle}>
-              {type === 'lots' ? 'Lots' : 'Transaction History'}
-            </ThemedText>
-            <View style={styles.headerSubtitleRow}>
-              <View style={[
-                styles.symbolBadge,
-                { backgroundColor: brandColor }
-              ]}>
-                <ThemedText style={[
-                  styles.symbolBadgeText,
-                  { color: badgeTextColor }
-                ]}>
-                  {symbol}
-                </ThemedText>
-              </View>
-              <ThemedText style={styles.headerDot}>·</ThemedText>
-              <ThemedText style={styles.headerCount}>
-                {type === 'lots' ? `${lots.length} lots` : `${transactions.length} transactions`}
-              </ThemedText>
-            </View>
-          </View>
-          <TouchableOpacity
-            onPress={onClose}
-            style={styles.closeButton}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="close" size={28} color={textColor} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Sleek accent line */}
-        <View style={[
-          styles.headerAccent,
-          { backgroundColor: colors.headerAccent }
-        ]} />
-
-        {/* Content */}
-        {type === 'lots' ? (
-          <>
-            {/* Fixed Summary */}
-            {holding && (
-              <View
-                style={[
-                  styles.fixedSummaryContainer,
-                  {
-                    backgroundColor: colors.surface,
-                    shadowColor: Colors.shadow,
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: isDark ? 0.15 : 0.02,
-                    shadowRadius: 6,
-                    elevation: 2,
-                    zIndex: 5,
-                  },
-                ]}
-              >
-                {renderLotsHeader()}
-              </View>
-            )}
-
-            {/* Scrollable Lots List */}
-            <FlatList<ModalHoldingLot>
-              data={lots}
-              renderItem={renderLot}
-              keyExtractor={keyExtractorLot}
-              ItemSeparatorComponent={renderSeparator}
-              contentContainerStyle={styles.listContentContainer}
-              showsVerticalScrollIndicator={true}
-              windowSize={10}
-              maxToRenderPerBatch={20}
-              updateCellsBatchingPeriod={50}
-              removeClippedSubviews={true}
-              initialNumToRender={20}
-            />
-          </>
-        ) : (
-          <FlatList<UITransaction>
-            data={transactions}
-            renderItem={renderTransaction}
-            keyExtractor={keyExtractorTransaction}
-            ItemSeparatorComponent={renderSeparator}
-            contentContainerStyle={styles.listContentContainer}
-            showsVerticalScrollIndicator={true}
-            windowSize={10}
-            maxToRenderPerBatch={20}
-            updateCellsBatchingPeriod={50}
-            removeClippedSubviews={true}
-            initialNumToRender={20}
-          />
-        )}
-        </BottomSheetView>
+      {type === 'lots' ? (
+        <BottomSheetFlatList<ModalHoldingLot>
+          data={lots}
+          renderItem={renderLot}
+          keyExtractor={keyExtractorLot}
+          ItemSeparatorComponent={renderSeparator}
+          ListHeaderComponent={renderListHeader}
+          style={[styles.list, { backgroundColor: colors.surface }]}
+          contentContainerStyle={[styles.listContentContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}
+          showsVerticalScrollIndicator={true}
+          windowSize={10}
+          maxToRenderPerBatch={20}
+          updateCellsBatchingPeriod={50}
+          removeClippedSubviews={true}
+          initialNumToRender={20}
+        />
+      ) : (
+        <BottomSheetFlatList<UITransaction>
+          data={transactions}
+          renderItem={renderTransaction}
+          keyExtractor={keyExtractorTransaction}
+          ItemSeparatorComponent={renderSeparator}
+          ListHeaderComponent={renderListHeader}
+          style={[styles.list, { backgroundColor: colors.surface }]}
+          contentContainerStyle={[styles.listContentContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}
+          showsVerticalScrollIndicator={true}
+          windowSize={10}
+          maxToRenderPerBatch={20}
+          updateCellsBatchingPeriod={50}
+          removeClippedSubviews={true}
+          initialNumToRender={20}
+        />
+      )}
     </AppBottomSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   header: {
     paddingHorizontal: 20,
     paddingTop: 8,
@@ -558,9 +547,10 @@ const styles = StyleSheet.create({
     height: 1,
     width: '100%',
   },
+  list: {
+    flex: 1,
+  },
   listContentContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
     paddingBottom: 26,
   },
   separator: {
@@ -568,6 +558,7 @@ const styles = StyleSheet.create({
   },
   itemContainer: {
     borderRadius: 12,
+    marginHorizontal: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
     shadowColor: Colors.shadow,
@@ -670,7 +661,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
   },
-  fixedSummaryContainer: {
+  summaryHeader: {
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 12,

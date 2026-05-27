@@ -971,10 +971,11 @@ const styles = StyleSheet.create({
   footer: {
     alignItems: 'center',
     paddingVertical: 0,
-    paddingBottom: 120,
+    paddingBottom: 140,
   },
   footerText: {
     fontSize: 13,
+    lineHeight: 15,
     fontWeight: '500',
   },
   modalContainer: {

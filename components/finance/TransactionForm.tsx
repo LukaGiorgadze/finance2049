@@ -19,7 +19,7 @@ import type { TickerSearchResult } from '@/lib/services/types';
 import type { AssetType, Transaction } from '@/lib/store/types';
 import { mapApiTypeToAssetType } from '@/lib/utils/assetLookup';
 import { Ionicons } from '@expo/vector-icons';
-import { BottomSheetView } from '@gorhom/bottom-sheet';
+import { BottomSheetScrollView, BottomSheetView } from '@gorhom/bottom-sheet';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
@@ -45,6 +45,8 @@ interface TransactionFormProps {
    */
   onImportPress?: () => void;
   useBottomSheetTextInputs?: boolean;
+  useBottomSheetScrollView?: boolean;
+  useExternalScrollView?: boolean;
   analyticsContext?: string;
 }
 
@@ -59,7 +61,7 @@ export interface TransactionData {
   assetType?: AssetType;
 }
 
-export function TransactionForm({ initialSymbol = '', initialType = 'buy', initialAssetType, initialName, onSubmit, onCancel, onDone, onImportPress, useBottomSheetTextInputs = false, analyticsContext = 'transaction_form' }: TransactionFormProps) {
+export function TransactionForm({ initialSymbol = '', initialType = 'buy', initialAssetType, initialName, onSubmit, onCancel, onDone, onImportPress, useBottomSheetTextInputs = false, useBottomSheetScrollView = false, useExternalScrollView = false, analyticsContext = 'transaction_form' }: TransactionFormProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const colors = Colors[colorScheme ?? 'light'];
@@ -326,70 +328,63 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
     setDate(selectedStr > todayStr ? new Date() : currentDate);
   };
 
-  return (
-    <View style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets={true}
-      >
-        {/* Transaction Type Toggle */}
-        <View style={styles.section}>
-          <View style={styles.sectionLabelRow}>
-            <Text style={[styles.sectionLabel, { color: colors.icon }]}>Transaction Type</Text>
-            <ImportButton onPress={handleImportPress} size="small" />
-          </View>
-          <View style={[styles.toggleContainer, { backgroundColor: colors.cardBackground }]}>
-            <TouchableOpacity
-              style={[
-                styles.toggleButton,
-                transactionType === 'buy' && { backgroundColor: colors.tint }
-              ]}
-              onPress={() => {
-                void trackTransactionsAction({ action: 'form_type_change', target: 'buy', context: analyticsContext });
-                setTransactionType('buy');
-              }}
-            >
-              <Ionicons
-                name="add"
-                size={16}
-                color={transactionType === 'buy' ? colors.textOnColor : colors.text}
-                style={{ marginRight: 4 }}
-              />
-              <Text style={[
-                styles.toggleText,
-                { color: transactionType === 'buy' ? colors.textOnColor : colors.text }
-              ]}>
-                Purchase
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.toggleButton,
-                transactionType === 'sell' && { backgroundColor: colors.red }
-              ]}
-              onPress={() => {
-                void trackTransactionsAction({ action: 'form_type_change', target: 'sell', context: analyticsContext });
-                setTransactionType('sell');
-              }}
-            >
-              <Ionicons
-                name="remove"
-                size={16}
-                color={transactionType === 'sell' ? colors.textOnColor : colors.text}
-                style={{ marginRight: 4 }}
-              />
-              <Text style={[
-                styles.toggleText,
-                { color: transactionType === 'sell' ? colors.textOnColor : colors.text }
-              ]}>
-                Sell
-              </Text>
-            </TouchableOpacity>
-          </View>
+  const formContent = (
+    <>
+      {/* Transaction Type Toggle */}
+      <View style={styles.section}>
+        <View style={styles.sectionLabelRow}>
+          <Text style={[styles.sectionLabel, { color: colors.icon }]}>Transaction Type</Text>
+          <ImportButton onPress={handleImportPress} size="small" />
         </View>
+        <View style={[styles.toggleContainer, { backgroundColor: colors.cardBackground }]}>
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              transactionType === 'buy' && { backgroundColor: colors.tint }
+            ]}
+            onPress={() => {
+              void trackTransactionsAction({ action: 'form_type_change', target: 'buy', context: analyticsContext });
+              setTransactionType('buy');
+            }}
+          >
+            <Ionicons
+              name="add"
+              size={16}
+              color={transactionType === 'buy' ? colors.textOnColor : colors.text}
+              style={{ marginRight: 4 }}
+            />
+            <Text style={[
+              styles.toggleText,
+              { color: transactionType === 'buy' ? colors.textOnColor : colors.text }
+            ]}>
+              Purchase
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              transactionType === 'sell' && { backgroundColor: colors.red }
+            ]}
+            onPress={() => {
+              void trackTransactionsAction({ action: 'form_type_change', target: 'sell', context: analyticsContext });
+              setTransactionType('sell');
+            }}
+          >
+            <Ionicons
+              name="remove"
+              size={16}
+              color={transactionType === 'sell' ? colors.textOnColor : colors.text}
+              style={{ marginRight: 4 }}
+            />
+            <Text style={[
+              styles.toggleText,
+              { color: transactionType === 'sell' ? colors.textOnColor : colors.text }
+            ]}>
+              Sell
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
         {/* Stock/ETF Search */}
         <View style={styles.section}>
@@ -567,42 +562,81 @@ export function TransactionForm({ initialSymbol = '', initialType = 'buy', initi
           useBottomSheetTextInput={useBottomSheetTextInputs}
         />
 
-        {/* Action Buttons */}
-        <View style={styles.buttonContainer}>
+      {/* Action Buttons */}
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={[
+            styles.submitButton,
+            { backgroundColor: transactionType === 'buy' ? colors.tint : colors.red }
+          ]}
+          onPress={handleSubmit}
+        >
+          <Text style={styles.submitButtonText}>
+            {transactionType === 'buy' ? 'Record Purchase' : 'Record Sale'}
+          </Text>
+        </TouchableOpacity>
+
+        {onCancel && (
           <TouchableOpacity
-            style={[
-              styles.submitButton,
-              { backgroundColor: transactionType === 'buy' ? colors.tint : colors.red }
-            ]}
-            onPress={handleSubmit}
+            style={[styles.cancelButton, { backgroundColor: isDark ? colors.cardBackground : colors.surface }]}
+            onPress={() => {
+              void trackTransactionsAction({ action: 'form_cancel', context: analyticsContext });
+              onCancel();
+            }}
           >
-            <Text style={styles.submitButtonText}>
-              {transactionType === 'buy' ? 'Record Purchase' : 'Record Sale'}
+            <Text style={[styles.cancelButtonText, { color: colors.text }]}>
+              Cancel
             </Text>
           </TouchableOpacity>
+        )}
+      </View>
+    </>
+  );
 
-          {onCancel && (
-            <TouchableOpacity
-              style={[styles.cancelButton, { backgroundColor: isDark ? colors.cardBackground : colors.surface }]}
-              onPress={() => {
-                void trackTransactionsAction({ action: 'form_cancel', context: analyticsContext });
-                onCancel();
-              }}
-            >
-              <Text style={[styles.cancelButtonText, { color: colors.text }]}>
-                Cancel
-              </Text>
-            </TouchableOpacity>
-          )}
+  const searchModal = (
+    <AssetSearchModal
+      visible={showSearchModal}
+      onClose={() => setShowSearchModal(false)}
+      onSelectAsset={handleSelectAsset}
+      analyticsContext={analyticsContext}
+    />
+  );
+
+  if (useExternalScrollView) {
+    return (
+      <>
+        <View style={styles.contentContainer}>
+          {formContent}
         </View>
-      </ScrollView>
+        {searchModal}
+      </>
+    );
+  }
 
-      <AssetSearchModal
-        visible={showSearchModal}
-        onClose={() => setShowSearchModal(false)}
-        onSelectAsset={handleSelectAsset}
-        analyticsContext={analyticsContext}
-      />
+  return (
+    <View style={styles.container}>
+      {useBottomSheetScrollView ? (
+        <BottomSheetScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {formContent}
+        </BottomSheetScrollView>
+      ) : (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={true}
+        >
+          {formContent}
+        </ScrollView>
+      )}
+
+      {searchModal}
 
     </View>
   );
@@ -618,7 +652,6 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 120,
   },
   section: {
     marginBottom: 20,

@@ -453,7 +453,7 @@ export default function ImportTransactionsScreen() {
         backdropOpacity={1}
         handleIndicatorColor={colors.iconMuted}
       >
-        <BottomSheetView style={[s.sheet, { paddingBottom: Math.max(insets.bottom, 12) + 12 }]}>
+        <BottomSheetView style={[s.sheet, { paddingBottom: Math.max(insets.bottom, 12) }]}>
           <View style={s.sheetHeader}>
             <Text style={[s.sheetTitle, { color: colors.text }]}>Choose source</Text>
             <TouchableOpacity

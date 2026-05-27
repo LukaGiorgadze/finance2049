@@ -4,7 +4,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { trackTransactionsAction, useInAppMessageSuppression } from '@/lib';
 import { Ionicons } from '@expo/vector-icons';
-import { BottomSheetView } from '@gorhom/bottom-sheet';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { router } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -59,7 +59,6 @@ export function TransactionModal({ visible, onClose, initialSymbol, initialName,
       onDismiss={onClose}
       snapPoints={['96%']}
       enableDynamicSizing={false}
-      enableContentPanningGesture={false}
       backgroundColor={colors.surface}
       backdropColor={colors.overlayStrong}
       handleIndicatorColor={colors.iconMuted}
@@ -68,7 +67,12 @@ export function TransactionModal({ visible, onClose, initialSymbol, initialName,
       keyboardBlurBehavior="restore"
       android_keyboardInputMode="adjustResize"
     >
-      <BottomSheetView style={[styles.container, { backgroundColor: colors.surface }]}>
+      <BottomSheetScrollView
+        style={[styles.container, { backgroundColor: colors.surface }]}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
@@ -104,9 +108,10 @@ export function TransactionModal({ visible, onClose, initialSymbol, initialName,
             setTimeout(() => router.push('/import-transactions'), 350);
           }}
           useBottomSheetTextInputs
+          useExternalScrollView
           analyticsContext={analyticsContext}
         />
-      </BottomSheetView>
+      </BottomSheetScrollView>
     </AppBottomSheetModal>
   );
 }

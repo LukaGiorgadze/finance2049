@@ -11,7 +11,7 @@ import {
   vec,
 } from '@shopify/react-native-skia';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { runOnJS, useAnimatedReaction, useDerivedValue } from 'react-native-reanimated';
 import {
   Area,
@@ -120,15 +120,12 @@ export const StockChart = React.memo(function StockChart({
 
   const TimelineSelector = ({ borderTopWidth = 1 }: { borderTopWidth?: number }) => (
     <View style={[styles.timelineWrapper, { borderTopColor: colors.divider, borderTopWidth }]}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.timelineContainer}
-      >
+      <View style={styles.timelineContainer}>
         {TIMELINES.map((timeline) => (
           <TouchableOpacity
             key={timeline}
             onPress={() => onTimelineChange(timeline)}
+            hitSlop={{ top: 8, bottom: 8 }}
             style={[
               styles.timelineButton,
               {
@@ -149,7 +146,7 @@ export const StockChart = React.memo(function StockChart({
             </ThemedText>
           </TouchableOpacity>
         ))}
-      </ScrollView>
+      </View>
     </View>
   );
 
@@ -388,22 +385,23 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     paddingTop: 12,
     marginTop: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
   },
   timelineContainer: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 3,
   },
   timelineButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 6,
     borderRadius: 8,
-    minWidth: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },
   timelineText: {
-    fontSize: 12,
-    letterSpacing: 0.3,
+    fontSize: 11,
+    letterSpacing: 0,
   },
 });

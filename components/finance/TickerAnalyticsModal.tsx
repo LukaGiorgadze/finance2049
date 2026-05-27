@@ -17,14 +17,9 @@ import {
 } from '@/lib';
 import type { TickerStat } from '@/lib/hooks/useAnalytics';
 import { Ionicons } from '@expo/vector-icons';
-import { BottomSheetView } from '@gorhom/bottom-sheet';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LotsAndHistoryModal } from './LotsAndHistoryModal';
 
@@ -84,248 +79,229 @@ export function TickerAnalyticsModal({ visible, onClose, ticker }: Props) {
   const textColor = colors.text;
 
   return (
-    <AppBottomSheetModal
-      visible={visible}
-      onDismiss={onClose}
-      snapPoints={['96%']}
-      enableDynamicSizing={false}
-      enableContentPanningGesture={false}
-      backgroundColor={colors.surface}
-      backdropColor={colors.overlayStrong}
-      handleIndicatorColor={colors.iconMuted}
-      topInset={insets.top}
-    >
-      <BottomSheetView style={[styles.container, { backgroundColor: colors.surface }]}>
-        {/* ── Header ── */}
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <ThemedText style={styles.headerTitle}>{ticker.symbol}</ThemedText>
-            <View style={styles.headerSubtitleRow}>
-              <View style={[styles.headerBadge, { backgroundColor: badgeBg }]}>
-                <ThemedText style={[styles.headerBadgeText, { color: badgeTextColor }]}>
-                  {ticker.symbol}
-                </ThemedText>
-              </View>
-              <ThemedText style={styles.headerDot}>·</ThemedText>
-              <ThemedText style={styles.headerSub}>
-                {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}
-                {'  ·  '}{ticker.isHeld ? 'currently held' : 'fully closed'}
-              </ThemedText>
-            </View>
-          </View>
-          <TouchableOpacity
-            onPress={onClose}
-            style={styles.closeButton}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="close" size={28} color={textColor} />
-          </TouchableOpacity>
-        </View>
-        <View style={[styles.accent, { backgroundColor: colors.headerAccent }]} />
-
-        <ScrollView
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 32 }]}
+    <>
+      <AppBottomSheetModal
+        visible={visible}
+        onDismiss={onClose}
+        snapPoints={['96%']}
+        enableDynamicSizing={false}
+        backgroundColor={colors.surface}
+        backdropColor={colors.overlayStrong}
+        handleIndicatorColor={colors.iconMuted}
+        topInset={insets.top}
+      >
+        <BottomSheetScrollView
+          style={[styles.container, { backgroundColor: colors.surface }]}
+          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) }}
           showsVerticalScrollIndicator={false}
         >
-          {/* ── Total Return ── */}
-          <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-            <ThemedText style={styles.cardLabel}>Total Return</ThemedText>
-            <ThemedText
-              style={[
-                styles.totalReturnNumber,
-                { color: isVisible ? getValueColor(ticker.totalReturn, neutralColor) : neutralColor },
-              ]}
-            >
-              {isVisible ? formatCurrency(ticker.totalReturn, 'exceptZero') : MASKED.currency}
-            </ThemedText>
-
-            <View style={[styles.divider, { backgroundColor: dividerColor, marginVertical: 14 }]} />
-
-            {/* Realized / Unrealized split */}
-            <View style={styles.twoCol}>
-              <View style={styles.colItem}>
-                <ThemedText style={styles.colLabel}>Realized</ThemedText>
-                <ThemedText
-                  style={[
-                    styles.colValue,
-                    { color: isVisible ? getValueColor(ticker.realizedGain, neutralColor) : neutralColor },
-                  ]}
-                >
-                  {isVisible ? formatCurrency(ticker.realizedGain, 'exceptZero') : MASKED.currency}
+          <View style={styles.header}>
+            <View style={styles.headerContent}>
+              <ThemedText style={styles.headerTitle}>{ticker.symbol}</ThemedText>
+              <View style={styles.headerSubtitleRow}>
+                <View style={[styles.headerBadge, { backgroundColor: badgeBg }]}>
+                  <ThemedText style={[styles.headerBadgeText, { color: badgeTextColor }]}>
+                    {ticker.symbol}
+                  </ThemedText>
+                </View>
+                <ThemedText style={styles.headerDot}>·</ThemedText>
+                <ThemedText style={styles.headerSub}>
+                  {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}
+                  {'  ·  '}{ticker.isHeld ? 'currently held' : 'fully closed'}
                 </ThemedText>
-                {ticker.realizedCostBasis > 0 && (
+              </View>
+            </View>
+            <TouchableOpacity
+              onPress={onClose}
+              style={styles.closeButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close" size={28} color={textColor} />
+            </TouchableOpacity>
+          </View>
+          <View style={[styles.accent, { backgroundColor: colors.headerAccent }]} />
+
+          <View style={styles.scrollContent}>
+            <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
+              <ThemedText style={styles.cardLabel}>Total Return</ThemedText>
+              <ThemedText
+                style={[
+                  styles.totalReturnNumber,
+                  { color: isVisible ? getValueColor(ticker.totalReturn, neutralColor) : neutralColor },
+                ]}
+              >
+                {isVisible ? formatCurrency(ticker.totalReturn, 'exceptZero') : MASKED.currency}
+              </ThemedText>
+
+              <View style={[styles.divider, { backgroundColor: dividerColor, marginVertical: 14 }]} />
+
+              <View style={styles.twoCol}>
+                <View style={styles.colItem}>
+                  <ThemedText style={styles.colLabel}>Realized</ThemedText>
                   <ThemedText
                     style={[
-                      styles.colPercent,
+                      styles.colValue,
                       { color: isVisible ? getValueColor(ticker.realizedGain, neutralColor) : neutralColor },
                     ]}
                   >
-                    {isVisible ? formatPercent(ticker.realizedGainPercent, 'exceptZero') : MASKED.percent}
+                    {isVisible ? formatCurrency(ticker.realizedGain, 'exceptZero') : MASKED.currency}
                   </ThemedText>
-                )}
-                {ticker.sellCount > 0 && (
-                  <ThemedText style={styles.colSub}>
-                    {ticker.sellCount} {ticker.sellCount === 1 ? 'sale' : 'sales'}
-                  </ThemedText>
-                )}
-              </View>
-
-              <View style={[styles.colDivider, { backgroundColor: dividerColor }]} />
-
-              <View style={styles.colItem}>
-                <ThemedText style={styles.colLabel}>Unrealized</ThemedText>
-                {ticker.isHeld ? (
-                  <>
+                  {ticker.realizedCostBasis > 0 && (
                     <ThemedText
                       style={[
-                        styles.colValue,
-                        { color: neutralColor },
+                        styles.colPercent,
+                        { color: isVisible ? getValueColor(ticker.realizedGain, neutralColor) : neutralColor },
                       ]}
                     >
-                      {isVisible ? formatCurrency(ticker.unrealizedGain, 'exceptZero') : MASKED.currency}
+                      {isVisible ? formatPercent(ticker.realizedGainPercent, 'exceptZero') : MASKED.percent}
                     </ThemedText>
-                    <ThemedText style={styles.colSub}>Open Position</ThemedText>
-                  </>
-                ) : (
-                  <>
-                    <ThemedText style={[styles.colValue, { opacity: 0.35 }]}>—</ThemedText>
-                    <ThemedText style={styles.colSub}>Position Closed</ThemedText>
-                  </>
-                )}
+                  )}
+                  {ticker.sellCount > 0 && (
+                    <ThemedText style={styles.colSub}>
+                      {ticker.sellCount} {ticker.sellCount === 1 ? 'sale' : 'sales'}
+                    </ThemedText>
+                  )}
+                </View>
+
+                <View style={[styles.colDivider, { backgroundColor: dividerColor }]} />
+
+                <View style={styles.colItem}>
+                  <ThemedText style={styles.colLabel}>Unrealized</ThemedText>
+                  {ticker.isHeld ? (
+                    <>
+                      <ThemedText style={[styles.colValue, { color: neutralColor }]}>
+                        {isVisible ? formatCurrency(ticker.unrealizedGain, 'exceptZero') : MASKED.currency}
+                      </ThemedText>
+                      <ThemedText style={styles.colSub}>Open Position</ThemedText>
+                    </>
+                  ) : (
+                    <>
+                      <ThemedText style={[styles.colValue, { opacity: 0.35 }]}>—</ThemedText>
+                      <ThemedText style={styles.colSub}>Position Closed</ThemedText>
+                    </>
+                  )}
+                </View>
               </View>
             </View>
-          </View>
 
-          {/* ── Current Holding ── */}
-          {holding && (
-            <View style={[styles.card, { backgroundColor: colors.cardBackground, borderWidth: 1, borderColor: colors.cardBorder }]}>
-              <ThemedText style={styles.cardLabel}>Current Position</ThemedText>
-              <View style={styles.statsList}>
-                <StatLine
-                  label="Shares"
-                  value={isVisible ? formatShares(holding.shares) : MASKED.shares}
-                  isDark={isDark}
-                  dividerColor={dividerColor}
-                />
-                <StatLine
-                  label="Avg Cost"
-                  value={isVisible ? formatCurrency(holding.avgCost, 'never') : MASKED.currency}
-                  isDark={isDark}
-                  dividerColor={dividerColor}
-                />
-                <StatLine
-                  label="Current Price"
-                  value={isVisible ? formatCurrency(holding.currentPrice, 'never') : MASKED.currency}
-                  isDark={isDark}
-                  dividerColor={dividerColor}
-                />
-                <StatLine
-                  label="Market Value"
-                  value={isVisible ? formatCurrency(holding.totalValue, 'never') : MASKED.currency}
-                  valueWeight="700"
-                  isDark={isDark}
-                  dividerColor={dividerColor}
-                  isLast
-                />
-              </View>
-            </View>
-          )}
-
-          {/* ── Trade History ── */}
-          {transactions.length > 0 && (
-            <TouchableOpacity
-              style={[styles.card, { backgroundColor: colors.cardBackground, borderWidth: 1, borderColor: colors.cardBorder }]}
-              onPress={() => {
-                void trackPositionDetailAction({
-                  context: 'statistics',
-                  action: 'open_history',
-                  symbol,
-                });
-                setHistoryVisible(true);
-              }}
-              activeOpacity={0.7}
-            >
-              <ThemedText style={styles.cardLabel}>Transaction History</ThemedText>
-              <View style={styles.historyLinkRow}>
-                <ThemedText style={styles.historyCount}>
-                  {transactions.length} {transactions.length === 1 ? 'transaction' : 'transactions'}
-                </ThemedText>
-                <Ionicons name="chevron-forward" size={18} color={colors.iconMuted} />
-              </View>
-            </TouchableOpacity>
-          )}
-
-          {/* ── Summary stats ── */}
-          {(buyTransactions.length > 0 || sellTransactions.length > 0) && (
-            <View style={[styles.card, { backgroundColor: colors.cardBackground, borderWidth: 1, borderColor: colors.cardBorder }]}>
-              <ThemedText style={styles.cardLabel}>Summary</ThemedText>
-              <View style={styles.statsList}>
-                <StatLine
-                  label="Total Invested"
-                  value={
-                    isVisible
-                      ? formatCurrency(
-                          buyTransactions.reduce(
-                            (s, t) => s + (t.shares * t.price + (t.commission ?? 0)),
-                            0,
-                          ),
-                          'never',
-                        )
-                      : MASKED.currency
-                  }
-                  isDark={isDark}
-                  dividerColor={dividerColor}
-                />
-                {sellTransactions.length > 0 && (
+            {holding && (
+              <View style={[styles.card, { backgroundColor: colors.cardBackground, borderWidth: 1, borderColor: colors.cardBorder }]}>
+                <ThemedText style={styles.cardLabel}>Current Position</ThemedText>
+                <View style={styles.statsList}>
                   <StatLine
-                    label="Total Proceeds"
+                    label="Shares"
+                    value={isVisible ? formatShares(holding.shares) : MASKED.shares}
+                    dividerColor={dividerColor}
+                  />
+                  <StatLine
+                    label="Avg Cost"
+                    value={isVisible ? formatCurrency(holding.avgCost, 'never') : MASKED.currency}
+                    dividerColor={dividerColor}
+                  />
+                  <StatLine
+                    label="Current Price"
+                    value={isVisible ? formatCurrency(holding.currentPrice, 'never') : MASKED.currency}
+                    dividerColor={dividerColor}
+                  />
+                  <StatLine
+                    label="Market Value"
+                    value={isVisible ? formatCurrency(holding.totalValue, 'never') : MASKED.currency}
+                    valueWeight="700"
+                    dividerColor={dividerColor}
+                    isLast
+                  />
+                </View>
+              </View>
+            )}
+
+            {transactions.length > 0 && (
+              <TouchableOpacity
+                style={[styles.card, { backgroundColor: colors.cardBackground, borderWidth: 1, borderColor: colors.cardBorder }]}
+                onPress={() => {
+                  void trackPositionDetailAction({
+                    context: 'statistics',
+                    action: 'open_history',
+                    symbol,
+                  });
+                  setHistoryVisible(true);
+                }}
+                activeOpacity={0.7}
+              >
+                <ThemedText style={styles.cardLabel}>Transaction History</ThemedText>
+                <View style={styles.historyLinkRow}>
+                  <ThemedText style={styles.historyCount}>
+                    {transactions.length} {transactions.length === 1 ? 'transaction' : 'transactions'}
+                  </ThemedText>
+                  <Ionicons name="chevron-forward" size={18} color={colors.iconMuted} />
+                </View>
+              </TouchableOpacity>
+            )}
+
+            {(buyTransactions.length > 0 || sellTransactions.length > 0) && (
+              <View style={[styles.card, { backgroundColor: colors.cardBackground, borderWidth: 1, borderColor: colors.cardBorder }]}>
+                <ThemedText style={styles.cardLabel}>Summary</ThemedText>
+                <View style={styles.statsList}>
+                  <StatLine
+                    label="Total Invested"
                     value={
                       isVisible
                         ? formatCurrency(
-                            sellTransactions.reduce(
-                              (s, t) => s + t.total - (t.commission ?? 0),
+                            buyTransactions.reduce(
+                              (s, t) => s + (t.shares * t.price + (t.commission ?? 0)),
                               0,
                             ),
                             'never',
                           )
                         : MASKED.currency
                     }
-                    isDark={isDark}
                     dividerColor={dividerColor}
                   />
-                )}
-                <StatLine
-                  label="Win / Loss trades"
-                  value={`${sellTransactions.filter((t) => (t.gain ?? 0) > 0).length} W  /  ${sellTransactions.filter((t) => (t.gain ?? 0) < 0).length} L`}
-                  isDark={isDark}
-                  dividerColor={dividerColor}
-                  isLast
-                />
+                  {sellTransactions.length > 0 && (
+                    <StatLine
+                      label="Total Proceeds"
+                      value={
+                        isVisible
+                          ? formatCurrency(
+                              sellTransactions.reduce(
+                                (s, t) => s + t.total - (t.commission ?? 0),
+                                0,
+                              ),
+                              'never',
+                            )
+                          : MASKED.currency
+                      }
+                      dividerColor={dividerColor}
+                    />
+                  )}
+                  <StatLine
+                    label="Win / Loss trades"
+                    value={`${sellTransactions.filter((t) => (t.gain ?? 0) > 0).length} W  /  ${sellTransactions.filter((t) => (t.gain ?? 0) < 0).length} L`}
+                    dividerColor={dividerColor}
+                    isLast
+                  />
+                </View>
               </View>
-            </View>
-          )}
-        </ScrollView>
+            )}
+          </View>
+        </BottomSheetScrollView>
+      </AppBottomSheetModal>
 
-        <LotsAndHistoryModal
-          visible={historyVisible}
-          onClose={() => setHistoryVisible(false)}
-          type="history"
-          symbol={symbol}
-          analyticsContext="statistics"
-        />
-      </BottomSheetView>
-    </AppBottomSheetModal>
+      <LotsAndHistoryModal
+        visible={historyVisible}
+        onClose={() => setHistoryVisible(false)}
+        type="history"
+        symbol={symbol}
+        analyticsContext="statistics"
+      />
+    </>
   );
 }
-
-// ── StatLine helper ──────────────────────────────────────────────────────────
 
 function StatLine({
   label,
   value,
   valueColor,
   valueWeight = '500',
-  isDark,
   dividerColor,
   isLast = false,
 }: {
@@ -333,7 +309,6 @@ function StatLine({
   value: string;
   valueColor?: string;
   valueWeight?: '500' | '600' | '700';
-  isDark: boolean;
   dividerColor: string;
   isLast?: boolean;
 }) {
@@ -356,11 +331,8 @@ function StatLine({
   );
 }
 
-// ── Styles ───────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
-
   header: {
     paddingHorizontal: 20,
     paddingTop: 8,
@@ -411,13 +383,11 @@ const styles = StyleSheet.create({
     height: 1,
     width: '100%',
   },
-
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 16,
     gap: 12,
   },
-
   card: {
     borderRadius: 16,
     padding: 20,
@@ -439,9 +409,7 @@ const styles = StyleSheet.create({
     letterSpacing: -1.5,
     lineHeight: 42,
   },
-
   divider: { height: 1, width: '100%' },
-
   twoCol: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -475,8 +443,6 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     opacity: 0.4,
   },
-
-
   statsList: { gap: 0 },
   statLineRow: {
     flexDirection: 'row',
@@ -491,10 +457,7 @@ const styles = StyleSheet.create({
   statLineValue: {
     fontSize: 15,
   },
-
   rowDivider: { height: 1 },
-
-  // Transaction History link card
   historyLinkRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

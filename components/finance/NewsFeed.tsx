@@ -31,12 +31,33 @@ function formatRelativeTime(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString();
 }
 
-export function NewsFeed({ refreshKey = 0 }: { refreshKey?: number }) {
+interface NewsFeedProps {
+  refreshKey?: number;
+  ticker?: string;
+  tickerName?: string;
+  title?: string;
+  limit?: number;
+  source?: string;
+  emptyText?: string;
+  showMore?: boolean;
+}
+
+export function NewsFeed({
+  refreshKey = 0,
+  ticker,
+  tickerName,
+  title = 'News',
+  limit = 5,
+  source = 'home_feed',
+  emptyText,
+  showMore = true,
+}: NewsFeedProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const colors = isDark ? Colors.dark : Colors.light;
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const normalizedTicker = ticker?.trim().toUpperCase();
 
   // Only animate on first mount
   const shouldAnimate = useRef(!hasAnimatedNewsFeed);
@@ -45,27 +66,47 @@ export function NewsFeed({ refreshKey = 0 }: { refreshKey?: number }) {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchNews() {
+      setIsLoading(true);
       const token = await getAccessToken();
-      if (!token) { setIsLoading(false); return; }
+      if (!token) {
+        if (!cancelled) {
+          setArticles([]);
+          setIsLoading(false);
+        }
+        return;
+      }
 
       try {
-        const { articles: data } = await marketDataService.getNews({ limit: 5 });
-        setArticles(data);
+        const { articles: data } = await marketDataService.getNews({
+          limit,
+          ...(normalizedTicker ? { tickers: [normalizedTicker] } : {}),
+        });
+        if (!cancelled) {
+          setArticles(data);
+        }
       } catch (error) {
         reportError('Failed to fetch news', error, {
-          surface: 'home_widget',
-          limit: 5,
+          surface: normalizedTicker ? 'stock_detail_news' : 'home_widget',
+          limit,
           refreshKey,
+          ticker: normalizedTicker,
         });
-        setArticles([]);
+        if (!cancelled) {
+          setArticles([]);
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     }
 
-    fetchNews();
-  }, [refreshKey]);
+    void fetchNews();
+    return () => { cancelled = true; };
+  }, [limit, normalizedTicker, refreshKey]);
 
   return (
     <View style={styles.container}>
@@ -74,22 +115,38 @@ export function NewsFeed({ refreshKey = 0 }: { refreshKey?: number }) {
           <View style={[styles.iconBadge, { backgroundColor: colors.divider }]}>
             <Ionicons name="newspaper-outline" size={16} color={colors.text} />
           </View>
-          <SectionTitle style={styles.sectionTitle}>News</SectionTitle>
+          <SectionTitle style={styles.sectionTitle}>{title}</SectionTitle>
         </View>
-        <TouchableOpacity
-          style={styles.moreButton}
-          onPress={() => {
-            void trackNewsAction({ action: 'open_news_list', source: 'home_feed' });
-            router.push('/news');
-          }}
-        >
-          <ThemedText style={styles.moreText}>More</ThemedText>
-          <Ionicons
-            name="chevron-forward"
-            size={16}
-            color={colors.icon}
-          />
-        </TouchableOpacity>
+        {showMore && (
+          <TouchableOpacity
+            style={styles.moreButton}
+            onPress={() => {
+              void trackNewsAction({
+                action: 'open_news_list',
+                source,
+                target: normalizedTicker ? `ticker:${normalizedTicker}` : undefined,
+              });
+              if (normalizedTicker) {
+                router.push({
+                  pathname: '/news',
+                  params: {
+                    ticker: normalizedTicker,
+                    ...(tickerName ? { name: tickerName } : {}),
+                  },
+                });
+              } else {
+                router.push('/news');
+              }
+            }}
+          >
+            <ThemedText style={styles.moreText}>More</ThemedText>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={colors.icon}
+            />
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.newsList}>
@@ -99,7 +156,9 @@ export function NewsFeed({ refreshKey = 0 }: { refreshKey?: number }) {
           </View>
         ) : articles.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <ThemedText style={styles.emptyText}>The news desk is on a coffee break. Check back soon! ☕</ThemedText>
+            <ThemedText style={styles.emptyText}>
+              {emptyText ?? 'The news desk is on a coffee break. Check back soon! ☕'}
+            </ThemedText>
           </View>
         ) : (
           articles.map((article, index) => (
