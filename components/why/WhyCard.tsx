@@ -114,7 +114,6 @@ export function WhyCard({ symbol, assetName, assetType }: WhyCardProps) {
         </>
       ) : (
         <>
-          <ThemedText style={styles.emptyTitle}>No thesis yet</ThemedText>
           <ThemedText style={styles.emptyText}>
             Capture your reasoning before the price changes the story.
           </ThemedText>
@@ -164,6 +163,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 11,
+    lineHeight: 16,
     fontWeight: '500',
   },
   excerpt: {
@@ -180,6 +180,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
+    lineHeight: 15,
     opacity: 0.55,
   },
   reviewNote: {
@@ -225,11 +226,6 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 14,
     fontWeight: '600',
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
   },
   emptyText: {
     fontSize: 14,
