@@ -40,7 +40,8 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
   const [loadingMore, setLoadingMore] = useState(false);
   const nextUrlRef = useRef<string | undefined>(undefined);
   const searchInputRef = useRef<TextInput>(null);
-  const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasFocusedOnOpenRef = useRef(false);
+  const visibleRef = useRef(visible);
   const searchRequestIdRef = useRef(0);
   const wasVisibleRef = useRef(false);
   const colorScheme = useColorScheme();
@@ -52,23 +53,17 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
   }, []);
 
   const focusSearchInput = useCallback(() => {
-    if (focusTimeoutRef.current) {
-      clearTimeout(focusTimeoutRef.current);
-    }
-
-    focusTimeoutRef.current = setTimeout(() => {
-      focusTimeoutRef.current = null;
-      searchInputRef.current?.focus();
-    }, 150);
+    if (hasFocusedOnOpenRef.current || !visibleRef.current) return;
+    hasFocusedOnOpenRef.current = true;
+    searchInputRef.current?.focus();
   }, []);
 
   // Reset state when modal closes
   useEffect(() => {
+    visibleRef.current = visible;
+
     if (!visible) {
-      if (focusTimeoutRef.current) {
-        clearTimeout(focusTimeoutRef.current);
-        focusTimeoutRef.current = null;
-      }
+      hasFocusedOnOpenRef.current = false;
       searchRequestIdRef.current += 1;
       dismissSearchKeyboard();
       setSearchText('');
@@ -79,17 +74,11 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
     }
   }, [dismissSearchKeyboard, visible]);
 
-  useEffect(() => () => {
-    if (focusTimeoutRef.current) {
-      clearTimeout(focusTimeoutRef.current);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (visible) {
+  const handleSheetChange = useCallback((index: number) => {
+    if (index >= 0) {
       focusSearchInput();
     }
-  }, [focusSearchInput, visible]);
+  }, [focusSearchInput]);
 
   useEffect(() => {
     if (!analyticsContext) {
@@ -206,6 +195,7 @@ export function AssetSearchModal({ visible, onClose, onSelectAsset, analyticsCon
     <AppBottomSheetModal
       visible={visible}
       onDismiss={handleClose}
+      onChange={handleSheetChange}
       snapPoints={['94%']}
       enableDynamicSizing={false}
       enableContentPanningGesture={false}
