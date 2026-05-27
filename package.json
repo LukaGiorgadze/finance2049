@@ -1,7 +1,7 @@
 {
   "name": "finance2049",
   "main": "expo-router/entry",
-  "version": "0.3.5",
+  "version": "1.0.0",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -77,6 +77,10 @@
     "eslint": "^9.25.0",
     "eslint-config-expo": "~55.0.1",
     "typescript": "~5.9.2"
+  },
+  "resolutions": {
+    "@react-navigation/native": "7.2.4",
+    "expo-image-loader": "55.0.1"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

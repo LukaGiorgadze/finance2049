@@ -33,6 +33,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type OptionalSection = 'assumptions' | 'risks' | 'watchItems';
 
@@ -103,6 +104,7 @@ export default function EditWhyScreen() {
   }>();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const insets = useSafeAreaInsets();
   const theses = useWhyTheses();
   const id = firstParam(params.id);
   const routeSymbol = firstParam(params.symbol)?.toUpperCase();
@@ -514,7 +516,16 @@ export default function EditWhyScreen() {
         )}
       </ScrollView>
 
-      <View style={[styles.footer, { backgroundColor: colors.surface, borderColor: colors.headerAccent }]}>
+      <View
+        style={[
+          styles.footer,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.headerAccent,
+            paddingBottom: insets.bottom + 16,
+          },
+        ]}
+      >
         <TouchableOpacity
           style={[styles.saveButton, { backgroundColor: colors.tint, opacity: saving || removing ? 0.6 : 1 }]}
           onPress={save}

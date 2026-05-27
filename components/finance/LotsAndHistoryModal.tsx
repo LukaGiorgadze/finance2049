@@ -433,6 +433,8 @@ export function LotsAndHistoryModal({ visible, onClose, type, lots = [], symbol,
         { backgroundColor: colors.headerAccent }
       ]} />
 
+      {type === 'history' && <View style={styles.historyHeaderGap} />}
+
       {type === 'lots' && holding && (
         <View
           style={[
@@ -552,6 +554,9 @@ const styles = StyleSheet.create({
   },
   listContentContainer: {
     paddingBottom: 26,
+  },
+  historyHeaderGap: {
+    height: 8,
   },
   separator: {
     height: 8,
@@ -739,6 +744,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: 80,
     borderRadius: 12,
-    marginLeft: 8,
+    marginRight: 20,
   },
 });
